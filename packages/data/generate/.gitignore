@@ -1,0 +1,5 @@
+# Ignore generated data files (not committed to git)
+data/
+
+# Keep the data directory structure
+!data/.gitkeep

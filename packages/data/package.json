@@ -1,0 +1,38 @@
+{
+  "name": "@india-boundary-corrector/data",
+  "version": "0.0.1",
+  "description": "PMTiles data for India boundary corrections (NE and OSM layers)",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./pmtiles": "./india_boundary_corrections.pmtiles"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "version.js",
+    "india_boundary_corrections.pmtiles"
+  ],
+  "scripts": {
+    "generate": "cd generate && bash steps.sh"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "pmtiles",
+    "natural-earth",
+    "openstreetmap"
+  ],
+  "author": "",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
