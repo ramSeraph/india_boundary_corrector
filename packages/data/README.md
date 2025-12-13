@@ -25,7 +25,7 @@ console.log(pmtilesPath);
 const url = getPmtilesUrl(); // auto-detects and uses correct URL
 
 // Get data version (OSM timestamp + NE version)
-const version = await getDataVersion(); // e.g., "osm_20231215_143022_ne_5.1.2"
+const version = getDataVersion(); // e.g., "osm_20231215_143022_ne_5.1.2"
 ```
 
 ## Data Sources

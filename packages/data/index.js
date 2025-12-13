@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { dataVersion } from './version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,13 +39,8 @@ export function getPmtilesUrl() {
 /**
  * Get the data version string
  * Format: osm_YYYYMMDD_HHMMSS_ne_VERSION
- * @returns {Promise<string>} Data version identifier
+ * @returns {string} Data version identifier
  */
-export async function getDataVersion() {
-  try {
-    const { dataVersion } = await import('./version.js');
-    return dataVersion;
-  } catch (e) {
-    return 'unknown';
-  }
+export function getDataVersion() {
+  return dataVersion;
 }

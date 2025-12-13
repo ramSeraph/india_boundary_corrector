@@ -8,4 +8,4 @@ export const layers: {
 };
 
 export function getPmtilesUrl(): string;
-export function getDataVersion(): Promise<string>;
+export function getDataVersion(): string;
