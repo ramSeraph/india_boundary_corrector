@@ -1,0 +1,22 @@
+{
+  "name": "india-boundary-corrector",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/data",
+    "packages/layer-configs",
+    "packages/maplibre",
+    "packages/leaflet",
+    "packages/openlayers"
+  ],
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "serve": "npx http-server . --cors -p 8080"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "http-server": "^14.1.1"
+  }
+}

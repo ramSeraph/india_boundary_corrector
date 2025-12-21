@@ -1,19 +1,20 @@
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { dataVersion } from './version.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 /**
- * Path to the PMTiles file containing India boundary corrections
- * Layers:
- * - to-add-osm: Boundaries to add (from OSM perspective)
- * - to-del-osm: Boundaries to delete (from OSM perspective)  
- * - to-add-ne: Boundaries to add (from Natural Earth perspective)
- * - to-del-ne: Boundaries to delete (from Natural Earth perspective)
+ * Get the file system path to the PMTiles file (Node.js only)
+ * @returns {Promise<string>} Absolute path to the PMTiles file
+ * @throws {Error} If called in a browser environment
  */
-export const pmtilesPath = join(__dirname, 'india_boundary_corrections.pmtiles');
+export async function getPmtilesPath() {
+  if (typeof process === 'undefined' || !process.versions?.node) {
+    throw new Error('getPmtilesPath() is only available in Node.js');
+  }
+  const { fileURLToPath } = await import('url');
+  const { dirname, join } = await import('path');
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  return join(__dirname, 'india_boundary_corrections.pmtiles');
+}
 
 /**
  * Layer names in the PMTiles file

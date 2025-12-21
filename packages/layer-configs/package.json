@@ -1,0 +1,30 @@
+{
+  "name": "@india-boundary-corrector/layer-configs",
+  "version": "0.0.1",
+  "description": "Pre-built layer configurations for India boundary corrections",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    },
+    "./osm-carto-dark": {
+      "import": "./src/osm-carto-dark.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {},
+  "devDependencies": {
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "layer-config"
+  ],
+  "author": "",
+  "license": "Unlicense"
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@india-boundary-corrector/maplibre",
+  "version": "0.0.1",
+  "description": "MapLibre GL JS integration for India boundary corrections",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "maplibre-gl": ">=3.0.0",
+    "pmtiles": "^4.0.0"
+  },
+  "dependencies": {
+    "@india-boundary-corrector/data": "*",
+    "@india-boundary-corrector/layer-configs": "*"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "maplibre"
+  ],
+  "author": "",
+  "license": "Unlicense"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@india-boundary-corrector/leaflet",
+  "version": "0.0.1",
+  "description": "Leaflet integration for India boundary corrections using protomaps-leaflet",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "leaflet": ">=1.7.0",
+    "protomaps-leaflet": ">=4.0.0"
+  },
+  "dependencies": {
+    "@india-boundary-corrector/data": "*",
+    "@india-boundary-corrector/layer-configs": "*"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "leaflet",
+    "protomaps"
+  ],
+  "author": "",
+  "license": "Unlicense"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@india-boundary-corrector/openlayers",
+  "version": "0.0.1",
+  "description": "OpenLayers integration for India boundary corrections using ol-pmtiles",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "ol": ">=9.0.0",
+    "ol-pmtiles": ">=2.0.0"
+  },
+  "dependencies": {
+    "@india-boundary-corrector/data": "*",
+    "@india-boundary-corrector/layer-configs": "*"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "openlayers",
+    "pmtiles"
+  ],
+  "author": "",
+  "license": "Unlicense"
+}
