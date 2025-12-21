@@ -12,7 +12,12 @@ npm install @india-boundary-corrector/maplibre maplibre-gl pmtiles
 
 ```javascript
 import maplibregl from 'maplibre-gl';
+import { Protocol } from 'pmtiles';
 import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
+
+// Register pmtiles protocol
+const protocol = new Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
 
 const map = new maplibregl.Map({
   container: 'map',

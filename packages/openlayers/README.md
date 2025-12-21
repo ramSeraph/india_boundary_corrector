@@ -33,8 +33,8 @@ const map = new Map({
   }),
 });
 
-// Add corrections with explicit config
-const corrector = addBoundaryCorrector(map, { layerConfig: 'osm-carto' });
+// Add corrections - auto-detects layer config from tile URLs
+const corrector = addBoundaryCorrector(map);
 
 // Later: cleanup
 corrector.remove();
@@ -82,9 +82,14 @@ Add boundary corrections to an OpenLayers map.
 **Parameters:**
 - `map`: OpenLayers Map instance
 - `options.pmtilesUrl`: URL to the PMTiles file (optional, defaults to bundled file)
-- `options.layerConfig`: Layer configuration object or config ID string (required)
+- `options.layerConfig`: Layer configuration object or config ID string (optional, auto-detected from tile URLs)
 
 **Returns:** `BoundaryCorrector` instance
+
+**Features:**
+- Automatically detects tile layers and applies corrections
+- Tracks layer additions/removals dynamically
+- Auto-detects layer config from tile URLs if not provided
 
 ### `removeBoundaryCorrector(corrector)`
 
@@ -94,11 +99,13 @@ Remove boundary corrector from the map.
 
 ```javascript
 const corrector = new BoundaryCorrector(map, options);
-corrector.init();           // Initialize and add to map
-corrector.remove();         // Remove from map
-corrector.getLayer();       // Get the vector tile layer
-corrector.getLayerConfig(); // Get the resolved layer config
-corrector.isInitialized();  // Check if initialized
+corrector.init();                    // Initialize and start tracking
+corrector.remove();                  // Remove all corrections and stop tracking
+corrector.getTrackedLayers();        // Get map of tracked base layers
+corrector.hasCorrections(layer);     // Check if layer has corrections
+corrector.getCorrectionLayer(layer); // Get correction layer for a base layer
+corrector.getLayerConfig(layer);     // Get resolved config for a base layer
+corrector.isInitialized();           // Check if initialized
 ```
 
 ## Supported Tile Providers
@@ -147,7 +154,7 @@ const corrector = addBoundaryCorrector(map, { layerConfig: myConfig });
     view: new ol.View({ center: [78.9629, 20.5937], zoom: 4 }),
   });
   
-  const corrector = addBoundaryCorrector(map, { layerConfig: 'osm-carto' });
+  const corrector = addBoundaryCorrector(map);
 </script>
 ```
 

@@ -32,7 +32,12 @@ The corrections use different data sources based on zoom level:
 
 ```javascript
 import maplibregl from 'maplibre-gl';
+import { Protocol } from 'pmtiles';
 import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
+
+// Register pmtiles protocol
+const protocol = new Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -77,7 +82,7 @@ const map = new Map({
   view: new View({ center: [78.9629, 20.5937], zoom: 4 }),
 });
 
-const corrector = addBoundaryCorrector(map, { layerConfig: 'osm-carto' });
+const corrector = addBoundaryCorrector(map);
 ```
 
 ## Supported Tile Providers
