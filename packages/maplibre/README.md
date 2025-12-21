@@ -10,35 +10,29 @@ npm install @india-boundary-corrector/maplibre maplibre-gl pmtiles
 
 ## Usage
 
-```typescript
+```javascript
 import maplibregl from 'maplibre-gl';
-import { addPmtilesProtocol, addIndiaBoundaryCorrector } from '@india-boundary-corrector/maplibre';
-import { osmCartoDark } from '@india-boundary-corrector/layer-configs';
-import { getPmtilesUrl } from '@india-boundary-corrector/data';
-
-// Add PMTiles protocol (once, before creating maps)
-addPmtilesProtocol(maplibregl);
+import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
 
 const map = new maplibregl.Map({
   container: 'map',
-  style: { version: 8, sources: {}, layers: [] },
+  style: 'https://tiles.example.com/style.json', // any style with raster layers
   center: [78.9629, 20.5937], // India center
   zoom: 4,
 });
 
 map.on('load', () => {
-  // Add the corrected India map
-  addIndiaBoundaryCorrector(map, {
-    pmtilesUrl: getPmtilesUrl(),
-    layerConfig: osmCartoDark,
-    addProtocol: false, // already added above
-  });
+  // Automatically detect and correct India boundaries
+  const corrector = addBoundaryCorrector(map);
+  
+  // Later, to remove corrections:
+  // corrector.remove();
 });
 ```
 
 ## How It Works
 
-1. **Base raster layer**: Renders the original raster tile source (e.g., OSM Carto Dark)
+1. **Base raster layer**: Uses your existing raster tile source (e.g., OSM Carto Dark)
 2. **Delete layers**: Draws lines matching the background color over incorrect boundaries
 3. **Add layers**: Draws the correct India boundaries
 
@@ -48,78 +42,88 @@ The package uses different correction layers based on zoom level:
 
 ## API
 
-### `addPmtilesProtocol(maplibregl)`
+### `addBoundaryCorrector(map, options?)`
 
-Registers the PMTiles protocol with MapLibre. Call once before using.
-
-### `addIndiaBoundaryCorrectorAbove(map, options)`
-
-Automatically detect layer config and add corrections above an existing raster layer.
+Add India boundary corrections that automatically track raster sources/layers.
 
 **Options:**
-- `pmtilesUrl`: URL to the PMTiles file
-- `rasterSourceId`: ID of the existing raster source
-- `rasterLayerId`: ID of the existing raster layer to place corrections above
-- `addProtocol`: Whether to auto-add PMTiles protocol (default: `true`)
-- `detectLayerFromUrls`: Layer detection function from `@india-boundary-corrector/layer-configs`
+- `sourceId` (optional): Specific raster source ID to add corrections for (skips auto-detection)
+- `layerId` (optional): Specific raster layer ID to add corrections above
+- `pmtilesUrl` (optional): URL to the PMTiles file (defaults to CDN)
+- `layerConfig` (optional): Layer configuration object or config name string
 
-**Returns:** `Promise<{ sourceIds: string[], layerIds: string[] } | null>`
+**Returns:** `BoundaryCorrector` instance (call `remove()` to cleanup)
 
-**Example:**
-```typescript
-import { detectLayerFromUrls } from '@india-boundary-corrector/layer-configs';
+**Example with auto-detection:**
+```javascript
+// Automatically finds raster sources and applies corrections
+const corrector = addBoundaryCorrector(map);
+```
 
-// Assuming you already have a raster layer
-map.addSource('my-raster', {
-  type: 'raster',
-  tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png']
-});
-map.addLayer({ id: 'my-raster-layer', type: 'raster', source: 'my-raster' });
-
-// Automatically add boundary corrections
-await addIndiaBoundaryCorrectorAbove(map, {
-  pmtilesUrl: getPmtilesUrl(),
-  rasterSourceId: 'my-raster',
-  rasterLayerId: 'my-raster-layer',
-  detectLayerFromUrls, // Pass the function from layer-configs
+**Example with explicit source:**
+```javascript
+const corrector = addBoundaryCorrector(map, {
+  sourceId: 'my-raster-source',
+  layerId: 'my-raster-layer',
+  layerConfig: 'osm-carto-dark', // or a config object
 });
 ```
 
-### `addIndiaBoundaryCorrector(map, options)`
+### `removeBoundaryCorrector(map, sourceId)`
 
-Adds boundary-corrected sources and layers to the map.
+Removes boundary corrector layers for a specific source.
+
+**Parameters:**
+- `map`: MapLibre map instance
+- `sourceId`: ID of the raster source to remove corrections for
+
+### `getBoundaryCorrectorConfig(map, options?)`
+
+Get boundary corrector configuration without adding to map. Use this for manual control over when/how layers are added.
 
 **Options:**
-- `pmtilesUrl`: URL to the PMTiles file
-- `layerConfig`: Layer configuration object (from `india-boundary-corrector-layer-configs`)
-- `addProtocol`: Whether to auto-add PMTiles protocol (default: `true`)
+- `sourceId` (optional): ID of the raster source (required if layerConfig not provided)
+- `layerId` (optional): ID of the raster layer (auto-detected from sourceId)
+- `pmtilesUrl` (optional): URL to the PMTiles file (defaults to CDN)
+- `layerConfig` (optional): Layer configuration object or config name string
 
-**Returns:** `{ sourceIds: string[], layerIds: string[] }`
+**Returns:** Configuration object with `{ sources, layers, pmtilesUrl, layerConfig, sourceId, layerId }` or `null` if config cannot be resolved.
 
-### `removeIndiaBoundaryCorrector(map, layerConfigId)`
+### `BoundaryCorrector` class
 
-Removes all sources and layers for a given config ID.
+The class returned by `addBoundaryCorrector()`.
 
-### `generateSourcesAndLayers(options)`
+**Constructor:**
+```javascript
+new BoundaryCorrector(map, options?)
+```
 
-Low-level function to generate source/layer specifications without adding to a map.
+**Methods:**
+- `init()`: Initialize the boundary corrector and start tracking. Returns `this`.
+- `remove()`: Remove all corrections and cleanup listeners.
+- `getTrackedSources()`: Get the tracked sources map.
+- `hasCorrections(sourceId)`: Check if corrections are active for a specific source.
 
 ## Custom Layer Configs
 
-```typescript
-import type { LayerConfig } from 'india-boundary-corrector-maplibre';
-
-const myConfig: LayerConfig = {
-  id: 'my-custom-map',
-  tiles: ['https://my-tile-server/{z}/{x}/{y}.png'],
-  attribution: '© My Attribution',
+```javascript
+const myConfig = {
   zoomThreshold: 5,
-  addLineColor: '#000000',
-  delLineColor: '#f5f5f3',
-  lineWidth: 1.5,
+  osmAddLineColor: '#000000',
+  osmDelLineColor: '#f5f5f3',
+  neAddLineColor: '#000000',
+  neDelLineColor: '#f5f5f3',
+  osmAddLineWidth: 1.5,
+  osmDelLineWidth: 1.5,
+  neAddLineWidth: 1.5,
+  neDelLineWidth: 1.5,
 };
+
+const corrector = addBoundaryCorrector(map, {
+  layerConfig: myConfig,
+});
 ```
 
 ## License
 
-MIT
+Unlicense
