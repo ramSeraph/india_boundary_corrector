@@ -93,6 +93,10 @@ Custom configurations can be created for other tile providers.
 - **OpenStreetMap**: Boundary relations for India, Pakistan, and disputed territories
 - **Natural Earth**: Admin 0 Countries (standard and India-perspective versions)
 
+## Credits
+
+This solution was originally conceived by [@planemad](https://github.com/planemad) in [osm-in/osm-in.github.io#38](https://github.com/osm-in/osm-in.github.io/issues/38#issuecomment-706880270).
+
 ## License
 
 Code: [Unlicense](https://unlicense.org/)
