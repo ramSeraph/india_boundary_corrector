@@ -1,5 +1,9 @@
 # India Boundary Corrector
 
+> ⚠️ **WORK IN PROGRESS** ⚠️
+>
+> This project is currently under active development and is not yet ready for production use.
+
 A set of JavaScript packages to display maps with India's official boundaries, correcting the disputed territory representations commonly found in international map tile providers.
 
 ## The Problem
