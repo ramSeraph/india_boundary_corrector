@@ -11,7 +11,7 @@ unzip data/ne/ne_10m_admin_0_countries_ind.zip -d data/ne/ind
 
 ne_version=$(cat data/ne/base/ne_10m_admin_0_countries.VERSION.txt)
 # remove trailing newline
-ne_version=$(echo -n $ne_version)
+ne_version=$(echo -n $ne_version | tr -d '\r')
 suffix=${suffix}"_ne_$ne_version"
 uv run fix_bounds_ne.py
 
