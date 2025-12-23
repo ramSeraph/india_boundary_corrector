@@ -87,15 +87,17 @@ function getCorrectionLayerIdMap(sourceId) {
  */
 function generateCorrectionLayers(pmtilesUrl, layerConfig, sourceId) {
   const {
+    startZoom = 0,
     zoomThreshold = DEFAULT_ZOOM_THRESHOLD,
     osmAddLineColor = DEFAULT_ADD_LINE_COLOR,
     osmDelLineColor = DEFAULT_DEL_LINE_COLOR,
     neAddLineColor = DEFAULT_ADD_LINE_COLOR,
     neDelLineColor = DEFAULT_DEL_LINE_COLOR,
-    osmAddLineWidth = DEFAULT_LINE_WIDTH,
-    osmDelLineWidth = DEFAULT_LINE_WIDTH,
-    neAddLineWidth = DEFAULT_LINE_WIDTH,
-    neDelLineWidth = DEFAULT_LINE_WIDTH,
+    addLineDashed = false,
+    addLineDashArray = [],
+    addLineHaloRatio = 0,
+    addLineHaloAlpha = 0,
+    lineWidthMultiplier = 1.0,
   } = layerConfig;
 
   const correctionSourceId = getCorrectionSourceId(sourceId);
@@ -109,37 +111,108 @@ function generateCorrectionLayers(pmtilesUrl, layerConfig, sourceId) {
 
   const layers = [];
 
-  // Add layers (draw correct boundaries)
-  layers.push({
-    id: `${sourceId}-add-ne`,
-    type: 'line',
-    source: correctionSourceId,
-    'source-layer': 'to-add-ne',
-    maxzoom: zoomThreshold,
-    paint: {
-      'line-color': neAddLineColor,
-      'line-width': neAddLineWidth,
-    },
-  });
+  // MapLibre minzoom appears to be exclusive at low zoom levels, subtract 1 to compensate for startZoom
+  // But zoomThreshold should not be adjusted - OSM minzoom should equal NE maxzoom
+  const effectiveStartZoom = Math.max(0, startZoom - 1);
+  const effectiveZoomThreshold = zoomThreshold;
 
+  // Zoom-based width using interpolate: zoom / 4 for add, zoom / 2 for del (with multiplier)
+  // Minimum widths: 0.5 for add, 1 for del at zoom 0
+  const m = lineWidthMultiplier;
+  const addLineWidth = ['interpolate', ['linear'], ['zoom'], 0, 0.5*m, 4, 1*m, 8, 2*m, 12, 3*m, 16, 4*m, 20, 5*m];
+  const delLineWidth = ['interpolate', ['linear'], ['zoom'], 0, 1*m, 4, 2*m, 8, 4*m, 12, 6*m, 16, 8*m, 20, 10*m];
+  const addLineWidthWithHalo = ['interpolate', ['linear'], ['zoom'], 0, 0.5*m*(1+addLineHaloRatio), 4, 1*m*(1+addLineHaloRatio), 8, 2*m*(1+addLineHaloRatio), 12, 3*m*(1+addLineHaloRatio), 16, 4*m*(1+addLineHaloRatio), 20, 5*m*(1+addLineHaloRatio)];
+
+  // Layers are added in reverse order due to beforeLayerId insertion
+  // So we define them in reverse order of desired render (last added = bottom)
+  // Desired order (bottom to top): del, halo, add-dashed
+  
+  // Add OSM boundaries (zoom >= zoomThreshold) - dashed line on top
   layers.push({
     id: `${sourceId}-add-osm`,
     type: 'line',
     source: correctionSourceId,
     'source-layer': 'to-add-osm',
-    minzoom: zoomThreshold,
+    minzoom: effectiveZoomThreshold,
     paint: {
       'line-color': osmAddLineColor,
-      'line-width': osmAddLineWidth,
+      'line-width': addLineWidth,
+      ...(addLineDashed && addLineDashArray.length > 0 ? { 'line-dasharray': addLineDashArray } : {}),
     },
   });
 
-  // Delete layers (mask unwanted boundaries with background-colored lines)
+  // Add OSM halo (if enabled) - below the dashed line
+  if (addLineDashed && addLineHaloRatio > 0 && addLineHaloAlpha > 0) {
+    layers.push({
+      id: `${sourceId}-add-osm-halo`,
+      type: 'line',
+      source: correctionSourceId,
+      'source-layer': 'to-add-osm',
+      minzoom: effectiveZoomThreshold,
+      paint: {
+        'line-color': osmAddLineColor,
+        'line-width': addLineWidthWithHalo,
+        'line-opacity': addLineHaloAlpha,
+      },
+    });
+  }
+
+  // Delete OSM boundaries (zoom >= zoomThreshold) - at bottom
+  layers.push({
+    id: `${sourceId}-del-osm`,
+    type: 'line',
+    source: correctionSourceId,
+    'source-layer': 'to-del-osm',
+    minzoom: effectiveZoomThreshold,
+    layout: {
+      'line-join': 'round',
+      'line-cap': 'round',
+    },
+    paint: {
+      'line-color': osmDelLineColor,
+      'line-width': delLineWidth,
+    },
+  });
+
+  // Add NE boundaries (startZoom <= zoom < threshold) - dashed line on top
+  layers.push({
+    id: `${sourceId}-add-ne`,
+    type: 'line',
+    source: correctionSourceId,
+    'source-layer': 'to-add-ne',
+    minzoom: effectiveStartZoom,
+    maxzoom: zoomThreshold,
+    paint: {
+      'line-color': neAddLineColor,
+      'line-width': addLineWidth,
+      ...(addLineDashed && addLineDashArray.length > 0 ? { 'line-dasharray': addLineDashArray } : {}),
+    },
+  });
+
+  // Add NE halo (if enabled) - below the dashed line
+  if (addLineDashed && addLineHaloRatio > 0 && addLineHaloAlpha > 0) {
+    layers.push({
+      id: `${sourceId}-add-ne-halo`,
+      type: 'line',
+      source: correctionSourceId,
+      'source-layer': 'to-add-ne',
+      minzoom: effectiveStartZoom,
+      maxzoom: zoomThreshold,
+      paint: {
+        'line-color': neAddLineColor,
+        'line-width': addLineWidthWithHalo,
+        'line-opacity': addLineHaloAlpha,
+      },
+    });
+  }
+
+  // Delete NE boundaries (startZoom <= zoom < threshold) - at bottom
   layers.push({
     id: `${sourceId}-del-ne`,
     type: 'line',
     source: correctionSourceId,
     'source-layer': 'to-del-ne',
+    minzoom: effectiveStartZoom,
     maxzoom: zoomThreshold,
     layout: {
       'line-join': 'round',
@@ -147,23 +220,7 @@ function generateCorrectionLayers(pmtilesUrl, layerConfig, sourceId) {
     },
     paint: {
       'line-color': neDelLineColor,
-      'line-width': neDelLineWidth + 1,
-    },
-  });
-
-  layers.push({
-    id: `${sourceId}-del-osm`,
-    type: 'line',
-    source: correctionSourceId,
-    'source-layer': 'to-del-osm',
-    minzoom: zoomThreshold,
-    layout: {
-      'line-join': 'round',
-      'line-cap': 'round',
-    },
-    paint: {
-      'line-color': osmDelLineColor,
-      'line-width': osmDelLineWidth + 1,
+      'line-width': delLineWidth,
     },
   });
 

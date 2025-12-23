@@ -1,11 +1,11 @@
 # @india-boundary-corrector/layer-configs
 
-Pre-built layer configurations for `@india-boundary-corrector/maplibre`.
+Pre-built layer configurations for India boundary corrector packages.
 
 ## Available Configs
 
 - `osmCartoDark` - CartoDB dark_all tiles
-- `osmCarto` - OpenStreetMap standard tiles
+- `osmCarto` - OpenStreetMap standard tiles (with dashed boundary lines)
 
 ## Usage
 
@@ -16,11 +16,10 @@ import {
   layerConfigs, 
   LayerConfig 
 } from '@india-boundary-corrector/layer-configs';
-import { addIndiaBoundaryCorrector } from '@india-boundary-corrector/maplibre';
+import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
 
 // Use a pre-defined config
-addIndiaBoundaryCorrector(map, {
-  pmtilesUrl: 'https://example.com/india_boundary_corrections.pmtiles',
+addBoundaryCorrector(map, {
   layerConfig: osmCartoDark,
 });
 
@@ -31,10 +30,7 @@ const tileUrls = [
 ];
 const config = layerConfigs.detectFromUrls(tileUrls);
 if (config) {
-  addIndiaBoundaryCorrector(map, {
-    pmtilesUrl: 'https://example.com/india_boundary_corrections.pmtiles',
-    layerConfig: config,
-  });
+  addBoundaryCorrector(map, { layerConfig: config });
 }
 
 // List available config ids
@@ -46,16 +42,20 @@ const darkConfig = layerConfigs.get('osm-carto-dark');
 // Create and register a custom config
 const myConfig = new LayerConfig({
   id: 'my-custom-style',
+  startZoom: 0,
   zoomThreshold: 5,
   tileUrlPattern: /mytiles\.com/,
   osmAddLineColor: '#262626',
-  osmAddLineWidth: 3,
   osmDelLineColor: '#090909',
-  osmDelLineWidth: 4,
   neAddLineColor: '#262626',
-  neAddLineWidth: 2,
   neDelLineColor: '#090909',
-  neDelLineWidth: 3,
+  // Optional: dashed line styling for additions
+  addLineDashed: true,
+  addLineDashArray: [10, 1, 2, 1],
+  addLineHaloRatio: 1.0,
+  addLineHaloAlpha: 0.5,
+  // Optional: width multiplier
+  lineWidthMultiplier: 1.2,
 });
 layerConfigs.register(myConfig);
 
@@ -68,16 +68,24 @@ layerConfigs.remove('my-custom-style');
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `id` | string | required | Unique identifier for the config |
-| `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM styles |
+| `startZoom` | number | 0 | Minimum zoom level to start rendering corrections |
+| `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
 | `tileUrlPattern` | RegExp \| string | null | Pattern for matching tile URLs |
 | `osmAddLineColor` | string | 'green' | Line color for additions (zoom >= threshold) |
-| `osmAddLineWidth` | number | 1 | Line width for additions (zoom >= threshold) |
 | `osmDelLineColor` | string | 'red' | Line color for deletions (zoom >= threshold) |
-| `osmDelLineWidth` | number | 1 | Line width for deletions (zoom >= threshold) |
 | `neAddLineColor` | string | osmAddLineColor | Line color for additions (zoom < threshold) |
-| `neAddLineWidth` | number | osmAddLineWidth | Line width for additions (zoom < threshold) |
 | `neDelLineColor` | string | osmDelLineColor | Line color for deletions (zoom < threshold) |
-| `neDelLineWidth` | number | osmDelLineWidth | Line width for deletions (zoom < threshold) |
+| `addLineDashed` | boolean | false | Whether addition lines should be dashed |
+| `addLineDashArray` | number[] | [] | Dash pattern array (e.g., `[10, 1, 2, 1]`) |
+| `addLineHaloRatio` | number | 0 | Halo width as ratio of line width (0 = no halo) |
+| `addLineHaloAlpha` | number | 0 | Halo opacity (0-1, 0 = no halo) |
+| `lineWidthMultiplier` | number | 1.0 | Multiplier for all line widths |
+
+### Line Width Calculation
+
+Line widths are calculated dynamically based on zoom level:
+- **Addition lines**: `zoom / 4 * lineWidthMultiplier` (minimum 0.5px)
+- **Deletion lines**: `zoom / 2 * lineWidthMultiplier` (minimum 1px)
 
 ## License
 

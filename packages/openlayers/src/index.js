@@ -5,6 +5,9 @@ import { PMTilesVectorSource } from 'ol-pmtiles';
 import { getPmtilesUrl } from '../../data/index.js';
 import { layerConfigs } from '../../layer-configs/src/index.js';
 
+// Width scaling factor for OpenLayers (reduces width by 1/5th)
+const WIDTH_SCALE_FACTOR = 0.8;
+
 /**
  * Extract tile URLs from an OpenLayers tile layer
  * @param {import('ol/layer/Layer').default} layer
@@ -88,73 +91,48 @@ function isTileLayer(layer) {
 }
 
 /**
- * Generate OpenLayers style function from a LayerConfig
- * @param {LayerConfig} layerConfig
- * @returns {function} Style function for OpenLayers
+ * Generate style function for deletion layers only
  */
-function generateStyleFunction(layerConfig) {
+function generateDelStyleFunction(layerConfig) {
   const {
+    startZoom = 0,
     zoomThreshold = 5,
-    osmAddLineColor,
     osmDelLineColor,
-    neAddLineColor,
     neDelLineColor,
-    osmAddLineWidth,
-    osmDelLineWidth,
-    neAddLineWidth,
-    neDelLineWidth,
+    lineWidthMultiplier = 1.0,
   } = layerConfig;
-
-  // Pre-create styles for performance
-  const styles = {
-    'to-del-ne': new Style({
-      stroke: new Stroke({
-        color: neDelLineColor,
-        width: neDelLineWidth,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }),
-    }),
-    'to-add-ne': new Style({
-      stroke: new Stroke({
-        color: neAddLineColor,
-        width: neAddLineWidth,
-      }),
-    }),
-    'to-del-osm': new Style({
-      stroke: new Stroke({
-        color: osmDelLineColor,
-        width: osmDelLineWidth,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }),
-    }),
-    'to-add-osm': new Style({
-      stroke: new Stroke({
-        color: osmAddLineColor,
-        width: osmAddLineWidth,
-      }),
-    }),
-  };
 
   return function(feature, resolution) {
     const layer = feature.get('layer');
-    const zoom = Math.log2(156543.03392 / resolution);
+    const zoom = Math.round(Math.log2(156543.03392 / resolution));
 
-    // NE layers only for zoom < threshold
-    if (layer === 'to-del-ne' || layer === 'to-add-ne') {
-      if (zoomThreshold > 0 && zoom < zoomThreshold) {
-        return styles[layer];
-      }
+    if (zoom < startZoom) {
       return null;
     }
 
-    // OSM layers for zoom >= threshold
-    if (layer === 'to-del-osm' || layer === 'to-add-osm') {
-      if (zoom >= zoomThreshold) {
-        return styles[layer];
-      }
-      return null;
+    // Zoom-based width: zoom / 2 for deletions, scaled, with minimum of 1
+    const width = Math.max(1, (zoom / 2) * WIDTH_SCALE_FACTOR * lineWidthMultiplier);
+
+    if (layer === 'to-del-ne' && zoom >= startZoom && zoom < zoomThreshold) {
+      return new Style({
+        stroke: new Stroke({
+          color: neDelLineColor,
+          width: width,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }),
+      });
+    }
+
+    if (layer === 'to-del-osm' && zoom >= zoomThreshold) {
+      return new Style({
+        stroke: new Stroke({
+          color: osmDelLineColor,
+          width: width,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }),
+      });
     }
 
     return null;
@@ -162,26 +140,100 @@ function generateStyleFunction(layerConfig) {
 }
 
 /**
- * Create a correction layer for OpenLayers
+ * Generate style function for addition layers only
+ */
+function generateAddStyleFunction(layerConfig) {
+  const {
+    startZoom = 0,
+    zoomThreshold = 5,
+    osmAddLineColor,
+    neAddLineColor,
+    addLineDashed = false,
+    addLineDashArray = [],
+    addLineHaloRatio = 0,
+    addLineHaloAlpha = 0,
+    lineWidthMultiplier = 1.0,
+  } = layerConfig;
+
+  return function(feature, resolution) {
+    const layer = feature.get('layer');
+    const zoom = Math.round(Math.log2(156543.03392 / resolution));
+
+    if (zoom < startZoom) {
+      return null;
+    }
+
+    // Zoom-based width: zoom / 4 for additions, scaled, with minimum of 0.5
+    const width = Math.max(0.5, (zoom / 4) * WIDTH_SCALE_FACTOR * lineWidthMultiplier);
+    const color = layer === 'to-add-ne' ? neAddLineColor : osmAddLineColor;
+
+    if ((layer === 'to-add-ne' && zoom >= startZoom && zoom < zoomThreshold) ||
+        (layer === 'to-add-osm' && zoom >= zoomThreshold)) {
+      
+      const styles = [];
+
+      // Add halo if enabled
+      if (addLineHaloRatio > 0 && addLineHaloAlpha > 0) {
+        // Parse color and add alpha
+        const haloColor = color.startsWith('#') 
+          ? `rgba(${parseInt(color.slice(1,3),16)},${parseInt(color.slice(3,5),16)},${parseInt(color.slice(5,7),16)},${addLineHaloAlpha})`
+          : color;
+        styles.push(new Style({
+          stroke: new Stroke({
+            color: haloColor,
+            width: width * (1 + addLineHaloRatio),
+          }),
+          zIndex: 1,
+        }));
+      }
+
+      // Main line
+      styles.push(new Style({
+        stroke: new Stroke({
+          color: color,
+          width: width,
+          ...(addLineDashed && addLineDashArray.length > 0 ? { lineDash: addLineDashArray.map(v => v * width) } : {}),
+        }),
+        zIndex: 2,
+      }));
+
+      return styles;
+    }
+
+    return null;
+  };
+}
+
+/**
+ * Create correction layers for OpenLayers (deletion layer + addition layer)
  * @param {string} pmtilesUrl
  * @param {LayerConfig} layerConfig
- * @returns {VectorTileLayer}
+ * @returns {{ delLayer: VectorTileLayer, addLayer: VectorTileLayer }}
  */
-function createCorrectionLayer(pmtilesUrl, layerConfig) {
-  const source = new PMTilesVectorSource({
+function createCorrectionLayers(pmtilesUrl, layerConfig) {
+  const delSource = new PMTilesVectorSource({
     url: pmtilesUrl,
     attributions: [],
   });
 
-  const styleFunction = generateStyleFunction(layerConfig);
+  const addSource = new PMTilesVectorSource({
+    url: pmtilesUrl,
+    attributions: [],
+  });
 
-  const layer = new VectorTileLayer({
-    source: source,
-    style: styleFunction,
+  const delLayer = new VectorTileLayer({
+    source: delSource,
+    style: generateDelStyleFunction(layerConfig),
     declutter: false,
   });
 
-  return layer;
+  const addLayer = new VectorTileLayer({
+    source: addSource,
+    style: generateAddStyleFunction(layerConfig),
+    declutter: false,
+  });
+
+  return { delLayer, addLayer };
 }
 
 /**
@@ -202,7 +254,7 @@ export class BoundaryCorrector {
       ? layerConfigs.get(options.layerConfig)
       : options.layerConfig;
     
-    /** @type {Map<import('ol/layer/Layer').default, { correctionLayer: VectorTileLayer, layerConfig: Object }>} */
+    /** @type {Map<import('ol/layer/Layer').default, { delLayer: VectorTileLayer, addLayer: VectorTileLayer, layerConfig: Object }>} */
     this.trackedLayers = new Map();
     
     this._onAddLayer = this._handleAddLayer.bind(this);
@@ -265,13 +317,13 @@ export class BoundaryCorrector {
   }
 
   /**
-   * Get the correction layer for a base layer.
+   * Get the correction layers for a base layer.
    * @param {import('ol/layer/Layer').default} baseLayer
-   * @returns {VectorTileLayer|null}
+   * @returns {{ delLayer: VectorTileLayer, addLayer: VectorTileLayer }|null}
    */
-  getCorrectionLayer(baseLayer) {
+  getCorrectionLayers(baseLayer) {
     const tracked = this.trackedLayers.get(baseLayer);
-    return tracked ? tracked.correctionLayer : null;
+    return tracked ? { delLayer: tracked.delLayer, addLayer: tracked.addLayer } : null;
   }
 
   /**
@@ -338,23 +390,28 @@ export class BoundaryCorrector {
   _addCorrectionsForLayer(baseLayer, layerConfig) {
     if (this.trackedLayers.has(baseLayer)) return;
 
-    const correctionLayer = createCorrectionLayer(this.pmtilesUrl, layerConfig);
+    const { delLayer, addLayer } = createCorrectionLayers(this.pmtilesUrl, layerConfig);
     
     // Match z-index to base layer so correction renders right above it
     const baseZIndex = baseLayer.getZIndex() ?? 0;
-    correctionLayer.setZIndex(baseZIndex);
+    delLayer.setZIndex(baseZIndex);
+    addLayer.setZIndex(baseZIndex);
     
-    // Insert correction layer right after the base layer
+    // Insert correction layers right after the base layer
+    // Order: base -> del -> add (additions on top)
     const layers = this.map.getLayers();
     const baseIndex = layers.getArray().indexOf(baseLayer);
     if (baseIndex >= 0) {
-      layers.insertAt(baseIndex + 1, correctionLayer);
+      layers.insertAt(baseIndex + 1, delLayer);
+      layers.insertAt(baseIndex + 2, addLayer);
     } else {
-      this.map.addLayer(correctionLayer);
+      this.map.addLayer(delLayer);
+      this.map.addLayer(addLayer);
     }
 
     this.trackedLayers.set(baseLayer, {
-      correctionLayer,
+      delLayer,
+      addLayer,
       layerConfig,
     });
   }
@@ -363,7 +420,8 @@ export class BoundaryCorrector {
     const tracked = this.trackedLayers.get(baseLayer);
     if (!tracked) return;
 
-    this.map.removeLayer(tracked.correctionLayer);
+    this.map.removeLayer(tracked.delLayer);
+    this.map.removeLayer(tracked.addLayer);
     this.trackedLayers.delete(baseLayer);
   }
 }

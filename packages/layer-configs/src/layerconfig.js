@@ -7,36 +7,51 @@
 export class LayerConfig {
   constructor({
     id,
+    startZoom = 0,
     zoomThreshold = 5,
     // Regex pattern for matching tile URLs (optional)
     tileUrlPattern = null,
     // OSM layer styles (zoom >= zoomThreshold)
     osmAddLineColor = 'green',
-    osmAddLineWidth = 1,
     osmDelLineColor = 'red',
-    osmDelLineWidth = 1,
     // NE layer styles (zoom < zoomThreshold) - defaults to OSM values if not specified
     neAddLineColor = null,
-    neAddLineWidth = null,
     neDelLineColor = null,
-    neDelLineWidth = null,
+    // Addition line style options
+    addLineDashed = false,
+    addLineDashArray = [],
+    addLineHaloRatio = 0,
+    addLineHaloAlpha = 0,
+    // Line width multiplier (default 1.0, increase for thicker lines)
+    lineWidthMultiplier = 1.0,
   }) {
     this.id = id;
+    this.startZoom = startZoom;
     this.zoomThreshold = zoomThreshold;
+
+    if (startZoom > zoomThreshold) {
+      throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
+    }
+
     this.tileUrlPattern = tileUrlPattern instanceof RegExp ? tileUrlPattern : 
                           (tileUrlPattern ? new RegExp(tileUrlPattern, 'i') : null);
 
     // OSM styles
     this.osmAddLineColor = osmAddLineColor;
-    this.osmAddLineWidth = osmAddLineWidth;
     this.osmDelLineColor = osmDelLineColor;
-    this.osmDelLineWidth = osmDelLineWidth;
 
     // NE styles (fallback to OSM values)
     this.neAddLineColor = neAddLineColor ?? osmAddLineColor;
-    this.neAddLineWidth = neAddLineWidth ?? osmAddLineWidth;
     this.neDelLineColor = neDelLineColor ?? osmDelLineColor;
-    this.neDelLineWidth = neDelLineWidth ?? osmDelLineWidth;
+
+    // Addition line style
+    this.addLineDashed = addLineDashed;
+    this.addLineDashArray = addLineDashArray;
+    this.addLineHaloRatio = addLineHaloRatio;
+    this.addLineHaloAlpha = addLineHaloAlpha;
+    
+    // Line width multiplier
+    this.lineWidthMultiplier = lineWidthMultiplier;
   }
 
   /**

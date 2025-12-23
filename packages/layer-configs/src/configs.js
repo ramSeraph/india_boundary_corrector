@@ -13,28 +13,28 @@ export const osmCartoDark = new LayerConfig({
   tileUrlPattern: /cartocdn\.com.*dark_all/,
   // OSM styles (zoom >= 5)
   osmAddLineColor: '#262626',
-  osmAddLineWidth: 3,
   osmDelLineColor: '#090909',
-  osmDelLineWidth: 4,
   // NE styles (zoom < 5)
   neAddLineColor: '#262626',
-  neAddLineWidth: 2,
   neDelLineColor: '#090909',
-  neDelLineWidth: 3,
+  // Thicker lines at lower zoom levels
+  lineWidthMultiplier: 1.0,
 });
 
 export const osmCarto = new LayerConfig({
   id: 'osm-carto',
-  zoomThreshold: 0,
+  startZoom: 1,
+  zoomThreshold: 1,
   tileUrlPattern: /tile\.openstreetmap\.org.*\.png/,
   // OSM styles (zoom >= 5)
   osmAddLineColor: '#b9a8b9',
-  osmAddLineWidth: 2,
   osmDelLineColor: '#f2efea',
-  osmDelLineWidth: 3,
   // NE styles (zoom < 5)
   neAddLineColor: '#b9a8b9',
-  neAddLineWidth: 1,
   neDelLineColor: '#f2efea',
-  neDelLineWidth: 2,
+  // Addition line style
+  addLineDashed: true,
+  addLineDashArray: [10, 1, 2, 1],
+  addLineHaloRatio: 1.0,
+  addLineHaloAlpha: 0.5,
 });

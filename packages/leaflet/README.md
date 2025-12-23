@@ -70,6 +70,7 @@ const corrector = addBoundaryCorrector(map, {
 2. **Dynamic Tracking**: Listens for `layeradd` and `layerremove` events to automatically add/remove corrections
 3. **Vector Rendering**: Uses protomaps-leaflet to render boundary corrections from PMTiles
 4. **Zoom-based Styling**: Uses Natural Earth data at low zoom levels and OSM data at higher zoom levels
+5. **Dynamic Line Widths**: Line widths scale with zoom level (zoom/4 for additions, zoom/2 for deletions)
 
 > **Note**: The correction layer renders in the default `tilePane`. Custom panes are not used due to compatibility issues with protomaps-leaflet.
 
@@ -131,7 +132,7 @@ corrector.isInitialized();     // Check if initialized
 
 Built-in support for:
 - **OSM Carto Dark** (`osm-carto-dark`): CartoDB dark_all tiles
-- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles
+- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles (with dashed boundary lines)
 
 ## Custom Layer Configs
 
@@ -140,18 +141,21 @@ import { LayerConfig } from '@india-boundary-corrector/layer-configs';
 
 const myConfig = new LayerConfig({
   id: 'my-custom-map',
+  startZoom: 0,
   zoomThreshold: 5,
   tileUrlPattern: /my-tile-server\.com/,
-  // OSM styles (zoom >= zoomThreshold)
+  // Colors for boundary lines
   osmAddLineColor: '#000000',
-  osmAddLineWidth: 2,
   osmDelLineColor: '#f5f5f3',
-  osmDelLineWidth: 3,
-  // NE styles (zoom < zoomThreshold)
   neAddLineColor: '#000000',
-  neAddLineWidth: 1,
   neDelLineColor: '#f5f5f3',
-  neDelLineWidth: 2,
+  // Optional: dashed lines with halo
+  addLineDashed: true,
+  addLineDashArray: [10, 1, 2, 1],
+  addLineHaloRatio: 1.0,
+  addLineHaloAlpha: 0.5,
+  // Optional: width multiplier
+  lineWidthMultiplier: 1.0,
 });
 
 const corrector = addBoundaryCorrector(map, { layerConfig: myConfig });

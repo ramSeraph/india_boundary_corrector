@@ -40,10 +40,11 @@ map.on('load', () => {
 1. **Base raster layer**: Uses your existing raster tile source (e.g., OSM Carto Dark)
 2. **Delete layers**: Draws lines matching the background color over incorrect boundaries
 3. **Add layers**: Draws the correct India boundaries
+4. **Dynamic Line Widths**: Line widths scale with zoom level using MapLibre expressions
 
 The package uses different correction layers based on zoom level:
-- **Lower zoom (< 5)**: Uses Natural Earth (`to-del-ne`, `to-add-ne`) corrections
-- **Higher zoom (≥ 5)**: Uses OpenStreetMap (`to-del-osm`, `to-add-osm`) corrections
+- **Lower zoom (< threshold)**: Uses Natural Earth (`to-del-ne`, `to-add-ne`) corrections
+- **Higher zoom (≥ threshold)**: Uses OpenStreetMap (`to-del-osm`, `to-add-osm`) corrections
 
 ## API
 
@@ -82,18 +83,6 @@ Removes boundary corrector layers for a specific source.
 - `map`: MapLibre map instance
 - `sourceId`: ID of the raster source to remove corrections for
 
-### `getBoundaryCorrectorConfig(map, options?)`
-
-Get boundary corrector configuration without adding to map. Use this for manual control over when/how layers are added.
-
-**Options:**
-- `sourceId` (optional): ID of the raster source (required if layerConfig not provided)
-- `layerId` (optional): ID of the raster layer (auto-detected from sourceId)
-- `pmtilesUrl` (optional): URL to the PMTiles file (defaults to CDN)
-- `layerConfig` (optional): Layer configuration object or config name string
-
-**Returns:** Configuration object with `{ sources, layers, pmtilesUrl, layerConfig, sourceId, layerId }` or `null` if config cannot be resolved.
-
 ### `BoundaryCorrector` class
 
 The class returned by `addBoundaryCorrector()`.
@@ -109,20 +98,35 @@ new BoundaryCorrector(map, options?)
 - `getTrackedSources()`: Get the tracked sources map.
 - `hasCorrections(sourceId)`: Check if corrections are active for a specific source.
 
+## Supported Tile Providers
+
+Built-in support for:
+- **OSM Carto Dark** (`osm-carto-dark`): CartoDB dark_all tiles
+- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles (with dashed boundary lines)
+
 ## Custom Layer Configs
 
 ```javascript
-const myConfig = {
+import { LayerConfig } from '@india-boundary-corrector/layer-configs';
+
+const myConfig = new LayerConfig({
+  id: 'my-custom-style',
+  startZoom: 0,
   zoomThreshold: 5,
+  tileUrlPattern: /mytiles\.com/,
+  // Colors for boundary lines
   osmAddLineColor: '#000000',
   osmDelLineColor: '#f5f5f3',
   neAddLineColor: '#000000',
   neDelLineColor: '#f5f5f3',
-  osmAddLineWidth: 1.5,
-  osmDelLineWidth: 1.5,
-  neAddLineWidth: 1.5,
-  neDelLineWidth: 1.5,
-};
+  // Optional: dashed lines with halo
+  addLineDashed: true,
+  addLineDashArray: [10, 1, 2, 1],
+  addLineHaloRatio: 1.0,
+  addLineHaloAlpha: 0.5,
+  // Optional: width multiplier
+  lineWidthMultiplier: 1.0,
+});
 
 const corrector = addBoundaryCorrector(map, {
   layerConfig: myConfig,

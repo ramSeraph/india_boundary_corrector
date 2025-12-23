@@ -3,6 +3,70 @@ import { getPmtilesUrl } from '../../data/index.js';
 import { layerConfigs } from '../../layer-configs/src/index.js';
 
 /**
+ * Custom dashed line symbolizer for protomaps-leaflet
+ * Uses Canvas setLineDash() for dotted/dashed lines with solid halo
+ */
+class DashedLineSymbolizer {
+  constructor(options) {
+    this.color = options.color || '#000';
+    this.width = options.width || 1;
+    this.dashArray = options.dashArray || [];
+    this.lineCap = options.lineCap || 'butt';
+    this.lineJoin = options.lineJoin || 'miter';
+    this.haloRatio = options.haloRatio || 0;
+    this.haloAlpha = options.haloAlpha || 0;
+  }
+
+  draw(context, geom, z, feature) {
+    const width = typeof this.width === 'function' ? this.width(z, feature) : this.width;
+    if (width <= 0) return;
+
+    const haloWidth = width * this.haloRatio;
+    
+    // Scale dash array proportionally with line width
+    const scaledDashArray = this.dashArray.map(v => v * width);
+
+    context.save();
+    context.lineCap = this.lineCap;
+    context.lineJoin = this.lineJoin;
+
+    // Draw solid halo (no dash) if haloRatio > 0
+    if (this.haloRatio > 0 && this.haloAlpha > 0) {
+      context.setLineDash([]);
+      context.strokeStyle = this.color;
+      context.lineWidth = width + haloWidth;
+      context.globalAlpha = this.haloAlpha;
+      context.beginPath();
+      for (const line of geom) {
+        for (let i = 0; i < line.length; i++) {
+          const pt = line[i];
+          if (i === 0) context.moveTo(pt.x, pt.y);
+          else context.lineTo(pt.x, pt.y);
+        }
+      }
+      context.stroke();
+    }
+
+    // Draw dashed main line
+    context.setLineDash(scaledDashArray);
+    context.globalAlpha = 1.0;
+    context.strokeStyle = this.color;
+    context.lineWidth = width;
+    context.beginPath();
+    for (const line of geom) {
+      for (let i = 0; i < line.length; i++) {
+        const pt = line[i];
+        if (i === 0) context.moveTo(pt.x, pt.y);
+        else context.lineTo(pt.x, pt.y);
+      }
+    }
+    context.stroke();
+
+    context.restore();
+  }
+}
+
+/**
  * Check if a layer is a tile layer with a URL
  * @param {L.Layer} layer
  * @returns {boolean}
@@ -51,63 +115,78 @@ function findMatchingTileLayers(map) {
  */
 function generatePaintRules(layerConfig) {
   const {
+    startZoom = 0,
     zoomThreshold = 5,
     osmAddLineColor,
     osmDelLineColor,
     neAddLineColor,
     neDelLineColor,
-    osmAddLineWidth,
-    osmDelLineWidth,
-    neAddLineWidth,
-    neDelLineWidth,
+    addLineDashed = false,
+    addLineDashArray = [],
+    addLineHaloRatio = 0,
+    addLineHaloAlpha = 0,
+    lineWidthMultiplier = 1.0,
   } = layerConfig;
 
+  // Zoom-based width functions: zoom / 4 for add, zoom / 2 for del, with minimum widths
+  const addWidthFn = (z) => Math.max(0.5, (z / 4) * lineWidthMultiplier);
+  const delWidthFn = (z) => Math.max(1, (z / 2) * lineWidthMultiplier);
+
+  // Create appropriate symbolizer for addition lines
+  const createAddSymbolizer = (color) => {
+    if (addLineDashed) {
+      return new DashedLineSymbolizer({
+        color,
+        width: addWidthFn,
+        dashArray: addLineDashArray,
+        haloRatio: addLineHaloRatio,
+        haloAlpha: addLineHaloAlpha,
+      });
+    }
+    return new LineSymbolizer({
+      color,
+      width: addWidthFn,
+    });
+  };
 
   const rules = [];
 
-  // Only add NE rules if zoomThreshold > 0 (otherwise they'd never be visible)
-  if (zoomThreshold > 0) {
-    // Delete NE boundaries (zoom < threshold) - draw background-colored lines to mask
-    rules.push({
-      dataLayer: 'to-del-ne',
-      maxzoom: zoomThreshold,
-      symbolizer: new LineSymbolizer({
-        color: neDelLineColor,
-        width: neDelLineWidth - 1,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }),
-    });
-    // Add NE boundaries (zoom < threshold)
-    rules.push({
-      dataLayer: 'to-add-ne',
-      maxzoom: zoomThreshold,
-      symbolizer: new LineSymbolizer({
-        color: neAddLineColor,
-        width: neAddLineWidth - 1,
-      }),
-    });
-  }
+  // Delete NE boundaries (startZoom <= zoom < threshold) - draw background-colored lines to mask
+  rules.push({
+    dataLayer: 'to-del-ne',
+    minzoom: startZoom,
+    maxzoom: zoomThreshold,
+    symbolizer: new LineSymbolizer({
+      color: neDelLineColor,
+      width: delWidthFn,
+      lineCap: 'round',
+      lineJoin: 'round',
+    }),
+  });
+  // Add NE boundaries (startZoom <= zoom < threshold)
+  rules.push({
+    dataLayer: 'to-add-ne',
+    minzoom: startZoom,
+    maxzoom: zoomThreshold,
+    symbolizer: createAddSymbolizer(neAddLineColor),
+  });
 
-  // Delete OSM boundaries (zoom >= threshold)
+  // Delete OSM boundaries (zoom >= zoomThreshold)
   rules.push({
     dataLayer: 'to-del-osm',
     minzoom: zoomThreshold,
     symbolizer: new LineSymbolizer({
       color: osmDelLineColor,
-      width: osmDelLineWidth - 1,
+      width: delWidthFn,
       lineCap: 'round',
       lineJoin: 'round',
     }),
   });
-  // Add OSM boundaries (zoom >= threshold)
+  // Add OSM boundaries (zoom >= zoomThreshold)
   rules.push({
     dataLayer: 'to-add-osm',
     minzoom: zoomThreshold,
-    symbolizer: new LineSymbolizer({
-      color: osmAddLineColor,
-      width: osmAddLineWidth - 1,
-    }),
+    symbolizer: createAddSymbolizer(osmAddLineColor),
   });
 
   return rules;
@@ -129,6 +208,7 @@ function createCorrectionLayer(pmtilesUrl, layerConfig) {
     paintRules: paintRules,
     labelRules: [],
     attribution: '',
+    maxDataZoom: 14, // PMTiles max zoom, enables overzooming beyond this
   });
   
   return layer;
