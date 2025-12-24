@@ -17,8 +17,10 @@ This monorepo provides map library integrations that overlay correction vectors 
 2. **Add layers**: Draw the correct India boundaries
 
 The corrections use different data sources based on zoom level:
-- **Lower zoom (< 5)**: Natural Earth data corrections
-- **Higher zoom (≥ 5)**: OpenStreetMap data corrections
+- **Lower zoom (< threshold)**: Natural Earth data corrections
+- **Higher zoom (≥ threshold)**: OpenStreetMap data corrections
+
+Line widths scale dynamically with zoom level for consistent appearance.
 
 ## Packages
 
@@ -93,9 +95,27 @@ const corrector = addBoundaryCorrector(map);
 
 Built-in configurations for:
 - **OSM Carto Dark** (`osm-carto-dark`): CartoDB dark_all tiles
-- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles
+- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles (with dashed boundary lines)
 
-Custom configurations can be created for other tile providers.
+Custom configurations can be created for other tile providers using `LayerConfig`.
+
+## LayerConfig Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `id` | string | required | Unique identifier |
+| `startZoom` | number | 0 | Minimum zoom to start rendering |
+| `zoomThreshold` | number | 5 | Zoom level to switch NE/OSM data |
+| `tileUrlPattern` | RegExp | null | Pattern for URL auto-detection |
+| `osmAddLineColor` | string | 'green' | Addition line color (high zoom) |
+| `osmDelLineColor` | string | 'red' | Deletion line color (high zoom) |
+| `neAddLineColor` | string | osmAddLineColor | Addition line color (low zoom) |
+| `neDelLineColor` | string | osmDelLineColor | Deletion line color (low zoom) |
+| `addLineDashed` | boolean | false | Use dashed lines for additions |
+| `addLineDashArray` | number[] | [] | Dash pattern |
+| `addLineHaloRatio` | number | 0 | Halo width ratio |
+| `addLineHaloAlpha` | number | 0 | Halo opacity |
+| `lineWidthMultiplier` | number | 1.0 | Width multiplier |
 
 ## Data Sources
 

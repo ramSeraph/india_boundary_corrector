@@ -16,13 +16,13 @@ The PMTiles file contains 4 layers:
 ## Usage
 
 ```javascript
-import { layers, getPmtilesUrl, getPmtilesPath, getDataVersion } from '@india-boundary-corrector/data';
+import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion } from '@india-boundary-corrector/data';
 
-// For browser - get URL relative to module location
+// Get URL to PMTiles file (auto-detected from environment)
 const url = getPmtilesUrl();
 
-// For Node.js - get local file system path (async)
-const path = await getPmtilesPath();
+// Override the PMTiles URL for custom hosting
+setPmtilesUrl('https://my-cdn.com/india_boundary_corrections.pmtiles');
 
 // Get data version (OSM timestamp + NE version)
 const version = getDataVersion(); // e.g., "osm_20231215_143022_ne_5.1.2"

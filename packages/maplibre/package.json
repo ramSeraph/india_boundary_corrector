@@ -3,23 +3,37 @@
   "version": "0.0.1",
   "description": "MapLibre GL JS integration for India boundary corrections",
   "type": "module",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "unpkg": "dist/index.umd.js",
+  "jsdelivr": "dist/index.umd.js",
+  "types": "src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js"
+      "import": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
-    "src"
+    "src",
+    "dist"
   ],
+  "scripts": {
+    "build": "tsup"
+  },
   "peerDependencies": {
     "maplibre-gl": ">=3.0.0",
-    "pmtiles": "^4.0.0"
+    "pmtiles": ">=3.0.0"
   },
   "dependencies": {
-    "@india-boundary-corrector/data": "*",
-    "@india-boundary-corrector/layer-configs": "*"
+    "@india-boundary-corrector/data": "^0.0.1",
+    "@india-boundary-corrector/layer-configs": "^0.0.1"
   },
   "keywords": [
     "india",
@@ -27,6 +41,15 @@
     "map",
     "maplibre"
   ],
-  "author": "",
-  "license": "Unlicense"
+  "author": "ramSeraph",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramSeraph/india_boundary_corrector.git",
+    "directory": "packages/maplibre"
+  },
+  "bugs": {
+    "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
+  },
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
 }

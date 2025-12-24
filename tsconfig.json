@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": false,
+    "checkJs": false,
+    "declaration": false,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@india-boundary-corrector/data": ["./packages/data/index.d.ts"],
+      "@india-boundary-corrector/layer-configs": ["./packages/layer-configs/src/index.d.ts"],
+      "@india-boundary-corrector/maplibre": ["./packages/maplibre/src/index.d.ts"],
+      "@india-boundary-corrector/leaflet": ["./packages/leaflet/src/index.d.ts"],
+      "@india-boundary-corrector/openlayers": ["./packages/openlayers/src/index.d.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.d.ts",
+    "packages/*/index.d.ts",
+    "type-tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

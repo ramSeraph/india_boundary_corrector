@@ -10,7 +10,7 @@ import { LayerConfig } from './layerconfig.js';
 export const osmCartoDark = new LayerConfig({
   id: 'osm-carto-dark',
   zoomThreshold: 5,
-  tileUrlPattern: /cartocdn\.com.*dark_all/,
+  tileUrlPattern: /(cartocdn\.com|cartodb-basemaps).*dark_all/,
   // OSM styles (zoom >= 5)
   osmAddLineColor: '#262626',
   osmDelLineColor: '#090909',

@@ -2,8 +2,8 @@ import VectorTileLayer from 'ol/layer/VectorTile';
 import Style from 'ol/style/Style';
 import Stroke from 'ol/style/Stroke';
 import { PMTilesVectorSource } from 'ol-pmtiles';
-import { getPmtilesUrl } from '../../data/index.js';
-import { layerConfigs } from '../../layer-configs/src/index.js';
+import { getPmtilesUrl } from '@india-boundary-corrector/data';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
 // Width scaling factor for OpenLayers (reduces width by 1/5th)
 const WIDTH_SCALE_FACTOR = 0.8;
@@ -15,33 +15,26 @@ const WIDTH_SCALE_FACTOR = 0.8;
  */
 function getTileUrls(layer) {
   const source = layer.getSource?.();
-  console.log('[BoundaryCorrector] getTileUrls - source:', source);
-  console.log('[BoundaryCorrector] getTileUrls - source constructor:', source?.constructor?.name);
   if (!source) return [];
   
   // Try to get URLs from UrlTile-based sources (XYZ, OSM, TileImage, etc.)
   // UrlTile stores URLs in the 'urls' property
-  console.log('[BoundaryCorrector] getTileUrls - source.urls:', source.urls);
   if (source.urls && Array.isArray(source.urls) && source.urls.length > 0) {
-    console.log('[BoundaryCorrector] getTileUrls - returning source.urls:', source.urls);
     return source.urls;
   }
   
   // Fallback: try getUrls() method
   if (typeof source.getUrls === 'function') {
     const urls = source.getUrls();
-    console.log('[BoundaryCorrector] getTileUrls - getUrls() returned:', urls);
     return urls || [];
   }
   
   // Fallback: try getUrl() method
   if (typeof source.getUrl === 'function') {
     const url = source.getUrl();
-    console.log('[BoundaryCorrector] getTileUrls - getUrl() returned:', url);
     return url ? [url] : [];
   }
   
-  console.log('[BoundaryCorrector] getTileUrls - no URLs found');
   return [];
 }
 
@@ -68,15 +61,18 @@ function resolveLayerConfig(layerConfig, tiles) {
 }
 
 /**
- * Check if a layer is a tile layer (raster)
+ * Check if a layer is a raster tile layer (not vector tile)
  * @param {import('ol/layer/Layer').default} layer
  * @returns {boolean}
  */
 function isTileLayer(layer) {
+  // Exclude VectorTileLayer (our correction layers use this)
+  if (layer instanceof VectorTileLayer) {
+    return false;
+  }
+
   const source = layer.getSource?.();
-  console.log('[BoundaryCorrector] isTileLayer - source:', source);
   if (!source) {
-    console.log('[BoundaryCorrector] isTileLayer - no source, returning false');
     return false;
   }
   
@@ -86,7 +82,6 @@ function isTileLayer(layer) {
                              typeof source.getTileLoadFunction === 'function' ||
                              'urls' in source;
   
-  console.log('[BoundaryCorrector] isTileLayer - hasUrlTileFeatures:', hasUrlTileFeatures);
   return hasUrlTileFeatures;
 }
 
@@ -362,25 +357,17 @@ export class BoundaryCorrector {
   }
 
   _tryAddCorrections(layer) {
-    console.log('[BoundaryCorrector] _tryAddCorrections - layer:', layer);
     if (this.trackedLayers.has(layer)) {
-      console.log('[BoundaryCorrector] _tryAddCorrections - layer already tracked, skipping');
       return;
     }
     if (!isTileLayer(layer)) {
-      console.log('[BoundaryCorrector] _tryAddCorrections - not a tile layer, skipping');
       return;
     }
 
     const tiles = getTileUrls(layer);
-    console.log('[BoundaryCorrector] _tryAddCorrections - tiles:', tiles);
-    console.log('[BoundaryCorrector] _tryAddCorrections - providedLayerConfig:', this.providedLayerConfig);
     const layerConfig = this.providedLayerConfig ?? resolveLayerConfig(undefined, tiles);
-    console.log('[BoundaryCorrector] _tryAddCorrections - resolved layerConfig:', layerConfig);
     
     if (!layerConfig) {
-      // No config found - skip this layer
-      console.log('[BoundaryCorrector] _tryAddCorrections - no layerConfig found, skipping');
       return;
     }
 
@@ -466,5 +453,5 @@ export function removeBoundaryCorrector(corrector) {
 }
 
 // Re-export utilities for advanced usage
-export { layerConfigs } from '../../layer-configs/src/index.js';
-export { getPmtilesUrl } from '../../data/index.js';
+export { layerConfigs } from '@india-boundary-corrector/layer-configs';
+export { getPmtilesUrl } from '@india-boundary-corrector/data';

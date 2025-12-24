@@ -3,21 +3,27 @@
   "version": "0.0.1",
   "description": "Pre-built layer configurations for India boundary corrections",
   "type": "module",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js"
-    },
-    "./osm-carto-dark": {
-      "import": "./src/osm-carto-dark.js"
+      "import": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
-    "src"
+    "src",
+    "dist"
   ],
-  "scripts": {},
-  "devDependencies": {
+  "scripts": {
+    "build": "tsup"
   },
   "keywords": [
     "india",
@@ -25,6 +31,15 @@
     "map",
     "layer-config"
   ],
-  "author": "",
-  "license": "Unlicense"
+  "author": "ramSeraph",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramSeraph/india_boundary_corrector.git",
+    "directory": "packages/layer-configs"
+  },
+  "bugs": {
+    "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
+  },
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
 }

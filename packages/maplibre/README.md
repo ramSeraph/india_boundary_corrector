@@ -75,13 +75,12 @@ const corrector = addBoundaryCorrector(map, {
 });
 ```
 
-### `removeBoundaryCorrector(map, sourceId)`
+### `removeBoundaryCorrector(corrector)`
 
-Removes boundary corrector layers for a specific source.
+Remove boundary corrector from the map.
 
 **Parameters:**
-- `map`: MapLibre map instance
-- `sourceId`: ID of the raster source to remove corrections for
+- `corrector`: BoundaryCorrector instance returned by addBoundaryCorrector
 
 ### `BoundaryCorrector` class
 

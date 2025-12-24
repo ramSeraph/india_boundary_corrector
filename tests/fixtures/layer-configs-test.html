@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Layer Configs Package Test</title>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "@india-boundary-corrector/layer-configs": "/packages/layer-configs/src/index.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import { 
+      LayerConfig, 
+      LayerConfigRegistry,
+      layerConfigs,
+      osmCartoDark, 
+      osmCarto 
+    } from '@india-boundary-corrector/layer-configs';
+    
+    // Expose for testing
+    window.layerConfigsPackage = {
+      LayerConfig,
+      LayerConfigRegistry,
+      layerConfigs,
+      osmCartoDark,
+      osmCarto
+    };
+    
+    window.layerConfigsLoaded = true;
+  </script>
+</body>
+</html>

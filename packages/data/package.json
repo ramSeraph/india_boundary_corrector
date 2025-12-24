@@ -16,9 +16,11 @@
     "index.js",
     "index.d.ts",
     "version.js",
+    "data_version.js",
     "india_boundary_corrections.pmtiles"
   ],
   "scripts": {
+    "build": "node scripts/generate-version.js",
     "generate": "cd generate && bash steps.sh"
   },
   "keywords": [
@@ -29,10 +31,15 @@
     "natural-earth",
     "openstreetmap"
   ],
-  "author": "",
+  "author": "ramSeraph",
   "license": "Unlicense",
   "repository": {
     "type": "git",
-    "url": ""
-  }
+    "url": "git+https://github.com/ramSeraph/india_boundary_corrector.git",
+    "directory": "packages/data"
+  },
+  "bugs": {
+    "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
+  },
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
 }

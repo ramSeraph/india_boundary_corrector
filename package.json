@@ -11,12 +11,28 @@
     "packages/openlayers"
   ],
   "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:layer-configs": "npm run build -w @india-boundary-corrector/layer-configs",
+    "build:maplibre": "npm run build -w @india-boundary-corrector/maplibre",
+    "build:leaflet": "npm run build -w @india-boundary-corrector/leaflet",
+    "build:openlayers": "npm run build -w @india-boundary-corrector/openlayers",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "serve": "npx http-server . --cors -p 8080"
+    "typecheck": "tsc --noEmit",
+    "serve": "npx http-server . --cors -p 8080",
+    "changeset": "changeset",
+    "version": "changeset version && npm run build",
+    "release": "npm run build && changeset publish && git push --follow-tags"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@playwright/test": "^1.40.0",
-    "http-server": "^14.1.1"
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^25.0.3",
+    "http-server": "^14.1.1",
+    "maplibre-gl": "^5.15.0",
+    "ol": "^10.7.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

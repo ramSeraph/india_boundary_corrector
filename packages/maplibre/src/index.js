@@ -1,7 +1,8 @@
-//import { getPmtilesUrl, layers as pmtilesCorrectionLayers } from '@india-boundary-corrector/data';
-import { getPmtilesUrl, layers as pmtilesCorrectionLayers } from '../../data/index.js';
-//import { layerConfigs } from '@india-boundary-corrector/layer-configs';
-import { layerConfigs } from '../../layer-configs/src/index.js';
+import { getPmtilesUrl, layers as pmtilesCorrectionLayers } from '@india-boundary-corrector/data';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
+
+// Re-export for convenience
+export { getPmtilesUrl, layerConfigs };
 
 const DEFAULT_ADD_LINE_COLOR = '#000000';
 const DEFAULT_DEL_LINE_COLOR = '#f5f5f3'; // typical land color
@@ -286,6 +287,14 @@ export class BoundaryCorrector {
   }
 
   /**
+   * Check if the corrector is initialized.
+   * @returns {boolean}
+   */
+  isInitialized() {
+    return this._initialized;
+  }
+
+  /**
    * Get the tracked sources map.
    * @returns {Map<string, Object>}
    */
@@ -482,21 +491,11 @@ export function addBoundaryCorrector(map, options = {}) {
 }
 
 /**
- * Remove boundary corrector layers for a specific source.
- * @param {Object} map - MapLibre map instance
- * @param {string} sourceId
+ * Remove boundary corrector from the map.
+ * @param {BoundaryCorrector} corrector - BoundaryCorrector instance returned by addBoundaryCorrector
  */
-export function removeBoundaryCorrector(map, sourceId) {
-  const layerIdMap = getCorrectionLayerIdMap(sourceId);
-  const layerIds = Object.values(layerIdMap);
-  const correctionSourceId = getCorrectionSourceId(sourceId);
-  
-  for (const layerId of layerIds) {
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId);
-    }
-  }
-  if (map.getSource(correctionSourceId)) {
-    map.removeSource(correctionSourceId);
+export function removeBoundaryCorrector(corrector) {
+  if (corrector && typeof corrector.remove === 'function') {
+    corrector.remove();
   }
 }

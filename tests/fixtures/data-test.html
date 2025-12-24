@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Data Package Test</title>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "@india-boundary-corrector/data": "/packages/data/index.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion } from '@india-boundary-corrector/data';
+    
+    // Expose for testing
+    window.dataPackage = {
+      layers,
+      getPmtilesUrl,
+      setPmtilesUrl,
+      getDataVersion
+    };
+    
+    window.dataPackageLoaded = true;
+  </script>
+</body>
+</html>

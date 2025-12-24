@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Data Package Test - With data-pmtiles-url attribute</title>
+</head>
+<body>
+  <script data-pmtiles-url="https://custom-cdn.example.com/tiles.pmtiles"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "@india-boundary-corrector/data": "/packages/data/index.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import { getPmtilesUrl } from '@india-boundary-corrector/data';
+    
+    // Expose for testing
+    window.getPmtilesUrl = getPmtilesUrl;
+    window.dataPackageLoaded = true;
+  </script>
+</body>
+</html>

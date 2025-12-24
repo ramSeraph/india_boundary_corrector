@@ -1,20 +1,12 @@
-import { dataVersion } from './version.js';
+import { dataVersion } from './data_version.js';
+import { packageVersion } from './version.js';
 
-/**
- * Get the file system path to the PMTiles file (Node.js only)
- * @returns {Promise<string>} Absolute path to the PMTiles file
- * @throws {Error} If called in a browser environment
- */
-export async function getPmtilesPath() {
-  if (typeof process === 'undefined' || !process.versions?.node) {
-    throw new Error('getPmtilesPath() is only available in Node.js');
-  }
-  const { fileURLToPath } = await import('url');
-  const { dirname, join } = await import('path');
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  return join(__dirname, 'india_boundary_corrections.pmtiles');
-}
+// Package info for CDN URL construction
+const PACKAGE_NAME = '@india-boundary-corrector/data';
+const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles';
+
+// Default CDN URL with pinned package version
+const DEFAULT_CDN_URL = `https://unpkg.com/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
 
 /**
  * Layer names in the PMTiles file
@@ -27,19 +19,83 @@ export const layers = {
 };
 
 /**
- * Get the URL for the PMTiles file
- * Uses import.meta.url to generate a URL relative to this module's location.
- * Works in both browser (CDN/bundler) and Node.js environments.
+ * Detect the PMTiles URL from various sources:
+ * 1. import.meta.url (for ESM bundlers - most reliable)
+ * 2. Script tag with data-pmtiles-url attribute (explicit override)
+ * 3. Fallback to unpkg CDN with pinned version
+ * 
+ * Note: When this package is bundled into another bundle, import.meta.url
+ * won't work and we fall back to the CDN URL. Users can override with
+ * setPmtilesUrl() or data-pmtiles-url attribute for self-hosted scenarios.
+ */
+function detectPmtilesUrl() {
+  // Try import.meta.url first (works in ESM environments)
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      const moduleUrl = new URL('.', import.meta.url);
+      return new URL(PMTILES_FILENAME, moduleUrl).href;
+    }
+  } catch {
+    // import.meta not available (UMD/CJS/bundled)
+  }
+
+  // In browser, check for explicit data attribute override
+  if (typeof document !== 'undefined') {
+    const scriptWithAttr = document.querySelector('script[data-pmtiles-url]');
+    if (scriptWithAttr) {
+      return scriptWithAttr.getAttribute('data-pmtiles-url');
+    }
+  }
+
+  // Fallback to CDN with pinned version
+  // This ensures it works even when bundled into another package
+  return DEFAULT_CDN_URL;
+}
+
+// Cache the detected URL
+let cachedPmtilesUrl = null;
+
+/**
+ * Get the URL for the PMTiles file.
+ * 
+ * Detection priority:
+ * 1. Manually set URL via setPmtilesUrl()
+ * 2. import.meta.url (ESM environments)
+ * 3. data-pmtiles-url script attribute
+ * 4. unpkg CDN fallback (pinned to current version)
+ * 
+ * For self-hosted deployments or custom bundling scenarios,
+ * use setPmtilesUrl() or add a script tag with data-pmtiles-url attribute.
+ * 
+ * @returns {string} URL to the PMTiles file
  */
 export function getPmtilesUrl() {
-  // Use import.meta.url to construct URL relative to this module
-  const moduleUrl = new URL('.', import.meta.url);
-  return new URL('india_boundary_corrections.pmtiles', moduleUrl).href;
+  if (cachedPmtilesUrl === null) {
+    cachedPmtilesUrl = detectPmtilesUrl();
+  }
+  return cachedPmtilesUrl;
+}
+
+/**
+ * Manually set the PMTiles URL.
+ * Use this for self-hosted deployments or custom bundling scenarios.
+ * 
+ * @param {string} url - The URL to the PMTiles file
+ * 
+ * @example
+ * // Self-hosted
+ * setPmtilesUrl('/assets/india_boundary_corrections.pmtiles');
+ * 
+ * @example
+ * // Different CDN
+ * setPmtilesUrl('https://my-cdn.com/india_boundary_corrections.pmtiles');
+ */
+export function setPmtilesUrl(url) {
+  cachedPmtilesUrl = url;
 }
 
 /**
  * Get the data version string
- * Format: osm_YYYYMMDD_HHMMSS_ne_VERSION
  * @returns {string} Data version identifier
  */
 export function getDataVersion() {

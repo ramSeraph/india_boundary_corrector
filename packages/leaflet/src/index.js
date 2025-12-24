@@ -1,6 +1,6 @@
-import { leafletLayer, LineSymbolizer } from 'https://esm.sh/protomaps-leaflet@5.1.0';
-import { getPmtilesUrl } from '../../data/index.js';
-import { layerConfigs } from '../../layer-configs/src/index.js';
+import { leafletLayer, LineSymbolizer } from 'protomaps-leaflet';
+import { getPmtilesUrl } from '@india-boundary-corrector/data';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
 /**
  * Custom dashed line symbolizer for protomaps-leaflet
@@ -152,10 +152,11 @@ function generatePaintRules(layerConfig) {
   const rules = [];
 
   // Delete NE boundaries (startZoom <= zoom < threshold) - draw background-colored lines to mask
+  // Note: protomaps-leaflet maxzoom is inclusive, so we use threshold - 0.1 to exclude threshold
   rules.push({
     dataLayer: 'to-del-ne',
     minzoom: startZoom,
-    maxzoom: zoomThreshold,
+    maxzoom: zoomThreshold - 0.1,
     symbolizer: new LineSymbolizer({
       color: neDelLineColor,
       width: delWidthFn,
@@ -167,7 +168,7 @@ function generatePaintRules(layerConfig) {
   rules.push({
     dataLayer: 'to-add-ne',
     minzoom: startZoom,
-    maxzoom: zoomThreshold,
+    maxzoom: zoomThreshold - 0.1,
     symbolizer: createAddSymbolizer(neAddLineColor),
   });
 
@@ -426,5 +427,5 @@ export function removeBoundaryCorrector(corrector) {
 }
 
 // Re-export utilities for advanced usage
-export { layerConfigs } from '../../layer-configs/src/index.js';
-export { getPmtilesUrl } from '../../data/index.js';
+export { layerConfigs } from '@india-boundary-corrector/layer-configs';
+export { getPmtilesUrl } from '@india-boundary-corrector/data';
