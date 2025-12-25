@@ -49,6 +49,7 @@
         const zoom = parseInt(params.get('zoom')) || 4;
         const lat = parseFloat(params.get('lat')) || 20.5937;
         const lng = parseFloat(params.get('lng')) || 78.9629;
+        const corrections = params.get('corrections') !== '0';
         
         // OpenLayers uses {a-d} syntax for subdomains
         tileUrl = tileUrl.replace('{s}', '{a-c}');
@@ -71,7 +72,9 @@
             interactions: []
         });
 
-        addBoundaryCorrector(map);
+        if (corrections) {
+            addBoundaryCorrector(map);
+        }
     </script>
 </body>
 </html>

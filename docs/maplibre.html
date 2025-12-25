@@ -45,6 +45,7 @@
         const zoom = parseInt(params.get('zoom')) || 4;
         const lat = parseFloat(params.get('lat')) || 20.5937;
         const lng = parseFloat(params.get('lng')) || 78.9629;
+        const corrections = params.get('corrections') !== '0';
         
         // MapLibre doesn't support {s} placeholder, use single subdomain
         tileUrl = tileUrl.replace('{s}', 'a');
@@ -78,7 +79,9 @@
         map.addControl(new maplibregl.AttributionControl({ compact: false }));
 
         map.on('load', () => {
-            addBoundaryCorrector(map);
+            if (corrections) {
+                addBoundaryCorrector(map);
+            }
         });
     </script>
 </body>

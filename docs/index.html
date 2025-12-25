@@ -59,6 +59,18 @@
             font-size: 12px;
             color: #666;
         }
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .checkbox-option input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+        }
         .right-pane {
             flex: 1;
             display: flex;
@@ -105,36 +117,6 @@
         .drag-overlay:active {
             cursor: grabbing;
         }
-        .zoom-control {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 101;
-            display: flex;
-            flex-direction: column;
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-        }
-        .zoom-control button {
-            width: 30px;
-            height: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            background: #fff;
-            cursor: pointer;
-            color: #333;
-        }
-        .zoom-control button:hover {
-            background: #f4f4f4;
-        }
-        .zoom-control button:active {
-            background: #e0e0e0;
-        }
-        .zoom-control button:first-child {
-            border-bottom: 1px solid #ccc;
-        }
     </style>
 </head>
 <body>
@@ -157,13 +139,15 @@
                     </label>
                 </div>
             </div>
+            <div class="section">
+                <label class="checkbox-option">
+                    <input type="checkbox" id="corrections-enabled" checked>
+                    <span>Enable Corrections</span>
+                </label>
+            </div>
         </div>
         <div class="right-pane">
             <div class="drag-overlay" id="drag-overlay"></div>
-            <div class="zoom-control">
-                <button id="zoom-in">+</button>
-                <button id="zoom-out">−</button>
-            </div>
             <div class="panels-container">
                 <div class="panel">
                     <div class="panel-header">Leaflet</div>
@@ -185,9 +169,8 @@
         const leafletFrame = document.getElementById('leaflet-frame');
         const maplibreFrame = document.getElementById('maplibre-frame');
         const openlayersFrame = document.getElementById('openlayers-frame');
-        const zoomInBtn = document.getElementById('zoom-in');
-        const zoomOutBtn = document.getElementById('zoom-out');
         const dragOverlay = document.getElementById('drag-overlay');
+        const correctionsCheckbox = document.getElementById('corrections-enabled');
 
         let currentZoom = 4;
         let centerLat = 34.5;
@@ -209,7 +192,8 @@
         function updateFrames() {
             const tileUrl = document.querySelector('input[name="tile"]:checked').value;
             const encoded = encodeURIComponent(tileUrl);
-            const params = `tileUrl=${encoded}&zoom=${currentZoom}&lat=${centerLat}&lng=${centerLng}`;
+            const corrections = correctionsCheckbox.checked ? '1' : '0';
+            const params = `tileUrl=${encoded}&zoom=${currentZoom}&lat=${centerLat}&lng=${centerLng}&corrections=${corrections}`;
             leafletFrame.src = `leaflet.html?${params}`;
             maplibreFrame.src = `maplibre.html?${params}`;
             openlayersFrame.src = `openlayers.html?${params}`;
@@ -219,15 +203,20 @@
             radio.addEventListener('change', updateFrames);
         });
 
-        zoomInBtn.addEventListener('click', () => {
-            if (currentZoom < maxZoom) {
+        correctionsCheckbox.addEventListener('change', updateFrames);
+
+        // Scroll to zoom (with debounce for sensitivity)
+        let lastZoomTime = 0;
+        dragOverlay.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const now = Date.now();
+            if (now - lastZoomTime < 350) return; // 350ms debounce
+            lastZoomTime = now;
+            
+            if (e.deltaY < 0 && currentZoom < maxZoom) {
                 currentZoom++;
                 updateFrames();
-            }
-        });
-
-        zoomOutBtn.addEventListener('click', () => {
-            if (currentZoom > minZoom) {
+            } else if (e.deltaY > 0 && currentZoom > minZoom) {
                 currentZoom--;
                 updateFrames();
             }
