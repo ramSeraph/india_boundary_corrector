@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Side by Side Comparison - India Boundary Corrector (OpenLayers)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css">
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0; 
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .header {
+      background: #333;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+    .container {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+    .map-container {
+      flex: 1;
+      position: relative;
+    }
+    #map-original, #map-corrected { 
+      position: absolute; 
+      top: 0; 
+      bottom: 0; 
+      left: 0;
+      right: 0;
+    }
+    .label {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      z-index: 1000;
+    }
+    .divider {
+      width: 2px;
+      background: #333;
+      z-index: 1001;
+    }
+  </style>
+  <!-- Import map for bare module specifiers -->
+  <script type="importmap">
+  {
+    "imports": {
+      "ol": "https://esm.sh/ol@9.2.4",
+      "ol/": "https://esm.sh/ol@9.2.4/",
+      "ol-pmtiles": "https://esm.sh/ol-pmtiles@1.0.2?deps=ol@9.2.4",
+      "pmtiles": "https://esm.sh/pmtiles@3.2.0",
+      "@india-boundary-corrector/data": "../../packages/data/index.js",
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="header">
+    <h1>Side by Side Comparison (OpenLayers)</h1>
+    <p>Left: Original OSM boundaries | Right: Corrected India boundaries</p>
+  </div>
+  <div class="container">
+    <div class="map-container">
+      <div class="label">Original</div>
+      <div id="map-original"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="map-container">
+      <div class="label">Corrected</div>
+      <div id="map-corrected"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import Map from 'ol/Map';
+    import View from 'ol/View';
+    import TileLayer from 'ol/layer/Tile';
+    import XYZ from 'ol/source/XYZ';
+    import { useGeographic } from 'ol/proj';
+    import { addBoundaryCorrector } from '../../packages/openlayers/src/index.js';
+
+    useGeographic();
+
+    const center = [78.9629, 20.5937];
+    const zoom = 4;
+
+    // Create base layer factory
+    function createBaseLayer() {
+      return new TileLayer({
+        source: new XYZ({
+          urls: [
+            'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+          ],
+          attributions: '© OpenStreetMap contributors, © CARTO'
+        })
+      });
+    }
+
+    // Create original map (without corrections)
+    const mapOriginal = new Map({
+      target: 'map-original',
+      layers: [createBaseLayer()],
+      view: new View({
+        center: center,
+        zoom: zoom
+      })
+    });
+
+    // Create corrected map
+    const mapCorrected = new Map({
+      target: 'map-corrected',
+      layers: [createBaseLayer()],
+      view: new View({
+        center: center,
+        zoom: zoom
+      })
+    });
+
+    // Add corrections to the right map
+    const corrector = addBoundaryCorrector(mapCorrected, {
+      layerConfig: 'osm-carto-dark'
+    });
+    console.log('Corrections added to right map');
+
+    // Sync map movements
+    let syncing = false;
+
+    function syncMaps(source, target) {
+      if (syncing) return;
+      syncing = true;
+      const view = source.getView();
+      target.getView().setCenter(view.getCenter());
+      target.getView().setZoom(view.getZoom());
+      target.getView().setRotation(view.getRotation());
+      syncing = false;
+    }
+
+    mapOriginal.getView().on('change:center', () => syncMaps(mapOriginal, mapCorrected));
+    mapOriginal.getView().on('change:resolution', () => syncMaps(mapOriginal, mapCorrected));
+    mapOriginal.getView().on('change:rotation', () => syncMaps(mapOriginal, mapCorrected));
+    
+    mapCorrected.getView().on('change:center', () => syncMaps(mapCorrected, mapOriginal));
+    mapCorrected.getView().on('change:resolution', () => syncMaps(mapCorrected, mapOriginal));
+    mapCorrected.getView().on('change:rotation', () => syncMaps(mapCorrected, mapOriginal));
+  </script>
+</body>
+</html>

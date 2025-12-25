@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layer Switcher - India Boundary Corrector (MapLibre)</title>
+  <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 320px;
+      z-index: 1;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 0 0 10px 0; font-size: 14px; color: #666; }
+    .info select {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.warning { background: #fff3cd; color: #856404; }
+    .status.error { background: #f8d7da; color: #721c24; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "pmtiles": "https://esm.sh/pmtiles@3.0.0",
+      "@india-boundary-corrector/data": "../../packages/data/index.js",
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="info">
+    <h3>Layer Switcher</h3>
+    <p>Switch between different base layers. Corrections are only applied to supported tile providers.</p>
+    <select id="layer-select">
+      <option value="osm-carto-dark">CartoDB Dark</option>
+      <option value="osm-carto">OpenStreetMap Standard</option>
+      <option value="esri-satellite">ESRI World Imagery (no corrections)</option>
+    </select>
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="map"></div>
+
+  <script type="module">
+    import { Protocol } from 'pmtiles';
+    import { addBoundaryCorrector, removeBoundaryCorrector } from '../../packages/maplibre/src/index.js';
+
+    const protocol = new Protocol();
+    maplibregl.addProtocol('pmtiles', protocol.tile);
+
+    const statusEl = document.getElementById('status');
+    const layerSelect = document.getElementById('layer-select');
+
+    const layers = {
+      'osm-carto-dark': {
+        tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+        attribution: '© OpenStreetMap contributors, © CARTO',
+        configId: 'osm-carto-dark'
+      },
+      'osm-carto': {
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution: '© OpenStreetMap contributors',
+        configId: 'osm-carto'
+      },
+      'esri-satellite': {
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        configId: null
+      }
+    };
+
+    let map;
+    let corrector = null;
+
+    function updateStatus(layerId) {
+      const layer = layers[layerId];
+      if (layer.configId) {
+        statusEl.textContent = `✓ Corrections applied (${layer.configId})`;
+        statusEl.className = 'status success';
+      } else {
+        statusEl.textContent = '⚠ No corrections for this layer';
+        statusEl.className = 'status warning';
+      }
+    }
+
+    function switchLayer(layerId) {
+      const layer = layers[layerId];
+
+      // Remove existing corrector
+      if (corrector) {
+        removeBoundaryCorrector(corrector);
+        corrector = null;
+      }
+
+      // Update the raster source
+      const source = map.getSource('base-tiles');
+      if (source) {
+        source.setTiles(layer.tiles);
+      }
+
+      // Add corrector if config exists
+      if (layer.configId) {
+        corrector = addBoundaryCorrector(map, {
+          layerConfig: layer.configId
+        });
+      }
+
+      updateStatus(layerId);
+    }
+
+    try {
+      const initialLayer = layers['osm-carto-dark'];
+
+      map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          sources: {
+            'base-tiles': {
+              type: 'raster',
+              tiles: initialLayer.tiles,
+              tileSize: 256,
+              attribution: initialLayer.attribution
+            }
+          },
+          layers: [{
+            id: 'base-layer',
+            type: 'raster',
+            source: 'base-tiles'
+          }]
+        },
+        center: [78.9629, 20.5937],
+        zoom: 4
+      });
+
+      map.on('load', () => {
+        corrector = addBoundaryCorrector(map, {
+          layerConfig: 'osm-carto-dark'
+        });
+        updateStatus('osm-carto-dark');
+      });
+
+      map.addControl(new maplibregl.NavigationControl());
+
+      layerSelect.addEventListener('change', (e) => {
+        switchLayer(e.target.value);
+      });
+
+    } catch (error) {
+      statusEl.textContent = '✗ Error: ' + error.message;
+      statusEl.className = 'status error';
+      console.error('Error:', error);
+    }
+  </script>
+</body>
+</html>
