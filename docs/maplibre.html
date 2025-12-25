@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Boundary Corrector - MapLibre</title>
+    <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "pmtiles": "https://esm.sh/pmtiles@3.0.0",
+            "@india-boundary-corrector/data": "./packages/data/index.js",
+            "@india-boundary-corrector/layer-configs": "./packages/layer-configs/dist/index.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="map"></div>
+    <script type="module">
+        import { Protocol } from 'pmtiles';
+        import { addBoundaryCorrector } from './packages/maplibre/dist/index.js';
+
+        const protocol = new Protocol();
+        maplibregl.addProtocol('pmtiles', protocol.tile);
+
+        const params = new URLSearchParams(window.location.search);
+        let tileUrl = params.get('tileUrl') || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+        const zoom = parseInt(params.get('zoom')) || 4;
+        const lat = parseFloat(params.get('lat')) || 20.5937;
+        const lng = parseFloat(params.get('lng')) || 78.9629;
+        
+        // MapLibre doesn't support {s} placeholder, use single subdomain
+        tileUrl = tileUrl.replace('{s}', 'a');
+
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'base-tiles': {
+                        type: 'raster',
+                        tiles: [tileUrl],
+                        tileSize: 256,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }
+                },
+                layers: [
+                    {
+                        id: 'base-layer',
+                        type: 'raster',
+                        source: 'base-tiles'
+                    }
+                ]
+            },
+            center: [lng, lat],
+            zoom: zoom - 1,
+            interactive: false,
+            attributionControl: false
+        });
+
+        map.addControl(new maplibregl.AttributionControl({ compact: false }));
+
+        map.on('load', () => {
+            addBoundaryCorrector(map);
+        });
+    </script>
+</body>
+</html>

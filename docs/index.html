@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Boundary Corrector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        .container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        .left-pane {
+            width: 250px;
+            background: #f5f5f5;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .left-pane h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .tile-option {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .tile-option input[type="radio"] {
+            margin-right: 10px;
+            margin-top: 3px;
+        }
+        .tile-option label {
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .tile-option .tile-name {
+            font-weight: 600;
+            display: block;
+        }
+        .tile-option .tile-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        .right-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .panels-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #ccc;
+        }
+        .panel:last-child {
+            border-bottom: none;
+        }
+        .panel-header {
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .panel iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+        }
+        .drag-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            cursor: grab;
+            z-index: 100;
+        }
+        .drag-overlay:active {
+            cursor: grabbing;
+        }
+        .zoom-control {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        }
+        .zoom-control button {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            background: #fff;
+            cursor: pointer;
+            color: #333;
+        }
+        .zoom-control button:hover {
+            background: #f4f4f4;
+        }
+        .zoom-control button:active {
+            background: #e0e0e0;
+        }
+        .zoom-control button:first-child {
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-pane">
+            <div class="section">
+                <h2>Select Tile Layer</h2>
+                <div class="tile-option">
+                    <input type="radio" name="tile" id="tile-carto-dark" value="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" checked>
+                    <label for="tile-carto-dark">
+                        <span class="tile-name">CartoDB Dark</span>
+                        <span class="tile-desc">Dark themed basemap</span>
+                    </label>
+                </div>
+                <div class="tile-option">
+                    <input type="radio" name="tile" id="tile-osm" value="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">
+                    <label for="tile-osm">
+                        <span class="tile-name">OpenStreetMap</span>
+                        <span class="tile-desc">Standard OSM tiles</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="right-pane">
+            <div class="drag-overlay" id="drag-overlay"></div>
+            <div class="zoom-control">
+                <button id="zoom-in">+</button>
+                <button id="zoom-out">−</button>
+            </div>
+            <div class="panels-container">
+                <div class="panel">
+                    <div class="panel-header">Leaflet</div>
+                    <iframe id="leaflet-frame"></iframe>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">MapLibre</div>
+                    <iframe id="maplibre-frame"></iframe>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">OpenLayers</div>
+                    <iframe id="openlayers-frame"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const radios = document.querySelectorAll('input[name="tile"]');
+        const leafletFrame = document.getElementById('leaflet-frame');
+        const maplibreFrame = document.getElementById('maplibre-frame');
+        const openlayersFrame = document.getElementById('openlayers-frame');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const dragOverlay = document.getElementById('drag-overlay');
+
+        let currentZoom = 4;
+        let centerLat = 34.5;
+        let centerLng = 76.0;
+        const minZoom = 1;
+        const maxZoom = 18;
+
+        // Drag state
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragStartLat = 0;
+        let dragStartLng = 0;
+
+        function getDegreesPerPixel() {
+            return 360 / (256 * Math.pow(2, currentZoom));
+        }
+
+        function updateFrames() {
+            const tileUrl = document.querySelector('input[name="tile"]:checked').value;
+            const encoded = encodeURIComponent(tileUrl);
+            const params = `tileUrl=${encoded}&zoom=${currentZoom}&lat=${centerLat}&lng=${centerLng}`;
+            leafletFrame.src = `leaflet.html?${params}`;
+            maplibreFrame.src = `maplibre.html?${params}`;
+            openlayersFrame.src = `openlayers.html?${params}`;
+        }
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', updateFrames);
+        });
+
+        zoomInBtn.addEventListener('click', () => {
+            if (currentZoom < maxZoom) {
+                currentZoom++;
+                updateFrames();
+            }
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            if (currentZoom > minZoom) {
+                currentZoom--;
+                updateFrames();
+            }
+        });
+
+        // Drag handling
+        dragOverlay.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragStartLat = centerLat;
+            dragStartLng = centerLng;
+            dragOverlay.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            const degreesPerPixel = getDegreesPerPixel();
+            
+            centerLng = dragStartLng - dx * degreesPerPixel;
+            centerLat = dragStartLat + dy * degreesPerPixel;
+            
+            if (centerLat > 85) centerLat = 85;
+            if (centerLat < -85) centerLat = -85;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                dragOverlay.style.cursor = 'grab';
+                updateFrames();
+            }
+        });
+
+        // Initialize
+        updateFrames();
+    </script>
+</body>
+</html>

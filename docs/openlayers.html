@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Boundary Corrector - OpenLayers</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@9.2.4/ol.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "ol": "https://esm.sh/ol@9.2.4",
+            "ol/": "https://esm.sh/ol@9.2.4/",
+            "ol-pmtiles": "https://esm.sh/ol-pmtiles@1.0.2?deps=ol@9.2.4",
+            "pmtiles": "https://esm.sh/pmtiles@3.2.0",
+            "@india-boundary-corrector/data": "./packages/data/index.js",
+            "@india-boundary-corrector/layer-configs": "./packages/layer-configs/dist/index.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="map"></div>
+    <script type="module">
+        import Map from 'ol/Map.js';
+        import View from 'ol/View.js';
+        import TileLayer from 'ol/layer/Tile.js';
+        import XYZ from 'ol/source/XYZ.js';
+        import { fromLonLat } from 'ol/proj.js';
+        import { Attribution } from 'ol/control.js';
+        import { addBoundaryCorrector } from './packages/openlayers/dist/index.js';
+
+        const params = new URLSearchParams(window.location.search);
+        let tileUrl = params.get('tileUrl') || 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+        const zoom = parseInt(params.get('zoom')) || 4;
+        const lat = parseFloat(params.get('lat')) || 20.5937;
+        const lng = parseFloat(params.get('lng')) || 78.9629;
+        
+        // OpenLayers uses {a-d} syntax for subdomains
+        tileUrl = tileUrl.replace('{s}', '{a-c}');
+
+        const map = new Map({
+            target: 'map',
+            layers: [
+                new TileLayer({
+                    source: new XYZ({
+                        url: tileUrl,
+                        attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    })
+                })
+            ],
+            view: new View({
+                center: fromLonLat([lng, lat]),
+                zoom: zoom
+            }),
+            controls: [new Attribution({ collapsible: false })],
+            interactions: []
+        });
+
+        addBoundaryCorrector(map);
+    </script>
+</body>
+</html>
