@@ -4,6 +4,8 @@
 >
 > This project is currently under active development and is not yet ready for production use.
 
+**[Live Demo](https://ramseraph.github.io/india_boundary_corrector/)** - See the boundary corrections in action across Leaflet, MapLibre, and OpenLayers.
+
 A set of JavaScript packages to display maps with India's official boundaries, correcting the disputed territory representations commonly found in international map tile providers.
 
 ## The Problem
