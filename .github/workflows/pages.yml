@@ -41,8 +41,10 @@ jobs:
           mkdir -p docs/packages/leaflet/dist
           mkdir -p docs/packages/openlayers/dist
           
-          # Copy data package (includes PMTiles file and index.js)
+          # Copy data package (includes PMTiles file and all JS files)
           cp packages/data/index.js docs/packages/data/
+          cp packages/data/version.js docs/packages/data/
+          cp packages/data/data_version.js docs/packages/data/
           cp packages/data/india_boundary_corrections.pmtiles docs/packages/data/
           
           # Copy layer-configs dist
