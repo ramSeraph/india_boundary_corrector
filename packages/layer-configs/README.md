@@ -46,9 +46,7 @@ const myConfig = new LayerConfig({
   zoomThreshold: 5,
   tileUrlPattern: /mytiles\.com/,
   osmAddLineColor: '#262626',
-  osmDelLineColor: '#090909',
   neAddLineColor: '#262626',
-  neDelLineColor: '#090909',
   // Optional: dashed line styling for additions
   addLineDashed: true,
   addLineDashArray: [10, 1, 2, 1],
@@ -72,9 +70,7 @@ layerConfigs.remove('my-custom-style');
 | `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
 | `tileUrlPattern` | RegExp \| string | null | Pattern for matching tile URLs |
 | `osmAddLineColor` | string | 'green' | Line color for additions (zoom >= threshold) |
-| `osmDelLineColor` | string | 'red' | Line color for deletions (zoom >= threshold) |
 | `neAddLineColor` | string | osmAddLineColor | Line color for additions (zoom < threshold) |
-| `neDelLineColor` | string | osmDelLineColor | Line color for deletions (zoom < threshold) |
 | `addLineDashed` | boolean | false | Whether addition lines should be dashed |
 | `addLineDashArray` | number[] | [] | Dash pattern array (e.g., `[10, 1, 2, 1]`) |
 | `addLineHaloRatio` | number | 0 | Halo width as ratio of line width (0 = no halo) |

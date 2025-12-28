@@ -1,261 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>India Boundary Corrector</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        html, body {
-            height: 100%;
-            width: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        }
-        .container {
-            display: flex;
-            height: 100%;
-            width: 100%;
-        }
-        .left-pane {
-            width: 250px;
-            background: #f5f5f5;
-            border-right: 1px solid #ccc;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .left-pane h2 {
-            font-size: 16px;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .section {
-            margin-bottom: 25px;
-        }
-        .tile-option {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 12px;
-            cursor: pointer;
-        }
-        .tile-option input[type="radio"] {
-            margin-right: 10px;
-            margin-top: 3px;
-        }
-        .tile-option label {
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        .tile-option .tile-name {
-            font-weight: 600;
-            display: block;
-        }
-        .tile-option .tile-desc {
-            font-size: 12px;
-            color: #666;
-        }
-        .checkbox-option {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .checkbox-option input[type="checkbox"] {
-            margin-right: 10px;
-            width: 16px;
-            height: 16px;
-        }
-        .right-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        .panels-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-bottom: 1px solid #ccc;
-        }
-        .panel:last-child {
-            border-bottom: none;
-        }
-        .panel-header {
-            background: #333;
-            color: white;
-            padding: 8px 12px;
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-        }
-        .panel iframe {
-            flex: 1;
-            border: none;
-            width: 100%;
-        }
-        .drag-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: transparent;
-            cursor: grab;
-            z-index: 100;
-        }
-        .drag-overlay:active {
-            cursor: grabbing;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Boundary Corrector - Config Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "@india-boundary-corrector/data": "./packages/data/index.js",
+        "@india-boundary-corrector/layer-configs": "./packages/layer-configs/dist/index.js",
+        "@india-boundary-corrector/tilefixer": "./packages/tilefixer/dist/index.js",
+        "@india-boundary-corrector/leaflet-layer": "./packages/leaflet-layer/dist/index.js",
+        "pmtiles": "https://esm.sh/pmtiles@4.0.1"
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    
+    #sidebar {
+      width: 400px;
+      min-width: 300px;
+      padding: 15px;
+      background: #f5f5f5;
+      overflow-y: auto;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    #sidebar h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #333;
+    }
+    
+    #sidebar h2 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: #555;
+    }
+    
+    .section {
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+    
+    input[type="text"], select, textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    
+    input[type="text"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+    
+    textarea {
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 0.8rem;
+      resize: vertical;
+    }
+    
+    #configEditor {
+      min-height: 300px;
+    }
+    
+    button {
+      padding: 10px 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    button:hover {
+      background: #0056b3;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .error {
+      color: #dc3545;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    .success {
+      color: #28a745;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    #map { 
+      flex: 1;
+      height: 100%;
+    }
+    
+    .tile-preset {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .tile-preset button {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      background: #6c757d;
+    }
+    
+    .tile-preset button:hover {
+      background: #545b62;
+    }
+    
+    .tile-preset button.active {
+      background: #007bff;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="left-pane">
-            <div class="section">
-                <h2>Select Tile Layer</h2>
-                <div class="tile-option">
-                    <input type="radio" name="tile" id="tile-carto-dark" value="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" checked>
-                    <label for="tile-carto-dark">
-                        <span class="tile-name">CartoDB Dark</span>
-                        <span class="tile-desc">Dark themed basemap</span>
-                    </label>
-                </div>
-                <div class="tile-option">
-                    <input type="radio" name="tile" id="tile-osm" value="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">
-                    <label for="tile-osm">
-                        <span class="tile-name">OpenStreetMap Carto</span>
-                        <span class="tile-desc">Standard OSM tiles</span>
-                    </label>
-                </div>
-            </div>
-            <div class="section">
-                <label class="checkbox-option">
-                    <input type="checkbox" id="corrections-enabled" checked>
-                    <span>Enable Corrections</span>
-                </label>
-            </div>
-        </div>
-        <div class="right-pane">
-            <div class="drag-overlay" id="drag-overlay"></div>
-            <div class="panels-container">
-                <div class="panel">
-                    <div class="panel-header">Leaflet</div>
-                    <iframe id="leaflet-frame"></iframe>
-                </div>
-                <div class="panel">
-                    <div class="panel-header">MapLibre</div>
-                    <iframe id="maplibre-frame"></iframe>
-                </div>
-                <div class="panel">
-                    <div class="panel-header">OpenLayers</div>
-                    <iframe id="openlayers-frame"></iframe>
-                </div>
-            </div>
-        </div>
+  <div id="sidebar">
+    <h1>🗺️ India Boundary Corrector</h1>
+    <p style="margin: 0; font-size: 0.85rem; color: #666;">Config Editor - Test different tile layers and layer configurations</p>
+    
+    <div class="section">
+      <h2>PMTiles URL</h2>
+      <input type="text" id="pmtilesUrl" value="packages/data/india_boundary_corrections.pmtiles">
     </div>
-    <script>
-        const radios = document.querySelectorAll('input[name="tile"]');
-        const leafletFrame = document.getElementById('leaflet-frame');
-        const maplibreFrame = document.getElementById('maplibre-frame');
-        const openlayersFrame = document.getElementById('openlayers-frame');
-        const dragOverlay = document.getElementById('drag-overlay');
-        const correctionsCheckbox = document.getElementById('corrections-enabled');
+    
+    <div class="section">
+      <h2>Tile Layer</h2>
+      <div class="tile-preset">
+        <button id="btnCartoDark" class="active">Carto Dark</button>
+        <button id="btnOsmCarto">OSM Carto</button>
+        <button id="btnCustom">Custom</button>
+      </div>
+      <label for="tileUrl">Tile URL Template</label>
+      <input type="text" id="tileUrl" value="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png">
+      <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
+      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap &copy; CARTO">
+    </div>
+    
+    <div class="section">
+      <h2>Layer Config</h2>
+      <textarea id="configEditor">{
+  "id": "osm-carto-dark",
+  "startZoom": 0,
+  "zoomThreshold": 5,
+  "tileUrlPattern": "(cartocdn\\.com|cartodb-basemaps).*dark_all",
+  "osmAddLineColor": "rgb(40, 40, 40)",
+  "neAddLineColor": "rgb(40, 40, 40)",
+  "addLineDashed": false,
+  "addLineDashArray": [],
+  "addLineHaloRatio": 0,
+  "addLineHaloAlpha": 0,
+  "lineWidthMultiplier": 1.0
+}</textarea>
+      <div id="configStatus"></div>
+    </div>
+    
+    <button id="applyBtn">Apply Configuration</button>
+    
+    <div class="section" style="margin-top: auto;">
+      <h2>Resources</h2>
+      <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem;">
+        <li><a href="examples/">Examples</a></li>
+        <li><a href="https://github.com/ramSeraph/india_boundary_corrector">GitHub Repository</a></li>
+      </ul>
+    </div>
+  </div>
+  
+  <div id="map"></div>
 
-        let currentZoom = 4;
-        let centerLat = 34.5;
-        let centerLng = 76.0;
-        const minZoom = 1;
-        const maxZoom = 18;
+  <script type="module">
+    import L from 'https://esm.sh/leaflet@1.9.4';
+    import { extendLeaflet } from './packages/leaflet-layer/dist/index.js';
+    import { LayerConfig } from './packages/layer-configs/dist/index.js';
+    
+    // Extend Leaflet with CorrectedTileLayer
+    extendLeaflet(L);
 
-        // Drag state
-        let isDragging = false;
-        let dragStartX = 0;
-        let dragStartY = 0;
-        let dragStartLat = 0;
-        let dragStartLng = 0;
+    // Preset configs
+    const presets = {
+      cartoDark: {
+        tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        config: {
+          id: 'osm-carto-dark',
+          startZoom: 0,
+          zoomThreshold: 5,
+          tileUrlPattern: '(cartocdn\\.com|cartodb-basemaps).*dark_all',
+          osmAddLineColor: 'rgb(40, 40, 40)',
+          neAddLineColor: 'rgb(40, 40, 40)',
+          addLineDashed: false,
+          addLineDashArray: [],
+          addLineHaloRatio: 0,
+          addLineHaloAlpha: 0,
+          lineWidthMultiplier: 1.0
+        }
+      },
+      osmCarto: {
+        tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; OpenStreetMap contributors',
+        config: {
+          id: 'osm-carto',
+          startZoom: 1,
+          zoomThreshold: 1,
+          tileUrlPattern: 'tile\\.openstreetmap\\.org.*\\.png',
+          osmAddLineColor: '#b9a8b9',
+          neAddLineColor: '#b9a8b9',
+          addLineDashed: true,
+          addLineDashArray: [10, 1, 2, 1],
+          addLineHaloRatio: 1.0,
+          addLineHaloAlpha: 0.5,
+          lineWidthMultiplier: 1.5
+        }
+      },
+      custom: {
+        tileUrl: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+        attribution: '&copy; OpenStreetMap contributors',
+        config: {
+          id: 'custom',
+          startZoom: 0,
+          zoomThreshold: 5,
+          // tileUrlPattern: 'your-pattern-here',
+          osmAddLineColor: 'rgb(180, 195, 180)',
+          neAddLineColor: 'rgb(180, 195, 180)',
+          addLineDashed: true,
+          addLineDashArray: [10, 1, 2, 1],
+          addLineHaloRatio: 1.0,
+          addLineHaloAlpha: 0.5,
+          lineWidthMultiplier: 1.0
+        }
+      }
+    };
 
-        function getDegreesPerPixel() {
-            return 360 / (256 * Math.pow(2, currentZoom));
+    let currentPreset = 'cartoDark';
+    let map = null;
+    let currentLayer = null;
+
+    // DOM elements
+    const pmtilesUrlInput = document.getElementById('pmtilesUrl');
+    const tileUrlInput = document.getElementById('tileUrl');
+    const tileAttributionInput = document.getElementById('tileAttribution');
+    const configEditor = document.getElementById('configEditor');
+    const configStatus = document.getElementById('configStatus');
+    const applyBtn = document.getElementById('applyBtn');
+    const btnCartoDark = document.getElementById('btnCartoDark');
+    const btnOsmCarto = document.getElementById('btnOsmCarto');
+    const btnCustom = document.getElementById('btnCustom');
+
+    function setActiveButton(preset) {
+      btnCartoDark.classList.toggle('active', preset === 'cartoDark');
+      btnOsmCarto.classList.toggle('active', preset === 'osmCarto');
+      btnCustom.classList.toggle('active', preset === 'custom');
+    }
+
+    function loadPreset(preset) {
+      currentPreset = preset;
+      const p = presets[preset];
+      tileUrlInput.value = p.tileUrl;
+      tileAttributionInput.value = p.attribution;
+      configEditor.value = JSON.stringify(p.config, null, 2);
+      setActiveButton(preset);
+      configStatus.innerHTML = '';
+    }
+
+    function parseConfig() {
+      try {
+        const config = JSON.parse(configEditor.value);
+        configStatus.innerHTML = '<span class="success">✓ Valid JSON</span>';
+        return config;
+      } catch (e) {
+        configStatus.innerHTML = `<span class="error">✗ Invalid JSON: ${e.message}</span>`;
+        return null;
+      }
+    }
+
+    function applyConfiguration() {
+      const configObj = parseConfig();
+      if (!configObj) return;
+
+      const pmtilesUrl = pmtilesUrlInput.value.trim();
+      const tileUrl = tileUrlInput.value.trim();
+      const attribution = tileAttributionInput.value;
+
+      if (!pmtilesUrl) {
+        configStatus.innerHTML = '<span class="error">✗ PMTiles URL is required</span>';
+        return;
+      }
+
+      if (!tileUrl) {
+        configStatus.innerHTML = '<span class="error">✗ Tile URL is required</span>';
+        return;
+      }
+
+      try {
+        const layerConfig = new LayerConfig(configObj);
+
+        // Remove existing layer
+        if (currentLayer) {
+          map.removeLayer(currentLayer);
         }
 
-        function updateFrames() {
-            const tileUrl = document.querySelector('input[name="tile"]:checked').value;
-            const encoded = encodeURIComponent(tileUrl);
-            const corrections = correctionsCheckbox.checked ? '1' : '0';
-            const params = `tileUrl=${encoded}&zoom=${currentZoom}&lat=${centerLat}&lng=${centerLng}&corrections=${corrections}`;
-            leafletFrame.src = `leaflet.html?${params}`;
-            maplibreFrame.src = `maplibre.html?${params}`;
-            openlayersFrame.src = `openlayers.html?${params}`;
-        }
+        // Create new corrected tile layer
+        currentLayer = L.tileLayer.corrected(tileUrl, {
+          attribution,
+          maxZoom: 19,
+          pmtilesUrl,
+          layerConfig
+        }).addTo(map);
 
-        radios.forEach(radio => {
-            radio.addEventListener('change', updateFrames);
-        });
+        configStatus.innerHTML = '<span class="success">✓ Configuration applied!</span>';
+      } catch (e) {
+        configStatus.innerHTML = `<span class="error">✗ Error: ${e.message}</span>`;
+      }
+    }
 
-        correctionsCheckbox.addEventListener('change', updateFrames);
+    // Initialize map
+    map = L.map('map').setView([28.6, 77.2], 5);
 
-        // Scroll to zoom (with debounce for sensitivity)
-        let lastZoomTime = 0;
-        dragOverlay.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const now = Date.now();
-            if (now - lastZoomTime < 350) return; // 350ms debounce
-            lastZoomTime = now;
-            
-            if (e.deltaY < 0 && currentZoom < maxZoom) {
-                currentZoom++;
-                updateFrames();
-            } else if (e.deltaY > 0 && currentZoom > minZoom) {
-                currentZoom--;
-                updateFrames();
-            }
-        });
+    // Event listeners
+    btnCartoDark.addEventListener('click', () => loadPreset('cartoDark'));
+    btnOsmCarto.addEventListener('click', () => loadPreset('osmCarto'));
+    btnCustom.addEventListener('click', () => loadPreset('custom'));
+    applyBtn.addEventListener('click', applyConfiguration);
+    configEditor.addEventListener('input', parseConfig);
 
-        // Drag handling
-        dragOverlay.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            dragStartX = e.clientX;
-            dragStartY = e.clientY;
-            dragStartLat = centerLat;
-            dragStartLng = centerLng;
-            dragOverlay.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            
-            const dx = e.clientX - dragStartX;
-            const dy = e.clientY - dragStartY;
-            const degreesPerPixel = getDegreesPerPixel();
-            
-            centerLng = dragStartLng - dx * degreesPerPixel;
-            centerLat = dragStartLat + dy * degreesPerPixel;
-            
-            if (centerLat > 85) centerLat = 85;
-            if (centerLat < -85) centerLat = -85;
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                dragOverlay.style.cursor = 'grab';
-                updateFrames();
-            }
-        });
-
-        // Initialize
-        updateFrames();
-    </script>
+    // Initial apply
+    applyConfiguration();
+  </script>
 </body>
 </html>

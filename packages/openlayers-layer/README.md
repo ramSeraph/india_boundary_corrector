@@ -1,0 +1,105 @@
+# @india-boundary-corrector/openlayers-layer
+
+OpenLayers TileLayer extension that automatically applies India boundary corrections.
+
+## Installation
+
+```bash
+npm install @india-boundary-corrector/openlayers-layer ol
+```
+
+## Usage
+
+### Basic Usage (Auto-detection)
+
+```javascript
+import { Map, View } from 'ol';
+import { fromLonLat } from 'ol/proj';
+import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+
+const map = new Map({
+  target: 'map',
+  layers: [
+    new CorrectedTileLayer({
+      url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    })
+  ],
+  view: new View({
+    center: fromLonLat([78.9629, 20.5937]),
+    zoom: 5
+  })
+});
+```
+
+### With Explicit Layer Config
+
+```javascript
+import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+
+const layer = new CorrectedTileLayer({
+  url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  layerConfig: 'osm-carto-dark'
+});
+```
+
+### With Custom Layer Config
+
+```javascript
+import { CorrectedTileLayer, LayerConfig } from '@india-boundary-corrector/openlayers-layer';
+
+const osmDeConfig = new LayerConfig({
+  id: 'osm-de',
+  tileUrlPattern: /tile\.openstreetmap\.de/,
+  osmAddLineColor: 'rgb(180,195,180)',
+  neAddLineColor: 'rgb(180,195,180)',
+  addLineDashed: true,
+  addLineDashArray: [10, 1, 2, 1],
+  addLineHaloRatio: 1.0,
+  addLineHaloAlpha: 0.5,
+});
+
+const layer = new CorrectedTileLayer({
+  url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+  layerConfig: osmDeConfig
+});
+
+// Or use extraLayerConfigs for auto-detection
+const layer2 = new CorrectedTileLayer({
+  url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+  extraLayerConfigs: [osmDeConfig]
+});
+```
+
+### Factory Function
+
+```javascript
+import { correctedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+
+const layer = correctedTileLayer({
+  url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+});
+```
+
+## Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `url` | string | Tile URL template with `{z}`, `{x}`, `{y}` placeholders |
+| `pmtilesUrl` | string | URL to PMTiles file (auto-detected if not provided) |
+| `layerConfig` | LayerConfig \| string | Layer config object or config ID |
+| `extraLayerConfigs` | LayerConfig[] | Additional configs for auto-detection |
+| `tileSize` | number | Tile size in pixels (default: 256) |
+| `sourceOptions` | Object | Additional options passed to XYZ source |
+| `...layerOptions` | Object | Additional options passed to TileLayer |
+
+## Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getTileFixer()` | `TileFixer` | Get the underlying TileFixer instance |
+| `getLayerConfig()` | `LayerConfig` | Get the resolved layer configuration |
+| `getRegistry()` | `LayerConfigRegistry` | Get the layer config registry |
+
+## License
+
+Unlicense

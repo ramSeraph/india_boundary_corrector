@@ -62,15 +62,12 @@ test.describe('Layer Configs Package', () => {
           id: c.id,
           zoomThreshold: c.zoomThreshold,
           osmAddLineColor: c.osmAddLineColor,
-          osmDelLineColor: c.osmDelLineColor,
           neAddLineColor: c.neAddLineColor,
-          neDelLineColor: c.neDelLineColor,
         };
       });
 
       expect(config.id).toBe('osm-carto-dark');
       expect(config.zoomThreshold).toBe(5);
-      expect(config.osmDelLineColor).toBe('#090909'); // Dark background color
     });
   });
 
@@ -210,15 +207,12 @@ test.describe('Layer Configs Package', () => {
           zoomThreshold: 7,
           tileUrlPattern: /example\.com.*tiles/,
           osmAddLineColor: '#ff0000',
-          osmDelLineColor: '#00ff00',
         });
         return {
           id: custom.id,
           zoomThreshold: custom.zoomThreshold,
           osmAddLineColor: custom.osmAddLineColor,
-          osmDelLineColor: custom.osmDelLineColor,
           neAddLineColor: custom.neAddLineColor, // Should fallback to osm color
-          neDelLineColor: custom.neDelLineColor,
         };
       });
 

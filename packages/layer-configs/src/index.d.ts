@@ -12,12 +12,8 @@ export interface LayerConfigOptions {
   tileUrlPattern?: RegExp | string | null;
   /** Addition line color for OSM data (zoom >= zoomThreshold) */
   osmAddLineColor?: string;
-  /** Deletion line color for OSM data (zoom >= zoomThreshold) */
-  osmDelLineColor?: string;
   /** Addition line color for NE data (zoom < zoomThreshold), defaults to osmAddLineColor */
   neAddLineColor?: string | null;
-  /** Deletion line color for NE data (zoom < zoomThreshold), defaults to osmDelLineColor */
-  neDelLineColor?: string | null;
   /** Use dashed lines for additions */
   addLineDashed?: boolean;
   /** Dash pattern array */
@@ -39,9 +35,7 @@ export class LayerConfig {
   readonly zoomThreshold: number;
   readonly tileUrlPattern: RegExp | null;
   readonly osmAddLineColor: string;
-  readonly osmDelLineColor: string;
   readonly neAddLineColor: string;
-  readonly neDelLineColor: string;
   readonly addLineDashed: boolean;
   readonly addLineDashArray: number[];
   readonly addLineHaloRatio: number;

@@ -1,0 +1,55 @@
+{
+  "name": "@india-boundary-corrector/service-worker",
+  "version": "0.0.1",
+  "description": "Service worker for automatic India boundary corrections on map tiles",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./worker": {
+      "import": "./dist/worker.global.js",
+      "require": "./dist/worker.global.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@india-boundary-corrector/data": "^0.0.1",
+    "@india-boundary-corrector/layer-configs": "^0.0.1",
+    "@india-boundary-corrector/tilefixer": "^0.0.1"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "service-worker",
+    "tiles"
+  ],
+  "author": "ramSeraph",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramSeraph/india_boundary_corrector.git",
+    "directory": "packages/service-worker"
+  },
+  "bugs": {
+    "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
+  },
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
+}

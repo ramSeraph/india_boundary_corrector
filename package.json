@@ -6,16 +6,15 @@
   "workspaces": [
     "packages/data",
     "packages/layer-configs",
-    "packages/maplibre",
-    "packages/leaflet",
-    "packages/openlayers"
+    "packages/tilefixer",
+    "packages/leaflet-layer",
+    "packages/openlayers-layer",
+    "packages/maplibre-protocol",
+    "packages/service-worker"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "build:layer-configs": "npm run build -w @india-boundary-corrector/layer-configs",
-    "build:maplibre": "npm run build -w @india-boundary-corrector/maplibre",
-    "build:leaflet": "npm run build -w @india-boundary-corrector/leaflet",
-    "build:openlayers": "npm run build -w @india-boundary-corrector/openlayers",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",

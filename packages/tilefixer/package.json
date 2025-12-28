@@ -1,0 +1,51 @@
+{
+  "name": "@india-boundary-corrector/tilefixer",
+  "version": "0.0.1",
+  "description": "Tile fixer for India boundary corrections using PMTiles",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./src/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@mapbox/vector-tile": "^2.0.3",
+    "pbf": "^4.0.1",
+    "pmtiles": "^4.0.0"
+  },
+  "keywords": [
+    "india",
+    "boundary",
+    "map",
+    "pmtiles",
+    "tiles"
+  ],
+  "author": "ramSeraph",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ramSeraph/india_boundary_corrector.git",
+    "directory": "packages/tilefixer"
+  },
+  "bugs": {
+    "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
+  },
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
+}

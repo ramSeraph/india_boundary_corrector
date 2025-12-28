@@ -1,0 +1,158 @@
+import { getPmtilesUrl } from '@india-boundary-corrector/data';
+import { layerConfigs, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
+import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+
+// Re-export for convenience
+export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
+export { getPmtilesUrl } from '@india-boundary-corrector/data';
+
+/**
+ * Create a merged registry with global configs and extra configs
+ * @param {LayerConfig[]} extraLayerConfigs
+ * @returns {LayerConfigRegistry}
+ */
+function createMergedRegistry(extraLayerConfigs) {
+  const registry = new LayerConfigRegistry();
+  
+  for (const id of layerConfigs.getAvailableIds()) {
+    registry.register(layerConfigs.get(id));
+  }
+  
+  if (extraLayerConfigs && extraLayerConfigs.length > 0) {
+    for (const config of extraLayerConfigs) {
+      registry.register(config);
+    }
+  }
+  
+  return registry;
+}
+
+/**
+ * Extend Leaflet with CorrectedTileLayer.
+ * @param {L} L - Leaflet namespace
+ */
+function extendLeaflet(L) {
+  // Avoid re-extending
+  if (L.TileLayer.Corrected) {
+    return;
+  }
+
+  L.TileLayer.Corrected = L.TileLayer.extend({
+    options: {
+      pmtilesUrl: null,
+      layerConfig: null,
+      extraLayerConfigs: null,
+    },
+
+    initialize: function (url, options) {
+      L.TileLayer.prototype.initialize.call(this, url, options);
+      
+      this._pmtilesUrl = this.options.pmtilesUrl ?? getPmtilesUrl();
+      this._tileFixer = new TileFixer(this._pmtilesUrl);
+      this._registry = createMergedRegistry(this.options.extraLayerConfigs);
+      
+      if (typeof this.options.layerConfig === 'string') {
+        this._layerConfig = this._registry.get(this.options.layerConfig);
+      } else if (this.options.layerConfig) {
+        this._layerConfig = this.options.layerConfig;
+      } else {
+        this._layerConfig = this._registry.detectFromUrls([url]);
+      }
+      
+      if (!this._layerConfig) {
+        console.warn('[L.TileLayer.Corrected] Could not detect layer config from URL. Corrections will not be applied.');
+      }
+    },
+
+    createTile: function (coords, done) {
+      const tile = document.createElement('img');
+      
+      tile.alt = '';
+      
+      if (this.options.crossOrigin || this.options.crossOrigin === '') {
+        tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+      }
+      
+      if (typeof this.options.referrerPolicy === 'string') {
+        tile.referrerPolicy = this.options.referrerPolicy;
+      }
+
+      if (!this._layerConfig) {
+        tile.onload = () => done(null, tile);
+        tile.onerror = (e) => done(e, tile);
+        tile.src = this.getTileUrl(coords);
+        return tile;
+      }
+
+      const tileUrl = this.getTileUrl(coords);
+      const z = coords.z;
+      const x = coords.x;
+      const y = coords.y;
+      const tileSize = this.options.tileSize || 256;
+
+      Promise.all([
+        fetch(tileUrl).then(r => {
+          if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
+          return r.arrayBuffer();
+        }),
+        this._tileFixer.getCorrections(z, x, y)
+      ])
+        .then(async ([tileData, corrections]) => {
+          const hasCorrections = Object.values(corrections).some(arr => arr.length > 0);
+          
+          if (!hasCorrections) {
+            const blob = new Blob([tileData]);
+            tile.src = URL.createObjectURL(blob);
+            tile.onload = () => {
+              URL.revokeObjectURL(tile.src);
+              done(null, tile);
+            };
+            return;
+          }
+          
+          const fixedTileData = await this._tileFixer.fixTile(
+            corrections,
+            tileData,
+            this._layerConfig,
+            z,
+            tileSize
+          );
+          
+          const blob = new Blob([fixedTileData], { type: 'image/png' });
+          tile.src = URL.createObjectURL(blob);
+          tile.onload = () => {
+            URL.revokeObjectURL(tile.src);
+            done(null, tile);
+          };
+        })
+        .catch((err) => {
+          console.warn('[L.TileLayer.Corrected] Error applying corrections, falling back to original:', err);
+          tile.onload = () => done(null, tile);
+          tile.onerror = (e) => done(e, tile);
+          tile.src = tileUrl;
+        });
+
+      return tile;
+    },
+
+    getTileFixer: function () {
+      return this._tileFixer;
+    },
+
+    getLayerConfig: function () {
+      return this._layerConfig;
+    },
+  });
+
+  L.tileLayer.corrected = function (url, options) {
+    return new L.TileLayer.Corrected(url, options);
+  };
+}
+
+// Auto-extend Leaflet if available globally
+if (typeof window !== 'undefined' && window.L) {
+  extendLeaflet(window.L);
+}
+
+// Export for manual extension if needed (e.g., ES modules with imported L)
+export { extendLeaflet };

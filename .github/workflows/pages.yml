@@ -37,9 +37,11 @@ jobs:
         run: |
           mkdir -p docs/packages/data
           mkdir -p docs/packages/layer-configs/dist
-          mkdir -p docs/packages/maplibre/dist
-          mkdir -p docs/packages/leaflet/dist
-          mkdir -p docs/packages/openlayers/dist
+          mkdir -p docs/packages/tilefixer/dist
+          mkdir -p docs/packages/leaflet-layer/dist
+          mkdir -p docs/packages/openlayers-layer/dist
+          mkdir -p docs/packages/maplibre-protocol/dist
+          mkdir -p docs/packages/service-worker/dist
           
           # Copy data package (includes PMTiles file and all JS files)
           cp packages/data/index.js docs/packages/data/
@@ -50,14 +52,23 @@ jobs:
           # Copy layer-configs dist
           cp -r packages/layer-configs/dist/* docs/packages/layer-configs/dist/
           
-          # Copy maplibre dist
-          cp -r packages/maplibre/dist/* docs/packages/maplibre/dist/
+          # Copy tilefixer dist
+          cp -r packages/tilefixer/dist/* docs/packages/tilefixer/dist/
           
-          # Copy leaflet dist
-          cp -r packages/leaflet/dist/* docs/packages/leaflet/dist/
+          # Copy leaflet-layer dist
+          cp -r packages/leaflet-layer/dist/* docs/packages/leaflet-layer/dist/
           
-          # Copy openlayers dist
-          cp -r packages/openlayers/dist/* docs/packages/openlayers/dist/
+          # Copy openlayers-layer dist
+          cp -r packages/openlayers-layer/dist/* docs/packages/openlayers-layer/dist/
+          
+          # Copy maplibre-protocol dist
+          cp -r packages/maplibre-protocol/dist/* docs/packages/maplibre-protocol/dist/
+          
+          # Copy service-worker dist
+          cp -r packages/service-worker/dist/* docs/packages/service-worker/dist/
+          
+          # Copy examples folder
+          cp -r examples docs/examples
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

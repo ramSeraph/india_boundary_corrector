@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom LayerConfig Example (OSM DE) - OpenLayers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.3.1/ol.min.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 50px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 400px;
+      z-index: 1000;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    .info code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "ol": "https://esm.sh/ol@10.3.1",
+      "ol/": "https://esm.sh/ol@10.3.1/",
+      "pmtiles": "https://esm.sh/pmtiles@4.0.0",
+      "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
+      "pbf": "https://esm.sh/pbf@4.0.1",
+      "@india-boundary-corrector/data": "../../packages/data/index.js",
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js",
+      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/src/index.js",
+      "@india-boundary-corrector/openlayers-layer": "../../packages/openlayers-layer/src/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="info">
+    <h3>Custom LayerConfig Example</h3>
+    <p>Shows how to create a custom <code>LayerConfig</code> for tile providers not included by default.</p>
+    <p>This example uses <strong>OpenStreetMap DE</strong> tiles (<code>tile.openstreetmap.de</code>) with German labels.</p>
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="map"></div>
+
+  <script type="module">
+    import Map from 'ol/Map.js';
+    import View from 'ol/View.js';
+    import { fromLonLat } from 'ol/proj.js';
+    import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+    import { LayerConfig, layerConfigs } from '@india-boundary-corrector/layer-configs';
+
+    const statusEl = document.getElementById('status');
+
+    try {
+      // Create a custom LayerConfig for OSM DE tiles
+      const osmDE = new LayerConfig({
+        id: 'osm-de',
+        startZoom: 1,
+        zoomThreshold: 1,
+        // Pattern to match OSM DE tile URLs
+        tileUrlPattern: /tile\.openstreetmap\.de/,
+        // Same styling as osm-carto since it's the same style, just with German labels
+        osmAddLineColor: 'rgb(180,195,180)',
+        neAddLineColor: '#b9a8b9',
+        addLineDashed: true,
+        addLineDashArray: [10, 1, 2, 1],
+        addLineHaloRatio: 1.0,
+        addLineHaloAlpha: 0.5,
+      });
+
+      // Register the custom config so it can be auto-detected
+      layerConfigs.register(osmDE);
+
+      statusEl.textContent = '✓ Custom config registered, creating map...';
+
+      // Create the map
+      const map = new Map({
+        target: 'map',
+        view: new View({
+          center: fromLonLat([78.9629, 20.5937]),
+          zoom: 4,
+        }),
+      });
+
+      // Create corrected tile layer with OSM DE tiles
+      // The layerConfig will be auto-detected from the URL pattern
+      const layer = new CorrectedTileLayer({
+        url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+        sourceOptions: {
+          attributions: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Hosted by <a href="https://openstreetmap.de">openstreetmap.de</a>',
+        },
+      });
+
+      map.getLayers().insertAt(0, layer);
+
+      const detectedConfig = layer.getLayerConfig();
+      if (detectedConfig && detectedConfig.id === 'osm-de') {
+        statusEl.textContent = `✓ Using custom config: ${detectedConfig.id}`;
+        statusEl.className = 'status success';
+      } else {
+        statusEl.textContent = '⚠ Config not auto-detected';
+        statusEl.className = 'status';
+      }
+
+      console.log('Custom LayerConfig:', osmDE);
+      console.log('Detected config:', detectedConfig);
+
+    } catch (error) {
+      statusEl.textContent = '✗ Error: ' + error.message;
+      statusEl.className = 'status error';
+      console.error('Error:', error);
+    }
+  </script>
+</body>
+</html>

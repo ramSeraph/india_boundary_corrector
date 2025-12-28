@@ -4,7 +4,7 @@
 >
 > This project is currently under active development and is not yet ready for production use.
 
-**[Live Demo](https://ramseraph.github.io/india_boundary_corrector/)** - See the boundary corrections in action across Leaflet, MapLibre, and OpenLayers.
+**[Config Editor](https://ramseraph.github.io/india_boundary_corrector/)** | **[Examples](https://ramseraph.github.io/india_boundary_corrector/examples/)** - See the boundary corrections in action across Leaflet, MapLibre, and OpenLayers.
 
 A set of JavaScript packages to display maps with India's official boundaries, correcting the disputed territory representations commonly found in international map tile providers.
 
@@ -28,69 +28,93 @@ Line widths scale dynamically with zoom level for consistent appearance.
 
 | Package | Description |
 |---------|-------------|
-| [@india-boundary-corrector/maplibre](./packages/maplibre) | MapLibre GL JS integration |
-| [@india-boundary-corrector/leaflet](./packages/leaflet) | Leaflet integration |
-| [@india-boundary-corrector/openlayers](./packages/openlayers) | OpenLayers integration |
+| [@india-boundary-corrector/leaflet-layer](./packages/leaflet-layer) | Leaflet TileLayer with built-in corrections |
+| [@india-boundary-corrector/openlayers-layer](./packages/openlayers-layer) | OpenLayers TileLayer with built-in corrections |
+| [@india-boundary-corrector/maplibre-protocol](./packages/maplibre-protocol) | MapLibre custom protocol for corrected tiles |
+| [@india-boundary-corrector/service-worker](./packages/service-worker) | Service worker for automatic tile interception |
 | [@india-boundary-corrector/layer-configs](./packages/layer-configs) | Pre-built layer configurations |
 | [@india-boundary-corrector/data](./packages/data) | PMTiles data with boundary corrections |
+| [@india-boundary-corrector/tilefixer](./packages/tilefixer) | Core tile correction engine |
 
 ## Quick Start
 
-### MapLibre GL JS
-
-```javascript
-import maplibregl from 'maplibre-gl';
-import { Protocol } from 'pmtiles';
-import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
-
-// Register pmtiles protocol
-const protocol = new Protocol();
-maplibregl.addProtocol('pmtiles', protocol.tile);
-
-const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://tiles.example.com/style.json',
-  center: [78.9629, 20.5937],
-  zoom: 4,
-});
-
-map.on('load', () => {
-  const corrector = addBoundaryCorrector(map);
-});
-```
-
-### Leaflet
+### Leaflet - Corrected TileLayer
 
 ```javascript
 import L from 'leaflet';
-import { addBoundaryCorrector } from '@india-boundary-corrector/leaflet';
+import '@india-boundary-corrector/leaflet-layer';
 
 const map = L.map('map').setView([20.5937, 78.9629], 4);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png').addTo(map);
-
-const corrector = addBoundaryCorrector(map);
+// Use L.correctedTileLayer instead of L.tileLayer
+L.correctedTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  // layerConfig: 'osm-carto', // Optional: auto-detected from URL
+}).addTo(map);
 ```
 
-### OpenLayers
+### OpenLayers - Corrected TileLayer
 
 ```javascript
 import Map from 'ol/Map';
 import View from 'ol/View';
-import TileLayer from 'ol/layer/Tile';
-import OSM from 'ol/source/OSM';
-import { useGeographic } from 'ol/proj';
-import { addBoundaryCorrector } from '@india-boundary-corrector/openlayers';
-
-useGeographic();
+import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
 const map = new Map({
   target: 'map',
-  layers: [new TileLayer({ source: new OSM() })],
+  layers: [
+    new CorrectedTileLayer({
+      url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      // layerConfig: 'osm-carto', // Optional: auto-detected from URL
+    }),
+  ],
   view: new View({ center: [78.9629, 20.5937], zoom: 4 }),
 });
+```
 
-const corrector = addBoundaryCorrector(map);
+### MapLibre - Custom Protocol
+
+```javascript
+import maplibregl from 'maplibre-gl';
+import { CorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
+
+// Register the corrections protocol
+const protocol = new CorrectionProtocol();
+maplibregl.addProtocol('corrections', protocol.tile);
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      basemap: {
+        type: 'raster',
+        // Prefix tile URL with 'corrections://' to apply corrections
+        tiles: ['corrections://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+      },
+    },
+    layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+  },
+  center: [78.9629, 20.5937],
+  zoom: 4,
+});
+```
+
+### Service Worker (Any Map Library)
+
+The service worker automatically intercepts tile requests and applies corrections transparently:
+
+```javascript
+import { CorrectionServiceWorker } from '@india-boundary-corrector/service-worker';
+
+// Register the service worker
+const sw = new CorrectionServiceWorker('/sw.js');
+await sw.register();
+
+// Now use any map library normally - tiles are corrected automatically
+const map = L.map('map').setView([20.5937, 78.9629], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 ```
 
 ## Supported Tile Providers
@@ -110,9 +134,7 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `zoomThreshold` | number | 5 | Zoom level to switch NE/OSM data |
 | `tileUrlPattern` | RegExp | null | Pattern for URL auto-detection |
 | `osmAddLineColor` | string | 'green' | Addition line color (high zoom) |
-| `osmDelLineColor` | string | 'red' | Deletion line color (high zoom) |
 | `neAddLineColor` | string | osmAddLineColor | Addition line color (low zoom) |
-| `neDelLineColor` | string | osmDelLineColor | Deletion line color (low zoom) |
 | `addLineDashed` | boolean | false | Use dashed lines for additions |
 | `addLineDashArray` | number[] | [] | Dash pattern |
 | `addLineHaloRatio` | number | 0 | Halo width ratio |

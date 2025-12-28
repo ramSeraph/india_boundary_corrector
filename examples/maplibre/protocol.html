@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corrections Protocol Example - MapLibre GL</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 400px;
+      z-index: 1000;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    .info code {
+      background: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .info select, .info input[type="range"] {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .info input[type="range"] {
+      padding: 0;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "maplibre-gl": "https://esm.sh/maplibre-gl@5.0.1",
+      "pmtiles": "https://esm.sh/pmtiles@4.0.0",
+      "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
+      "pbf": "https://esm.sh/pbf@4.0.1",
+      "@india-boundary-corrector/data": "../../packages/data/index.js",
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js",
+      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/src/index.js",
+      "@india-boundary-corrector/maplibre-protocol": "../../packages/maplibre-protocol/src/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="info">
+    <h3>CorrectionProtocol Example</h3>
+    <p>Uses <code>corrections://</code> protocol to fetch tiles with built-in boundary corrections.</p>
+    <label for="basemap">Select basemap:</label>
+    <select id="basemap">
+      <option value="osm-carto">OSM Carto</option>
+      <option value="osm-carto-dark">Carto Dark</option>
+    </select>
+    <label for="opacity">Opacity: <span id="opacity-value">100%</span></label>
+    <input type="range" id="opacity" min="0" max="100" value="100">
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="map"></div>
+
+  <script type="module">
+    import maplibregl from 'maplibre-gl';
+    import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
+
+    const statusEl = document.getElementById('status');
+    const basemapSelect = document.getElementById('basemap');
+    const opacitySlider = document.getElementById('opacity');
+    const opacityValue = document.getElementById('opacity-value');
+
+    const BASEMAPS = {
+      'osm-carto': {
+        // With explicit config ID
+        url: 'corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap contributors',
+      },
+      'osm-carto-dark': {
+        // Auto-detect config from URL
+        url: 'corrections://https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap contributors, © CARTO',
+      },
+    };
+
+    let map;
+
+    function switchBasemap(basemapId) {
+      const basemap = BASEMAPS[basemapId];
+      if (!basemap || !map) return;
+
+      // Update the source tiles URL
+      const source = map.getSource('basemap');
+      if (source) {
+        // MapLibre doesn't support updating tiles directly, so we need to recreate
+        map.removeLayer('basemap-layer');
+        map.removeSource('basemap');
+      }
+
+      map.addSource('basemap', {
+        type: 'raster',
+        tiles: [basemap.url],
+        tileSize: 256,
+        attribution: basemap.attribution,
+      });
+
+      map.addLayer({
+        id: 'basemap-layer',
+        type: 'raster',
+        source: 'basemap',
+        paint: {
+          'raster-opacity': opacitySlider.value / 100
+        }
+      });
+
+      statusEl.textContent = `✓ Using: ${basemapId}`;
+      statusEl.className = 'status success';
+
+      console.log('Switched to:', basemapId);
+      console.log('URL:', basemap.url);
+    }
+
+    try {
+      // Register the corrections protocol
+      const protocol = registerCorrectionProtocol(maplibregl);
+
+      statusEl.textContent = '✓ Protocol registered, initializing map...';
+
+      // Create the map with a simple style
+      map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          sources: {},
+          layers: []
+        },
+        center: [78.9629, 20.5937],
+        zoom: 4,
+      });
+
+      map.on('load', () => {
+        // Add initial basemap
+        switchBasemap('osm-carto');
+      });
+
+      // Handle basemap change
+      basemapSelect.addEventListener('change', (e) => {
+        switchBasemap(e.target.value);
+      });
+
+      // Handle opacity change
+      opacitySlider.addEventListener('input', (e) => {
+        const opacity = e.target.value / 100;
+        opacityValue.textContent = `${e.target.value}%`;
+        if (map.getLayer('basemap-layer')) {
+          map.setPaintProperty('basemap-layer', 'raster-opacity', opacity);
+        }
+      });
+
+    } catch (error) {
+      statusEl.textContent = '✗ Error: ' + error.message;
+      statusEl.className = 'status error';
+      console.error('Error:', error);
+    }
+  </script>
+</body>
+</html>

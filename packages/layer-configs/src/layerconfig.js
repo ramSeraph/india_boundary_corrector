@@ -13,10 +13,8 @@ export class LayerConfig {
     tileUrlPattern = null,
     // OSM layer styles (zoom >= zoomThreshold)
     osmAddLineColor = 'green',
-    osmDelLineColor = 'red',
     // NE layer styles (zoom < zoomThreshold) - defaults to OSM values if not specified
     neAddLineColor = null,
-    neDelLineColor = null,
     // Addition line style options
     addLineDashed = false,
     addLineDashArray = [],
@@ -33,16 +31,17 @@ export class LayerConfig {
       throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
     }
 
+    // Store the original pattern string for serialization
+    this._tileUrlPatternSource = typeof tileUrlPattern === 'string' ? tileUrlPattern :
+                                  (tileUrlPattern instanceof RegExp ? tileUrlPattern.source : null);
     this.tileUrlPattern = tileUrlPattern instanceof RegExp ? tileUrlPattern : 
                           (tileUrlPattern ? new RegExp(tileUrlPattern, 'i') : null);
 
     // OSM styles
     this.osmAddLineColor = osmAddLineColor;
-    this.osmDelLineColor = osmDelLineColor;
 
     // NE styles (fallback to OSM values)
     this.neAddLineColor = neAddLineColor ?? osmAddLineColor;
-    this.neDelLineColor = neDelLineColor ?? osmDelLineColor;
 
     // Addition line style
     this.addLineDashed = addLineDashed;
@@ -66,6 +65,35 @@ export class LayerConfig {
     if (urls.length === 0) return false;
     
     return urls.some(url => this.tileUrlPattern.test(url));
+  }
+
+  /**
+   * Serialize the config to a plain object for postMessage
+   * @returns {Object}
+   */
+  toJSON() {
+    return {
+      id: this.id,
+      startZoom: this.startZoom,
+      zoomThreshold: this.zoomThreshold,
+      tileUrlPattern: this._tileUrlPatternSource,
+      osmAddLineColor: this.osmAddLineColor,
+      neAddLineColor: this.neAddLineColor,
+      addLineDashed: this.addLineDashed,
+      addLineDashArray: this.addLineDashArray,
+      addLineHaloRatio: this.addLineHaloRatio,
+      addLineHaloAlpha: this.addLineHaloAlpha,
+      lineWidthMultiplier: this.lineWidthMultiplier,
+    };
+  }
+
+  /**
+   * Create a LayerConfig from a plain object (e.g., from postMessage)
+   * @param {Object} obj
+   * @returns {LayerConfig}
+   */
+  static fromJSON(obj) {
+    return new LayerConfig(obj);
   }
 }
 

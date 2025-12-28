@@ -5,256 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Leaflet Examples - India Boundary Corrector</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      min-height: 100vh;
-      padding: 40px 20px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    header {
-      text-align: center;
-      color: white;
-      margin-bottom: 50px;
-    }
-    header h1 {
-      font-size: 3em;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-    header p {
-      font-size: 1.2em;
-      opacity: 0.9;
-    }
-    .examples-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-      margin-bottom: 40px;
-    }
-    .example-card {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      text-decoration: none;
-      color: inherit;
-      display: block;
-    }
-    .example-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-    }
-    .example-thumbnail {
-      height: 200px;
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 4em;
-      color: white;
-    }
-    .example-content {
-      padding: 25px;
-    }
-    .example-content h2 {
-      font-size: 1.5em;
-      margin-bottom: 10px;
-      color: #11998e;
-    }
-    .example-content p {
-      color: #666;
-      margin-bottom: 15px;
-    }
-    .example-features {
-      list-style: none;
-      margin-bottom: 15px;
-    }
-    .example-features li {
-      padding: 5px 0;
-      padding-left: 25px;
-      position: relative;
-      font-size: 0.9em;
-      color: #555;
-    }
-    .example-features li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #11998e;
-      font-weight: bold;
-    }
-    .example-badge {
-      display: inline-block;
-      background: #11998e;
-      color: white;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.75em;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-top: 10px;
-    }
-    .badge-beginner { background: #48bb78; }
-    .badge-intermediate { background: #ed8936; }
-    .info-section {
-      background: white;
-      border-radius: 12px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .info-section h2 {
-      color: #11998e;
-      margin-bottom: 15px;
-    }
-    .info-section code {
-      background: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-    }
-    .info-section pre {
-      background: #2d3748;
-      color: #e2e8f0;
-      padding: 20px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 15px 0;
-    }
-    footer {
-      text-align: center;
-      color: white;
-      margin-top: 50px;
-      opacity: 0.9;
-    }
-    footer a {
-      color: white;
-      text-decoration: underline;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    h1 { color: #333; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 15px 0; }
+    a { color: #007bff; text-decoration: none; font-size: 18px; }
+    a:hover { text-decoration: underline; }
+    .description { color: #666; font-size: 14px; margin-top: 5px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🍃 India Boundary Corrector</h1>
-      <p>Leaflet Examples</p>
-    </header>
-
-    <div class="info-section">
-      <h2>About</h2>
-      <p>
-        The India Boundary Corrector provides accurate representations of India's boundaries in web maps.
-        These examples demonstrate how to integrate the corrections into Leaflet applications using 
-        <code>protomaps-leaflet</code> for vector tile rendering.
-      </p>
-    </div>
-
-    <div class="examples-grid">
-      <a href="basic.html" class="example-card">
-        <div class="example-thumbnail">🍃</div>
-        <div class="example-content">
-          <h2>Basic Example</h2>
-          <p>Simple implementation using the addBoundaryCorrector helper function.</p>
-          <ul class="example-features">
-            <li>Auto-detection of tile layers</li>
-            <li>OSM Carto Dark base map</li>
-            <li>Complete boundary corrections</li>
-            <li>Minimal code</li>
-          </ul>
-          <span class="example-badge badge-beginner">Beginner</span>
-        </div>
-      </a>
-
-      <a href="side-by-side.html" class="example-card">
-        <div class="example-thumbnail">↔️</div>
-        <div class="example-content">
-          <h2>Side-by-Side Comparison</h2>
-          <p>Split-screen view comparing original vs corrected boundaries.</p>
-          <ul class="example-features">
-            <li>Synchronized map movements</li>
-            <li>Visual comparison</li>
-            <li>Dark theme design</li>
-            <li>Responsive layout</li>
-          </ul>
-          <span class="example-badge badge-intermediate">Intermediate</span>
-        </div>
-      </a>
-
-      <a href="layer-switcher.html" class="example-card">
-        <div class="example-thumbnail">🔀</div>
-        <div class="example-content">
-          <h2>Layer Switcher</h2>
-          <p>Switch between different base layers with automatic correction handling.</p>
-          <ul class="example-features">
-            <li>CartoDB Dark tiles</li>
-            <li>OpenStreetMap Standard tiles</li>
-            <li>ESRI Satellite (no corrections)</li>
-            <li>Dynamic layer switching</li>
-          </ul>
-          <span class="example-badge badge-intermediate">Intermediate</span>
-        </div>
-      </a>
-    </div>
-
-    <div class="info-section">
-      <h2>Quick Start</h2>
-      <p>Install the packages:</p>
-      <pre>npm install @india-boundary-corrector/leaflet leaflet protomaps-leaflet</pre>
-      
-      <p>Basic usage:</p>
-      <pre>import L from 'leaflet';
-import { addBoundaryCorrector } from '@india-boundary-corrector/leaflet';
-
-const map = L.map('map').setView([20.5937, 78.9629], 4);
-
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors, © CARTO'
-}).addTo(map);
-
-// Auto-detects tile layers and adds corrections
-const corrector = addBoundaryCorrector(map);
-
-// To remove later:
-// corrector.remove();</pre>
-    </div>
-
-    <div class="info-section">
-      <h2>How It Works</h2>
-      <p>The Leaflet integration uses <code>protomaps-leaflet</code> to render vector tile corrections:</p>
-      <ol style="margin-left: 20px; margin-top: 10px;">
-        <li style="margin-bottom: 10px;">
-          <strong>Base Tile Layer:</strong> Standard Leaflet TileLayer renders the raster tiles
-        </li>
-        <li style="margin-bottom: 10px;">
-          <strong>Correction Layer:</strong> protomaps-leaflet renders PMTiles vector data with custom symbolizers
-        </li>
-        <li style="margin-bottom: 10px;">
-          <strong>Auto-tracking:</strong> The corrector listens to layer add/remove events to manage corrections dynamically
-        </li>
-      </ol>
-    </div>
-
-    <footer>
-      <p>
-        <a href="../maplibre/">View MapLibre Examples</a> |
-        <a href="README.md" target="_blank">Documentation</a>
-      </p>
-      <p style="margin-top: 10px; font-size: 0.9em;">
-        Released under the Unlicense
-      </p>
-    </footer>
-  </div>
+  <h1>Leaflet Examples</h1>
+  <ul>
+    <li>
+      <a href="tile-layer.html">Corrected TileLayer</a>
+      <div class="description">Uses L.correctedTileLayer() to apply boundary corrections directly to tiles.</div>
+    </li>
+    <li>
+      <a href="service-worker.html">Service Worker</a>
+      <div class="description">Uses a Service Worker to automatically intercept and correct tile requests.</div>
+    </li>
+    <li>
+      <a href="custom-layerconfig.html">Custom LayerConfig</a>
+      <div class="description">Shows how to create a custom LayerConfig for OSM DE (tile.openstreetmap.de) tiles.</div>
+    </li>
+    <li>
+      <a href="service-worker-custom.html">Service Worker + Custom LayerConfig</a>
+      <div class="description">Shows how to register a custom LayerConfig with the Service Worker for OSM DE tiles.</div>
+    </li>
+  </ul>
+  <p><a href="../">← Back to all examples</a></p>
 </body>
 </html>

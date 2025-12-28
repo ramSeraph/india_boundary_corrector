@@ -4,7 +4,9 @@
  */
 
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import type { Map as LeafletMap, TileLayer } from 'leaflet';
+import type maplibregl from 'maplibre-gl';
+import type { Map as LeafletMap } from 'leaflet';
+import type L from 'leaflet';
 import type { Map as OLMap } from 'ol';
 
 // Test @india-boundary-corrector/data types
@@ -44,9 +46,7 @@ const customConfig = new LayerConfig({
   zoomThreshold: 6,
   tileUrlPattern: /example\.com/,
   osmAddLineColor: '#000',
-  osmDelLineColor: '#fff',
   neAddLineColor: '#111',
-  neDelLineColor: '#eee',
   addLineDashed: true,
   addLineDashArray: [5, 3],
   addLineHaloRatio: 0.5,
@@ -72,104 +72,138 @@ const removed: boolean = registry.remove('test-config');
 const darkConfig: LayerConfig = osmCartoDark;
 const cartoConfig: LayerConfig = osmCarto;
 
-// Test @india-boundary-corrector/maplibre types
-import {
-  BoundaryCorrector as MapLibreBoundaryCorrector,
-  addBoundaryCorrector as addMapLibreCorrector,
-  removeBoundaryCorrector as removeMapLibreCorrector,
-  getBoundaryCorrectorConfig,
-  type BoundaryCorrectorOptions as MapLibreOptions,
-  type TrackedSource,
-  type BoundaryCorrectorConfig,
-} from '@india-boundary-corrector/maplibre';
+// Test @india-boundary-corrector/tilefixer types
+import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
-declare const maplibreMap: MapLibreMap;
-
-// Test MapLibre BoundaryCorrector
-const maplibreCorrector = new MapLibreBoundaryCorrector(maplibreMap, {
-  sourceId: 'raster-source',
-  layerId: 'raster-layer',
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-  layerConfig: osmCartoDark,
+// Test TileFixer construction
+const tileFixer = new TileFixer('https://example.com/tiles.pmtiles', {
+  cacheSize: 128,
 });
 
-maplibreCorrector.init();
-const trackedSources: Map<string, TrackedSource> = maplibreCorrector.getTrackedSources();
-const hasCorrections: boolean = maplibreCorrector.hasCorrections('source-id');
-maplibreCorrector.remove();
+// Test TileFixer methods
+const source = tileFixer.getSource(); // PMTiles
+const cache = tileFixer.getCache(); // TileCache
+tileFixer.clearCache();
 
-// Test addBoundaryCorrector
-const corrector2 = addMapLibreCorrector(maplibreMap, { layerConfig: 'osm-carto-dark' });
+// Test getCorrections
+import type { CorrectionResult } from '@india-boundary-corrector/tilefixer';
+const corrections: Promise<CorrectionResult> = tileFixer.getCorrections(4, 11, 6);
 
-// Test getBoundaryCorrectorConfig
-const config: BoundaryCorrectorConfig | null = getBoundaryCorrectorConfig(maplibreMap, {
-  sourceId: 'source',
-});
+// Test fixTile
+declare const rasterTile: ArrayBuffer;
+const fixedTile: Promise<ArrayBuffer> = tileFixer.fixTile(
+  await corrections,
+  rasterTile,
+  customConfig,
+  10,
+  256
+);
 
-// Test removeBoundaryCorrector
-removeMapLibreCorrector(maplibreCorrector);
+// Test @india-boundary-corrector/leaflet-layer types
+import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
 
-// Test @india-boundary-corrector/leaflet types
+declare const leaflet: typeof L;
+
+// Test extendLeaflet
+extendLeaflet(leaflet);
+
+// After extension, L.TileLayer.Corrected and L.tileLayer.corrected are available
+// These are runtime types that TypeScript can't fully verify
+
+// Test @india-boundary-corrector/openlayers-layer types
 import {
-  BoundaryCorrector as LeafletBoundaryCorrector,
-  addBoundaryCorrector as addLeafletCorrector,
-  removeBoundaryCorrector as removeLeafletCorrector,
-  type BoundaryCorrectorOptions as LeafletOptions,
-  type TrackedLayer as LeafletTrackedLayer,
-} from '@india-boundary-corrector/leaflet';
+  CorrectedTileLayer,
+  correctedTileLayer,
+} from '@india-boundary-corrector/openlayers-layer';
 
-declare const leafletMap: LeafletMap;
-declare const tileLayer: TileLayer;
-
-// Test Leaflet BoundaryCorrector
-const leafletCorrector = new LeafletBoundaryCorrector(leafletMap, {
-  tileLayer: tileLayer,
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-  layerConfig: osmCartoDark,
-});
-
-leafletCorrector.init();
-const trackedLayers: Map<TileLayer, LeafletTrackedLayer> = leafletCorrector.getTrackedLayers();
-const leafletHasCorrections: boolean = leafletCorrector.hasCorrections(tileLayer);
-const isInitialized: boolean = leafletCorrector.isInitialized();
-leafletCorrector.remove();
-
-// Test addBoundaryCorrector
-const leafletCorrector2 = addLeafletCorrector(leafletMap);
-
-// Test removeBoundaryCorrector
-removeLeafletCorrector(leafletCorrector2);
-
-// Test @india-boundary-corrector/openlayers types
-import {
-  BoundaryCorrector as OLBoundaryCorrector,
-  addBoundaryCorrector as addOLCorrector,
-  removeBoundaryCorrector as removeOLCorrector,
-  type BoundaryCorrectorOptions as OLOptions,
-  type TrackedLayer as OLTrackedLayer,
-} from '@india-boundary-corrector/openlayers';
-import type BaseLayer from 'ol/layer/Base';
-import type VectorTileLayer from 'ol/layer/VectorTile';
-
-declare const olMap: OLMap;
-declare const baseLayer: BaseLayer;
-
-// Test OpenLayers BoundaryCorrector
-const olCorrector = new OLBoundaryCorrector(olMap, {
+// Test CorrectedTileLayer construction
+const olLayer = new CorrectedTileLayer({
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   pmtilesUrl: 'https://example.com/tiles.pmtiles',
   layerConfig: 'osm-carto',
+  extraLayerConfigs: [customConfig],
+  tileSize: 256,
 });
 
-olCorrector.init();
-const olTrackedLayers: Map<BaseLayer, OLTrackedLayer> = olCorrector.getTrackedLayers();
-const olHasCorrections: boolean = olCorrector.hasCorrections(baseLayer);
-const correctionLayers: { delLayer: VectorTileLayer; addLayer: VectorTileLayer } | null = olCorrector.getCorrectionLayers(baseLayer);
-const layerConfig: LayerConfig | null = olCorrector.getLayerConfig(baseLayer);
-const olIsInitialized: boolean = olCorrector.isInitialized();
-olCorrector.remove();
+// Test CorrectedTileLayer methods
+const olTileFixer: TileFixer = olLayer.getTileFixer();
+const olLayerConfig: LayerConfig | null = olLayer.getLayerConfig();
+const olRegistry: LayerConfigRegistry = olLayer.getRegistry();
 
-// Test addBoundaryCorrector
-const olCorrector2 = addOLCorrector(olMap);
+// Test factory function
+const olLayer2 = correctedTileLayer({
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+});
 
-// Test removeBoundaryCorrector
-removeOLCorrector(olCorrector2);
+// Test @india-boundary-corrector/maplibre-protocol types
+import {
+  CorrectionProtocol,
+  registerCorrectionProtocol,
+} from '@india-boundary-corrector/maplibre-protocol';
+
+declare const maplibreGl: typeof maplibregl;
+
+// Test CorrectionProtocol construction
+const protocol = new CorrectionProtocol({
+  pmtilesUrl: 'https://example.com/tiles.pmtiles',
+  tileSize: 256,
+});
+
+// Test CorrectionProtocol methods
+protocol.addLayerConfig(customConfig);
+const protocolRegistry: LayerConfigRegistry = protocol.getRegistry();
+const protocolTileFixer: TileFixer = protocol.getTileFixer();
+protocol.register(maplibreGl);
+protocol.unregister(maplibreGl);
+
+// Test registerCorrectionProtocol
+const protocol2: CorrectionProtocol = registerCorrectionProtocol(maplibreGl, {
+  pmtilesUrl: 'https://example.com/tiles.pmtiles',
+});
+
+// Test @india-boundary-corrector/service-worker types
+import {
+  CorrectionServiceWorker,
+  registerCorrectionServiceWorker,
+  MessageTypes,
+  getWorkerImportSnippet,
+} from '@india-boundary-corrector/service-worker';
+
+// Test MessageTypes
+const msgTypes: {
+  ADD_LAYER_CONFIG: string;
+  REMOVE_LAYER_CONFIG: string;
+  SET_PMTILES_URL: string;
+  SET_ENABLED: string;
+  CLEAR_CACHE: string;
+  GET_STATUS: string;
+} = MessageTypes;
+
+// Test CorrectionServiceWorker construction
+const sw = new CorrectionServiceWorker('./sw.js', {
+  scope: './',
+  pmtilesUrl: 'https://example.com/tiles.pmtiles',
+  controllerTimeout: 5000,
+});
+
+// Test CorrectionServiceWorker methods
+const registerPromise: Promise<CorrectionServiceWorker> = sw.register();
+const isControlling: boolean = sw.isControlling();
+const unregisterPromise: Promise<boolean> = sw.unregister();
+const worker: ServiceWorker | null = sw.getWorker();
+const sendMsgPromise: Promise<unknown> = sw.sendMessage({ type: 'test' });
+const addConfigPromise: Promise<void> = sw.addLayerConfig(customConfig);
+const removeConfigPromise: Promise<void> = sw.removeLayerConfig('test-config');
+const setPmtilesPromise: Promise<void> = sw.setPmtilesUrl('https://example.com/tiles.pmtiles');
+const setEnabledPromise: Promise<void> = sw.setEnabled(true);
+const clearCachePromise: Promise<void> = sw.clearCache();
+const getStatusPromise: Promise<object> = sw.getStatus();
+
+// Test registerCorrectionServiceWorker
+const swPromise: Promise<CorrectionServiceWorker> = registerCorrectionServiceWorker('./sw.js', {
+  scope: './',
+  pmtilesUrl: 'https://example.com/tiles.pmtiles',
+});
+
+// Test getWorkerImportSnippet
+const snippet: string = getWorkerImportSnippet('https://example.com/worker.global.js');

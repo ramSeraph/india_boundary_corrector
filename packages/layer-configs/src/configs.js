@@ -12,11 +12,9 @@ export const osmCartoDark = new LayerConfig({
   zoomThreshold: 5,
   tileUrlPattern: /(cartocdn\.com|cartodb-basemaps).*dark_all/,
   // OSM styles (zoom >= 5)
-  osmAddLineColor: '#262626',
-  osmDelLineColor: '#090909',
+  osmAddLineColor: 'rgb(40, 40, 40)',
   // NE styles (zoom < 5)
-  neAddLineColor: '#262626',
-  neDelLineColor: '#090909',
+  neAddLineColor: 'rgb(40, 40, 40)',
   // Thicker lines at lower zoom levels
   lineWidthMultiplier: 1.0,
 });
@@ -28,13 +26,12 @@ export const osmCarto = new LayerConfig({
   tileUrlPattern: /tile\.openstreetmap\.org.*\.png/,
   // OSM styles (zoom >= 5)
   osmAddLineColor: '#b9a8b9',
-  osmDelLineColor: '#f2efea',
   // NE styles (zoom < 5)
   neAddLineColor: '#b9a8b9',
-  neDelLineColor: '#f2efea',
   // Addition line style
   addLineDashed: true,
   addLineDashArray: [10, 1, 2, 1],
   addLineHaloRatio: 1.0,
   addLineHaloAlpha: 0.5,
+  lineWidthMultiplier: 1.5,
 });
