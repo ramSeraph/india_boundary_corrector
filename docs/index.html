@@ -286,6 +286,10 @@
       <input type="text" id="tileUrl" value="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png">
       <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
       <input type="text" id="tileAttribution" value="&copy; OpenStreetMap &copy; CARTO">
+      <label style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="correctionsToggle" checked style="width: auto;">
+        <span>Enable boundary corrections</span>
+      </label>
     </div>
     
     <div class="section">
@@ -411,6 +415,7 @@
     const btnCartoDark = document.getElementById('btnCartoDark');
     const btnOsmCarto = document.getElementById('btnOsmCarto');
     const btnCustom = document.getElementById('btnCustom');
+    const correctionsToggle = document.getElementById('correctionsToggle');
 
     function setActiveButton(preset) {
       btnCartoDark.classList.toggle('active', preset === 'cartoDark');
@@ -465,13 +470,22 @@
           map.removeLayer(currentLayer);
         }
 
-        // Create new corrected tile layer
-        currentLayer = L.tileLayer.indiaBoundaryCorrected(tileUrl, {
-          attribution,
-          maxZoom: 19,
-          pmtilesUrl,
-          layerConfig
-        }).addTo(map);
+        // Create tile layer based on corrections toggle
+        if (correctionsToggle && correctionsToggle.checked) {
+          // Create corrected tile layer
+          currentLayer = L.tileLayer.indiaBoundaryCorrected(tileUrl, {
+            attribution,
+            maxZoom: 19,
+            pmtilesUrl,
+            layerConfig
+          }).addTo(map);
+        } else {
+          // Create plain tile layer without corrections
+          currentLayer = L.tileLayer(tileUrl, {
+            attribution,
+            maxZoom: 19,
+          }).addTo(map);
+        }
 
         configStatus.innerHTML = '<span class="success">✓ Configuration applied!</span>';
       } catch (e) {
@@ -700,6 +714,9 @@
     btnCustom.addEventListener('click', () => loadPreset('custom'));
     applyBtn.addEventListener('click', applyConfiguration);
     configEditor.addEventListener('input', parseConfig);
+    if (correctionsToggle) {
+      correctionsToggle.addEventListener('change', applyConfiguration);
+    }
 
     // Initial apply
     applyConfiguration();
