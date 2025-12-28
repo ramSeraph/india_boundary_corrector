@@ -250,23 +250,21 @@
     <p style="margin: 0; font-size: 0.85rem; color: #666;">Config Editor - Test different tile layers and layer configurations</p>
     
     <div class="section">
-      <h2>PMTiles URL</h2>
-      <input type="text" id="pmtilesUrl" value="packages/data/india_boundary_corrections.pmtiles">
-    </div>
-    
-    <div class="section">
-      <h2>Tile Layer</h2>
-      <label for="tileUrl">Tile URL Template</label>
-      <input type="text" id="tileUrl" value="https://tile.openstreetmap.org/{z}/{x}/{y}.png">
-      <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
-      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap contributors">
-      <label style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+      <label style="display: flex; align-items: center; gap: 8px;">
         <input type="checkbox" id="correctionsToggle" checked style="width: auto;">
         <span>Enable boundary corrections</span>
       </label>
     </div>
     
-    <div class="section">
+    <div class="section" id="tileLayerSection">
+      <h2>Tile Layer</h2>
+      <label for="tileUrl">Tile URL Template</label>
+      <input type="text" id="tileUrl" value="https://tile.openstreetmap.org/{z}/{x}/{y}.png">
+      <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
+      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap contributors">
+    </div>
+    
+    <div class="section" id="configSection">
       <h2>Layer Config</h2>
       <textarea id="configEditor">{
   "id": "osm-carto",
@@ -282,6 +280,11 @@
   "lineWidthMultiplier": 1.5
 }</textarea>
       <div id="configStatus"></div>
+    </div>
+    
+    <div class="section" id="pmtilesSection">
+      <h2>PMTiles URL</h2>
+      <input type="text" id="pmtilesUrl" value="packages/data/india_boundary_corrections.pmtiles">
     </div>
     
     <button id="applyBtn">Apply Configuration</button>
@@ -331,6 +334,15 @@
     const configStatus = document.getElementById('configStatus');
     const applyBtn = document.getElementById('applyBtn');
     const correctionsToggle = document.getElementById('correctionsToggle');
+    const pmtilesSection = document.getElementById('pmtilesSection');
+    const tileLayerSection = document.getElementById('tileLayerSection');
+    const configSection = document.getElementById('configSection');
+
+    function toggleSections() {
+      const enabled = correctionsToggle.checked;
+      pmtilesSection.style.display = enabled ? 'block' : 'none';
+      configSection.style.display = enabled ? 'block' : 'none';
+    }
 
     function parseConfig() {
       try {
@@ -344,33 +356,34 @@
     }
 
     function applyConfiguration() {
-      const configObj = parseConfig();
-      if (!configObj) return;
-
-      const pmtilesUrl = pmtilesUrlInput.value.trim();
       const tileUrl = tileUrlInput.value.trim();
       const attribution = tileAttributionInput.value;
-
-      if (!pmtilesUrl) {
-        configStatus.innerHTML = '<span class="error">✗ PMTiles URL is required</span>';
-        return;
-      }
 
       if (!tileUrl) {
         configStatus.innerHTML = '<span class="error">✗ Tile URL is required</span>';
         return;
       }
 
-      try {
-        const layerConfig = new LayerConfig(configObj);
+      // Remove existing layer
+      if (currentLayer) {
+        map.removeLayer(currentLayer);
+      }
 
-        // Remove existing layer
-        if (currentLayer) {
-          map.removeLayer(currentLayer);
+      // Create tile layer based on corrections toggle
+      if (correctionsToggle && correctionsToggle.checked) {
+        const configObj = parseConfig();
+        if (!configObj) return;
+
+        const pmtilesUrl = pmtilesUrlInput.value.trim();
+
+        if (!pmtilesUrl) {
+          configStatus.innerHTML = '<span class="error">✗ PMTiles URL is required</span>';
+          return;
         }
 
-        // Create tile layer based on corrections toggle
-        if (correctionsToggle && correctionsToggle.checked) {
+        try {
+          const layerConfig = new LayerConfig(configObj);
+
           // Create corrected tile layer
           currentLayer = L.tileLayer.indiaBoundaryCorrected(tileUrl, {
             attribution,
@@ -378,17 +391,17 @@
             pmtilesUrl,
             layerConfig
           }).addTo(map);
-        } else {
-          // Create plain tile layer without corrections
-          currentLayer = L.tileLayer(tileUrl, {
-            attribution,
-            maxZoom: 19,
-          }).addTo(map);
-        }
 
-        configStatus.innerHTML = '<span class="success">✓ Configuration applied!</span>';
-      } catch (e) {
-        configStatus.innerHTML = `<span class="error">✗ Error: ${e.message}</span>`;
+          configStatus.innerHTML = '<span class="success">✓ Configuration applied!</span>';
+        } catch (e) {
+          configStatus.innerHTML = `<span class="error">✗ Error: ${e.message}</span>`;
+        }
+      } else {
+        // Create plain tile layer without corrections
+        currentLayer = L.tileLayer(tileUrl, {
+          attribution,
+          maxZoom: 19,
+        }).addTo(map);
       }
     }
 
@@ -611,10 +624,14 @@
     applyBtn.addEventListener('click', applyConfiguration);
     configEditor.addEventListener('input', parseConfig);
     if (correctionsToggle) {
-      correctionsToggle.addEventListener('change', applyConfiguration);
+      correctionsToggle.addEventListener('change', () => {
+        toggleSections();
+        applyConfiguration();
+      });
     }
 
-    // Initial apply
+    // Initial setup
+    toggleSections();
     applyConfiguration();
   </script>
 </body>
