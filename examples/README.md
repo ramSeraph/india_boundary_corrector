@@ -25,20 +25,70 @@ This folder contains examples demonstrating how to use the India Boundary Correc
 ## Example Categories
 
 ### Leaflet Examples (`leaflet/`)
-- **leaflet-layer/**: Using `CorrectedTileLayer` extension
-- **service-worker/**: Using service worker for automatic tile correction
-- **service-worker-custom/**: Service worker with custom layer config
+- **script-tag.html**: Simple `<script>` tag setup using IIFE bundle (no bundler required)
+- **tile-layer.html**: Using `L.tileLayer.corrected()` with ES modules
+- **service-worker.html**: Using service worker for automatic tile correction
+- **custom-layerconfig.html**: Creating custom LayerConfig for unsupported tile providers
+- **service-worker-custom.html**: Service worker with custom layer config
 
 ### OpenLayers Examples (`openlayers/`)
-- **openlayers-layer/**: Using `CorrectedTileLayer` source
-- **service-worker/**: Using service worker for automatic tile correction
+- **script-tag.html**: Simple `<script>` tag setup using IIFE bundle (no bundler required)
+- **tile-layer.html**: Using `CorrectedTileLayer` with ES modules
+- **service-worker.html**: Using service worker for automatic tile correction
+- **custom-layerconfig.html**: Creating custom LayerConfig for unsupported tile providers
 
 ### MapLibre Examples (`maplibre/`)
-- **maplibre-protocol/**: Using custom `corrections:` protocol
-- **service-worker/**: Using service worker for automatic tile correction
+- **script-tag.html**: Simple `<script>` tag setup using IIFE bundle (no bundler required)
+- **protocol.html**: Using custom `corrections://` protocol with ES modules
+- **service-worker.html**: Using service worker for automatic tile correction
+- **custom-layerconfig.html**: Creating custom LayerConfig for unsupported tile providers
+
+## Usage Patterns
+
+### Script Tag (IIFE) - Simplest Setup
+
+No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
+
+```html
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="path/to/leaflet-layer/dist/index.global.js"></script>
+<script>
+  IndiaBoundaryCorrector.extendLeaflet(L);
+  L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+</script>
+
+<!-- MapLibre -->
+<script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+<script src="path/to/maplibre-protocol/dist/index.global.js"></script>
+<script>
+  IndiaBoundaryCorrector.registerCorrectionProtocol(maplibregl);
+  // Use corrections://https://... URLs in your tile sources
+</script>
+
+<!-- OpenLayers -->
+<script src="https://cdn.jsdelivr.net/npm/ol@10.3.1/dist/ol.js"></script>
+<script src="path/to/openlayers-layer/dist/index.global.js"></script>
+<script>
+  const layer = new IndiaBoundaryCorrector.CorrectedTileLayer({
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  });
+</script>
+```
+
+### ES Modules
+
+For modern applications using import maps or bundlers:
+
+```javascript
+import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
+import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
+import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+```
 
 ## Notes
 
 - Service worker examples require HTTPS or localhost
+- IIFE bundles expose the `IndiaBoundaryCorrector` global object
 - Examples use relative imports and work with the local development build
 - Each example includes comments explaining the setup

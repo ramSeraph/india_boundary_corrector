@@ -10,6 +10,17 @@ export default defineConfig([
     sourcemap: true,
   },
   {
+    entry: ['src/index.js'],
+    format: ['iife'],
+    dts: false,
+    outDir: 'dist',
+    outExtension: () => ({ js: '.global.js' }),
+    sourcemap: true,
+    globalName: 'IndiaBoundaryCorrector',
+    platform: 'browser',
+    target: 'es2020',
+  },
+  {
     entry: { 'worker': 'src/worker.js' },
     format: ['iife'],
     dts: false,

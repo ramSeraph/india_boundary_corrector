@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker (IIFE) Example - India Boundary Corrector</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Load the IIFE bundle - no module bundler needed! -->
+  <!-- Option 1: Load from CDN (recommended for production) -->
+  <!-- <script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script> -->
+  <!-- Option 2: Load from local path (for development) -->
+  <script src="../../packages/service-worker/dist/index.global.js"></script>
+  <style>
+    body { margin: 0; padding: 0; font-family: sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 50px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 350px;
+      z-index: 1000;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    .info code {
+      background: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .info select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.warning { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h3>Service Worker (IIFE) Example</h3>
+    <p>Uses a simple <code>&lt;script&gt;</code> tag to load the IIFE bundle. The Service Worker intercepts tile requests automatically.</p>
+    <label for="basemap">Select basemap:</label>
+    <select id="basemap">
+      <option value="osm-carto">OSM Carto</option>
+      <option value="osm-carto-dark">Carto Dark</option>
+    </select>
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const basemapSelect = document.getElementById('basemap');
+
+    const BASEMAPS = {
+      'osm-carto': {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      },
+      'osm-carto-dark': {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
+      },
+    };
+
+    let map;
+    let currentLayer;
+
+    function updateStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    function switchBasemap(basemapId) {
+      const basemap = BASEMAPS[basemapId];
+      if (!basemap) return;
+
+      if (currentLayer) {
+        map.removeLayer(currentLayer);
+      }
+
+      currentLayer = L.tileLayer(basemap.url, {
+        attribution: basemap.attribution,
+        maxZoom: 19,
+      });
+
+      currentLayer.addTo(map);
+    }
+
+    async function init() {
+      try {
+        // The IIFE bundle exposes IndiaBoundaryCorrector global
+        const { registerCorrectionServiceWorker } = IndiaBoundaryCorrector;
+
+        updateStatus('Registering service worker...');
+
+        // Register the service worker
+        // pmtilesUrl is only needed when loading from local path.
+        // When using the CDN bundle, the PMTiles data is included automatically.
+        const sw = await registerCorrectionServiceWorker('./sw.js', {
+          pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
+        });
+
+        if (!sw.isControlling()) {
+          updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
+          return;
+        }
+
+        updateStatus('✓ Service worker active', 'success');
+
+        map = L.map('map').setView([20.5937, 78.9629], 4);
+        switchBasemap('osm-carto');
+
+        basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));
+
+      } catch (error) {
+        updateStatus('✗ Error: ' + error.message, 'error');
+        console.error('Error:', error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

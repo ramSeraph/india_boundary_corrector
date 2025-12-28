@@ -10,7 +10,32 @@ npm install @india-boundary-corrector/leaflet-layer leaflet
 
 ## Usage
 
-### Basic Usage (Auto-detection)
+### Script Tag (IIFE) - Simplest Setup
+
+No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js"></script>
+
+<div id="map" style="height: 400px;"></div>
+
+<script>
+  // Extend Leaflet with corrected tile layer
+  IndiaBoundaryCorrector.extendLeaflet(L);
+
+  // Create map
+  const map = L.map('map').setView([20.5937, 78.9629], 5);
+
+  // Use corrected tile layer - config auto-detected from URL
+  L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+</script>
+```
+
+### ES Modules
 
 ```javascript
 import L from 'leaflet';

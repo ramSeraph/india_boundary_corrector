@@ -10,7 +10,44 @@ npm install @india-boundary-corrector/maplibre-protocol maplibre-gl
 
 ## Usage
 
-### Basic Usage
+### Script Tag (IIFE) - Simplest Setup
+
+No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
+<script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"></script>
+
+<div id="map" style="height: 400px;"></div>
+
+<script>
+  // Register the corrections:// protocol
+  IndiaBoundaryCorrector.registerCorrectionProtocol(maplibregl);
+
+  // Use in map style
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        osm: {
+          type: 'raster',
+          tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256
+        }
+      },
+      layers: [
+        { id: 'osm', type: 'raster', source: 'osm' }
+      ]
+    },
+    center: [78.9629, 20.5937],
+    zoom: 5
+  });
+</script>
+```
+
+### ES Modules
 
 ```javascript
 import maplibregl from 'maplibre-gl';

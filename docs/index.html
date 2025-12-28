@@ -124,6 +124,125 @@
       height: 100%;
     }
     
+    /* Color Picker Control */
+    .color-picker-control {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      padding: 6px;
+      cursor: pointer;
+    }
+    
+    .color-picker-control.active {
+      background: #007bff;
+      color: white;
+    }
+    
+    .color-picker-control svg {
+      display: block;
+      width: 24px;
+      height: 24px;
+    }
+    
+    .color-picker-control.active svg {
+      fill: white;
+    }
+    
+    /* Color Picker Popup */
+    .color-picker-popup {
+      position: absolute;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      padding: 12px;
+      z-index: 1000;
+      display: none;
+      min-width: 180px;
+    }
+    
+    .color-picker-popup.visible {
+      display: block;
+    }
+    
+    .color-picker-magnifier {
+      width: 150px;
+      height: 150px;
+      border: 2px solid #333;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      image-rendering: pixelated;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .color-picker-magnifier canvas {
+      display: block;
+    }
+    
+    .color-picker-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    
+    .color-picker-crosshair::before,
+    .color-picker-crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+    
+    .color-picker-crosshair::before {
+      width: 1px;
+      height: 20px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .color-picker-crosshair::after {
+      width: 20px;
+      height: 1px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .color-picker-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .color-picker-swatch {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #333;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    
+    .color-picker-values {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .color-picker-values div {
+      cursor: pointer;
+    }
+    
+    .color-picker-values div:hover {
+      background: #f0f0f0;
+    }
+    
+    #map.color-picker-active {
+      cursor: crosshair;
+    }
+    
     .tile-preset {
       display: flex;
       gap: 8px;
@@ -199,6 +318,21 @@
   </div>
   
   <div id="map"></div>
+  
+  <!-- Color Picker Popup -->
+  <div id="colorPickerPopup" class="color-picker-popup">
+    <div class="color-picker-magnifier">
+      <canvas id="magnifierCanvas" width="150" height="150"></canvas>
+      <div class="color-picker-crosshair"></div>
+    </div>
+    <div class="color-picker-info">
+      <div id="colorSwatch" class="color-picker-swatch"></div>
+      <div class="color-picker-values">
+        <div id="rgbValue" title="Click to copy">RGB: --</div>
+        <div id="hexValue" title="Click to copy">HEX: --</div>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import L from 'https://esm.sh/leaflet@1.9.4';
@@ -347,6 +481,218 @@
 
     // Initialize map
     map = L.map('map').setView([28.6, 77.2], 5);
+
+    // ========== Color Picker Control ==========
+    const ColorPickerControl = L.Control.extend({
+      options: { position: 'topleft' },
+      
+      onAdd: function(map) {
+        this._map = map;
+        this._active = false;
+        
+        const container = L.DomUtil.create('div', 'leaflet-bar color-picker-control');
+        container.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12a1 1 0 00.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z"/>
+        </svg>`;
+        container.title = 'Color Picker';
+        
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.on(container, 'click', this._toggle, this);
+        
+        this._container = container;
+        return container;
+      },
+      
+      _toggle: function() {
+        this._active = !this._active;
+        this._container.classList.toggle('active', this._active);
+        this._map.getContainer().classList.toggle('color-picker-active', this._active);
+        
+        if (this._active) {
+          colorPicker.enable();
+        } else {
+          colorPicker.disable();
+        }
+      },
+      
+      deactivate: function() {
+        if (this._active) {
+          this._active = false;
+          this._container.classList.remove('active');
+          this._map.getContainer().classList.remove('color-picker-active');
+        }
+      }
+    });
+
+    // Color Picker functionality
+    const colorPicker = {
+      popup: document.getElementById('colorPickerPopup'),
+      canvas: document.getElementById('magnifierCanvas'),
+      ctx: null,
+      swatch: document.getElementById('colorSwatch'),
+      rgbValue: document.getElementById('rgbValue'),
+      hexValue: document.getElementById('hexValue'),
+      enabled: false,
+      magnification: 10,
+      
+      init: function() {
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Copy to clipboard on click
+        this.rgbValue.addEventListener('click', () => this.copyToClipboard(this.rgbValue.textContent));
+        this.hexValue.addEventListener('click', () => this.copyToClipboard(this.hexValue.textContent));
+      },
+      
+      enable: function() {
+        this.enabled = true;
+        map.on('mousemove', this.onMouseMove, this);
+        map.on('click', this.onClick, this);
+        document.addEventListener('keydown', this.onKeyDown);
+        
+        // Position popup below the color picker control
+        this.positionPopup();
+        this.popup.classList.add('visible');
+      },
+      
+      disable: function() {
+        this.enabled = false;
+        this.popup.classList.remove('visible');
+        map.off('mousemove', this.onMouseMove, this);
+        map.off('click', this.onClick, this);
+        document.removeEventListener('keydown', this.onKeyDown);
+      },
+      
+      onKeyDown: function(e) {
+        if (e.key === 'Escape') {
+          colorPickerControl.deactivate();
+          colorPicker.disable();
+        }
+      },
+      
+      positionPopup: function() {
+        // Position below the color picker control button
+        const control = document.querySelector('.color-picker-control');
+        if (control) {
+          const rect = control.getBoundingClientRect();
+          this.popup.style.left = rect.left + 'px';
+          this.popup.style.top = (rect.bottom + 10) + 'px';
+        }
+      },
+      
+      onMouseMove: function(e) {
+        if (!this.enabled) return;
+        
+        const mapContainer = map.getContainer();
+        const rect = mapContainer.getBoundingClientRect();
+        const x = e.originalEvent.clientX - rect.left;
+        const y = e.originalEvent.clientY - rect.top;
+        
+        // Capture and magnify the area under cursor
+        this.captureAndMagnify(x, y);
+      },
+      
+      onClick: function(e) {
+        // On click, copy the hex value
+        const hex = this.hexValue.textContent;
+        if (hex && hex !== 'HEX: --') {
+          this.copyToClipboard(hex);
+        }
+      },
+      
+      captureAndMagnify: function(x, y) {
+        const mapContainer = map.getContainer();
+        
+        // Use html2canvas-like approach: capture from the map's canvas/tiles
+        // We'll use a temporary canvas to composite all visible layers
+        const captureSize = Math.ceil(this.canvas.width / this.magnification);
+        const halfSize = Math.floor(captureSize / 2);
+        
+        // Find all tile images and canvas elements in the map
+        const pane = mapContainer.querySelector('.leaflet-tile-pane');
+        if (!pane) return;
+        
+        // Create offscreen canvas matching map size
+        const offscreen = document.createElement('canvas');
+        const mapRect = mapContainer.getBoundingClientRect();
+        offscreen.width = mapRect.width;
+        offscreen.height = mapRect.height;
+        const offCtx = offscreen.getContext('2d');
+        
+        // Draw all tile images
+        const tiles = pane.querySelectorAll('img');
+        tiles.forEach(img => {
+          if (!img.complete || !img.naturalWidth) return;
+          
+          const imgRect = img.getBoundingClientRect();
+          const drawX = imgRect.left - mapRect.left;
+          const drawY = imgRect.top - mapRect.top;
+          
+          try {
+            offCtx.drawImage(img, drawX, drawY, imgRect.width, imgRect.height);
+          } catch (e) {
+            // Cross-origin image, skip
+          }
+        });
+        
+        // Extract the region around the cursor
+        const sourceX = Math.max(0, x - halfSize);
+        const sourceY = Math.max(0, y - halfSize);
+        
+        // Clear and draw magnified view
+        this.ctx.fillStyle = '#888';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        try {
+          // Disable smoothing for pixelated look
+          this.ctx.imageSmoothingEnabled = false;
+          this.ctx.drawImage(
+            offscreen,
+            sourceX, sourceY, captureSize, captureSize,
+            0, 0, this.canvas.width, this.canvas.height
+          );
+          
+          // Get center pixel color
+          const centerX = Math.floor(this.canvas.width / 2);
+          const centerY = Math.floor(this.canvas.height / 2);
+          const pixel = this.ctx.getImageData(centerX, centerY, 1, 1).data;
+          
+          const r = pixel[0];
+          const g = pixel[1];
+          const b = pixel[2];
+          
+          const rgbStr = `rgb(${r}, ${g}, ${b})`;
+          const hexStr = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+          
+          this.swatch.style.background = rgbStr;
+          this.rgbValue.textContent = `RGB: ${r}, ${g}, ${b}`;
+          this.hexValue.textContent = `HEX: ${hexStr}`;
+        } catch (e) {
+          // Handle any errors
+          this.rgbValue.textContent = 'RGB: --';
+          this.hexValue.textContent = 'HEX: --';
+        }
+      },
+      
+      copyToClipboard: function(text) {
+        const value = text.replace(/^(RGB|HEX):\s*/, '');
+        navigator.clipboard.writeText(value).then(() => {
+          // Brief visual feedback
+          const origText = text;
+          if (text.startsWith('RGB')) {
+            this.rgbValue.textContent = 'Copied!';
+            setTimeout(() => this.rgbValue.textContent = origText, 1000);
+          } else {
+            this.hexValue.textContent = 'Copied!';
+            setTimeout(() => this.hexValue.textContent = origText, 1000);
+          }
+        });
+      }
+    };
+
+    // Initialize color picker
+    colorPicker.init();
+    const colorPickerControl = new ColorPickerControl();
+    map.addControl(colorPickerControl);
 
     // Event listeners
     btnCartoDark.addEventListener('click', () => loadPreset('cartoDark'));

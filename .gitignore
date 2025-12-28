@@ -6,3 +6,7 @@ packages/*/dist/
 # Test outputs
 test-results/
 playwright-report/
+
+# my local files
+TODO.md 
+.github/copilot-instructions.md

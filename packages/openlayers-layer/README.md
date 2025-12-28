@@ -10,7 +10,36 @@ npm install @india-boundary-corrector/openlayers-layer ol
 
 ## Usage
 
-### Basic Usage (Auto-detection)
+### Script Tag (IIFE) - Simplest Setup
+
+No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.3.1/ol.css">
+<script src="https://cdn.jsdelivr.net/npm/ol@10.3.1/dist/ol.js"></script>
+<script src="https://unpkg.com/@india-boundary-corrector/openlayers-layer/dist/index.global.js"></script>
+
+<div id="map" style="height: 400px;"></div>
+
+<script>
+  const { CorrectedTileLayer } = IndiaBoundaryCorrector;
+
+  const map = new ol.Map({
+    target: 'map',
+    layers: [
+      new CorrectedTileLayer({
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+      })
+    ],
+    view: new ol.View({
+      center: ol.proj.fromLonLat([78.9629, 20.5937]),
+      zoom: 5
+    })
+  });
+</script>
+```
+
+### ES Modules
 
 ```javascript
 import { Map, View } from 'ol';

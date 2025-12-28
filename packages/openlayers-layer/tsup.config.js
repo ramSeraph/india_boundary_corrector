@@ -1,12 +1,26 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
-  entry: ['src/index.js'],
-  format: ['esm', 'cjs'],
-  dts: false,
-  clean: true,
-  outDir: 'dist',
-  sourcemap: true,
-  platform: 'browser',
-  external: ['ol'],
-});
+export default defineConfig([
+  {
+    entry: ['src/index.js'],
+    format: ['esm', 'cjs'],
+    dts: false,
+    clean: true,
+    outDir: 'dist',
+    sourcemap: true,
+    platform: 'browser',
+    external: ['ol', 'ol/layer/Tile', 'ol/source/XYZ'],
+  },
+  {
+    entry: ['src/index.js'],
+    format: ['iife'],
+    dts: false,
+    outDir: 'dist',
+    outExtension: () => ({ js: '.global.js' }),
+    sourcemap: true,
+    platform: 'browser',
+    globalName: 'IndiaBoundaryCorrector',
+    external: ['ol', 'ol/layer/Tile', 'ol/source/XYZ'],
+    noExternal: ['@india-boundary-corrector/tilefixer', '@india-boundary-corrector/layer-configs'],
+  },
+]);
