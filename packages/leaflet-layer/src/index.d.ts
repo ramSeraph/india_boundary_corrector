@@ -6,9 +6,9 @@ export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-confi
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
 
 /**
- * Options for L.TileLayer.Corrected
+ * Options for L.TileLayer.IndiaBoundaryCorrected
  */
-export interface CorrectedTileLayerOptions extends L.TileLayerOptions {
+export interface IndiaBoundaryCorrectedTileLayerOptions extends L.TileLayerOptions {
   /** URL to PMTiles file (defaults to CDN) */
   pmtilesUrl?: string;
   /** LayerConfig object or config ID string (auto-detected from URL if not provided) */
@@ -20,7 +20,7 @@ export interface CorrectedTileLayerOptions extends L.TileLayerOptions {
 /**
  * Extended TileLayer with boundary corrections
  */
-export interface CorrectedTileLayer extends L.TileLayer {
+export interface IndiaBoundaryCorrectedTileLayer extends L.TileLayer {
   /** Get the TileFixer instance */
   getTileFixer(): TileFixer;
   /** Get the resolved LayerConfig */
@@ -29,20 +29,20 @@ export interface CorrectedTileLayer extends L.TileLayer {
 
 declare module 'leaflet' {
   namespace TileLayer {
-    class Corrected extends L.TileLayer implements CorrectedTileLayer {
-      constructor(url: string, options?: CorrectedTileLayerOptions);
+    class IndiaBoundaryCorrected extends L.TileLayer implements IndiaBoundaryCorrectedTileLayer {
+      constructor(url: string, options?: IndiaBoundaryCorrectedTileLayerOptions);
       getTileFixer(): TileFixer;
       getLayerConfig(): LayerConfig | null;
     }
   }
 
   namespace tileLayer {
-    function corrected(url: string, options?: CorrectedTileLayerOptions): TileLayer.Corrected;
+    function indiaBoundaryCorrected(url: string, options?: IndiaBoundaryCorrectedTileLayerOptions): TileLayer.IndiaBoundaryCorrected;
   }
 }
 
 /**
- * Extend Leaflet with L.TileLayer.Corrected and L.tileLayer.corrected.
+ * Extend Leaflet with L.TileLayer.IndiaBoundaryCorrected and L.tileLayer.indiaBoundaryCorrected.
  * Called automatically when Leaflet is available globally.
  * Use this for ES module imports where L is not global.
  * @param L - Leaflet namespace

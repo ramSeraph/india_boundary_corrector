@@ -35,7 +35,7 @@ import {
   LayerConfig,
   LayerConfigRegistry,
   layerConfigs,
-  osmCartoDark,
+  cartoDbDark,
   osmCarto,
   type LayerConfigOptions,
 } from '@india-boundary-corrector/layer-configs';
@@ -69,7 +69,7 @@ const ids: string[] = registry.getAvailableIds();
 const removed: boolean = registry.remove('test-config');
 
 // Test built-in configs
-const darkConfig: LayerConfig = osmCartoDark;
+const darkConfig: LayerConfig = cartoDbDark;
 const cartoConfig: LayerConfig = osmCarto;
 
 // Test @india-boundary-corrector/tilefixer types
@@ -107,17 +107,17 @@ declare const leaflet: typeof L;
 // Test extendLeaflet
 extendLeaflet(leaflet);
 
-// After extension, L.TileLayer.Corrected and L.tileLayer.corrected are available
+// After extension, L.TileLayer.IndiaBoundaryCorrected and L.tileLayer.indiaBoundaryCorrected are available
 // These are runtime types that TypeScript can't fully verify
 
 // Test @india-boundary-corrector/openlayers-layer types
 import {
-  CorrectedTileLayer,
-  correctedTileLayer,
+  IndiaBoundaryCorrectedTileLayer,
+  indiaBoundaryCorrectedTileLayer,
 } from '@india-boundary-corrector/openlayers-layer';
 
-// Test CorrectedTileLayer construction
-const olLayer = new CorrectedTileLayer({
+// Test IndiaBoundaryCorrectedTileLayer construction
+const olLayer = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   pmtilesUrl: 'https://example.com/tiles.pmtiles',
   layerConfig: 'osm-carto',
@@ -125,13 +125,13 @@ const olLayer = new CorrectedTileLayer({
   tileSize: 256,
 });
 
-// Test CorrectedTileLayer methods
+// Test IndiaBoundaryCorrectedTileLayer methods
 const olTileFixer: TileFixer = olLayer.getTileFixer();
 const olLayerConfig: LayerConfig | null = olLayer.getLayerConfig();
 const olRegistry: LayerConfigRegistry = olLayer.getRegistry();
 
 // Test factory function
-const olLayer2 = correctedTileLayer({
+const olLayer2 = indiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 });
 

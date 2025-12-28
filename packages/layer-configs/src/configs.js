@@ -1,14 +1,14 @@
 import { LayerConfig } from './layerconfig.js';
 
 /**
- * OSM Carto Dark (dark mode OpenStreetMap style)
+ * CartoDB Dark (dark mode tiles from CARTO)
  * Uses CartoDB dark_all tiles
  * 
  * Tile source: CartoDB/CARTO
  * NE data used for zoom < 5, OSM data for zoom >= 5
  */
-export const osmCartoDark = new LayerConfig({
-  id: 'osm-carto-dark',
+export const cartoDbDark = new LayerConfig({
+  id: 'cartodb-dark',
   zoomThreshold: 5,
   tileUrlPattern: /(cartocdn\.com|cartodb-basemaps).*dark_all/,
   // OSM styles (zoom >= 5)

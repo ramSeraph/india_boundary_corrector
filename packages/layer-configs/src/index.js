@@ -1,7 +1,7 @@
-import { osmCartoDark, osmCarto } from './configs.js';
+import { cartoDbDark, osmCarto } from './configs.js';
 
 // Re-export all layer configs
-export { osmCartoDark, osmCarto } from './configs.js';
+export { cartoDbDark, osmCarto } from './configs.js';
 export { LayerConfig } from './layerconfig.js';
 
 /**
@@ -61,6 +61,6 @@ export class LayerConfigRegistry {
 
 // Default registry with built-in configs
 export const layerConfigs = new LayerConfigRegistry();
-layerConfigs.register(osmCartoDark);
+layerConfigs.register(cartoDbDark);
 layerConfigs.register(osmCarto);
 

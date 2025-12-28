@@ -66,11 +66,11 @@
 <body>
   <div class="info">
     <h3>CorrectionProtocol Example</h3>
-    <p>Uses <code>corrections://</code> protocol to fetch tiles with built-in boundary corrections.</p>
+    <p>Uses <code>ibc://</code> protocol to fetch tiles with built-in boundary corrections.</p>
     <label for="basemap">Select basemap:</label>
     <select id="basemap">
       <option value="osm-carto">OSM Carto</option>
-      <option value="osm-carto-dark">Carto Dark</option>
+      <option value="cartodb-dark">Carto Dark</option>
     </select>
     <label for="opacity">Opacity: <span id="opacity-value">100%</span></label>
     <input type="range" id="opacity" min="0" max="100" value="100">
@@ -90,12 +90,12 @@
     const BASEMAPS = {
       'osm-carto': {
         // With explicit config ID
-        url: 'corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        url: 'ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© OpenStreetMap contributors',
       },
-      'osm-carto-dark': {
+      'cartodb-dark': {
         // Auto-detect config from URL
-        url: 'corrections://https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        url: 'ibc://https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
         attribution: '© OpenStreetMap contributors, © CARTO',
       },
     };

@@ -99,7 +99,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
         image.src = blobUrl;
       }
     } catch (err) {
-      console.warn('[CorrectedTileLayer] Error applying corrections:', err);
+      console.warn('[IndiaBoundaryCorrectedTileLayer] Error applying corrections:', err);
       // Signal error to OpenLayers
       const image = imageTile.getImage();
       if (typeof image.dispatchEvent === 'function') {
@@ -113,7 +113,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
  * Extended OpenLayers TileLayer with India boundary corrections.
  * Extends ol/layer/Tile with a custom XYZ source that applies corrections.
  */
-export class CorrectedTileLayer extends TileLayer {
+export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
   /**
    * @param {Object} options - Layer options
    * @param {string} options.url - Tile URL template with {x}, {y}, {z} placeholders
@@ -172,7 +172,7 @@ export class CorrectedTileLayer extends TileLayer {
     this._registry = registry;
 
     if (!resolvedConfig) {
-      console.warn('[CorrectedTileLayer] Could not detect layer config from URL. Corrections will not be applied.');
+      console.warn('[IndiaBoundaryCorrectedTileLayer] Could not detect layer config from URL. Corrections will not be applied.');
     }
   }
 
@@ -202,10 +202,10 @@ export class CorrectedTileLayer extends TileLayer {
 }
 
 /**
- * Factory function to create a CorrectedTileLayer.
- * @param {Object} options - Layer options (see CorrectedTileLayer constructor)
- * @returns {CorrectedTileLayer}
+ * Factory function to create an IndiaBoundaryCorrectedTileLayer.
+ * @param {Object} options - Layer options (see IndiaBoundaryCorrectedTileLayer constructor)
+ * @returns {IndiaBoundaryCorrectedTileLayer}
  */
-export function correctedTileLayer(options) {
-  return new CorrectedTileLayer(options);
+export function indiaBoundaryCorrectedTileLayer(options) {
+  return new IndiaBoundaryCorrectedTileLayer(options);
 }

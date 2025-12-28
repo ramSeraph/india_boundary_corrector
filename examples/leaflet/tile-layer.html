@@ -56,12 +56,12 @@
 </head>
 <body>
   <div class="info">
-    <h3>L.TileLayer.Corrected Example</h3>
-    <p>Uses <code>L.tileLayer.corrected()</code> to create a tile layer with built-in boundary corrections.</p>
+    <h3>L.TileLayer.IndiaBoundaryCorrected Example</h3>
+    <p>Uses <code>L.tileLayer.indiaBoundaryCorrected()</code> to create a tile layer with built-in boundary corrections.</p>
     <label for="basemap">Select basemap:</label>
     <select id="basemap">
       <option value="osm-carto">OSM Carto</option>
-      <option value="osm-carto-dark">Carto Dark</option>
+      <option value="cartodb-dark">Carto Dark</option>
     </select>
     <label for="opacity">Opacity: <span id="opacity-value">100%</span></label>
     <input type="range" id="opacity" min="0" max="100" value="100" style="width: 100%;">
@@ -80,7 +80,7 @@
         url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
-      'osm-carto-dark': {
+      'cartodb-dark': {
         url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
       },
@@ -108,7 +108,7 @@
         map.removeLayer(currentLayer);
       }
 
-      currentLayer = L.tileLayer.corrected(basemap.url, {
+      currentLayer = L.tileLayer.indiaBoundaryCorrected(basemap.url, {
         attribution: basemap.attribution,
         maxZoom: 19,
       });

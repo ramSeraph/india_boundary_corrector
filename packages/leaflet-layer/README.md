@@ -29,7 +29,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
   const map = L.map('map').setView([20.5937, 78.9629], 5);
 
   // Use corrected tile layer - config auto-detected from URL
-  L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 </script>
@@ -48,7 +48,7 @@ extendLeaflet(L);
 const map = L.map('map').setView([20.5937, 78.9629], 5);
 
 // Use corrected tile layer - config auto-detected from URL
-L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 ```
@@ -64,8 +64,8 @@ extendLeaflet(L);
 const map = L.map('map').setView([20.5937, 78.9629], 5);
 
 // Use a specific config by ID
-L.tileLayer.corrected('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-  layerConfig: 'osm-carto-dark',
+L.tileLayer.indiaBoundaryCorrected('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+  layerConfig: 'cartodb-dark',
   attribution: '© CartoDB © OpenStreetMap contributors'
 }).addTo(map);
 ```
@@ -93,13 +93,13 @@ const osmDeConfig = new LayerConfig({
 });
 
 // Pass as layerConfig option
-L.tileLayer.corrected('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+L.tileLayer.indiaBoundaryCorrected('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
   layerConfig: osmDeConfig,
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
 // Or register with extraLayerConfigs for auto-detection
-L.tileLayer.corrected('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+L.tileLayer.indiaBoundaryCorrected('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
   extraLayerConfigs: [osmDeConfig],
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
@@ -124,9 +124,9 @@ If Leaflet is available as a global `L` object, the extension is applied automat
 <script type="module">
   import '@india-boundary-corrector/leaflet-layer';
   
-  // L.TileLayer.Corrected is now available
+  // L.TileLayer.IndiaBoundaryCorrected is now available
   const map = L.map('map').setView([20.5937, 78.9629], 5);
-  L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 </script>
 ```
 

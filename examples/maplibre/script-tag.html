@@ -82,11 +82,11 @@
       });
 
       map.on('load', () => {
-        // Add raster tiles using corrections:// protocol
+        // Add raster tiles using ibc:// protocol
         // Auto-detects config from URL pattern
         map.addSource('basemap', {
           type: 'raster',
-          tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
           tileSize: 256,
           attribution: '© OpenStreetMap contributors',
         });

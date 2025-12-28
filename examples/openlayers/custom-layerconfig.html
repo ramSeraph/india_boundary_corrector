@@ -66,7 +66,7 @@
     import Map from 'ol/Map.js';
     import View from 'ol/View.js';
     import { fromLonLat } from 'ol/proj.js';
-    import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+    import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
     import { LayerConfig, layerConfigs } from '@india-boundary-corrector/layer-configs';
 
     const statusEl = document.getElementById('status');
@@ -104,7 +104,7 @@
 
       // Create corrected tile layer with OSM DE tiles
       // The layerConfig will be auto-detected from the URL pattern
-      const layer = new CorrectedTileLayer({
+      const layer = new IndiaBoundaryCorrectedTileLayer({
         url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
         sourceOptions: {
           attributions: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Hosted by <a href="https://openstreetmap.de">openstreetmap.de</a>',

@@ -6,7 +6,7 @@ test.describe('Layer Configs Package', () => {
     await page.waitForFunction(() => window.layerConfigsLoaded === true, { timeout: 10000 });
   });
 
-  test.describe('osmCartoDark config', () => {
+  test.describe('cartoDbDark config', () => {
     // Various URL formats used for CartoDB dark tiles
     const validDarkUrls = [
       // Standard CartoDB URLs
@@ -40,7 +40,7 @@ test.describe('Layer Configs Package', () => {
     for (const url of validDarkUrls) {
       test(`matches: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.osmCartoDark.match(testUrl);
+          return window.layerConfigsPackage.cartoDbDark.match(testUrl);
         }, url);
         expect(matches).toBe(true);
       });
@@ -49,7 +49,7 @@ test.describe('Layer Configs Package', () => {
     for (const url of invalidDarkUrls) {
       test(`does not match: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.osmCartoDark.match(testUrl);
+          return window.layerConfigsPackage.cartoDbDark.match(testUrl);
         }, url);
         expect(matches).toBe(false);
       });
@@ -57,7 +57,7 @@ test.describe('Layer Configs Package', () => {
 
     test('has correct properties', async ({ page }) => {
       const config = await page.evaluate(() => {
-        const c = window.layerConfigsPackage.osmCartoDark;
+        const c = window.layerConfigsPackage.cartoDbDark;
         return {
           id: c.id,
           zoomThreshold: c.zoomThreshold,
@@ -66,7 +66,7 @@ test.describe('Layer Configs Package', () => {
         };
       });
 
-      expect(config.id).toBe('osm-carto-dark');
+      expect(config.id).toBe('cartodb-dark');
       expect(config.zoomThreshold).toBe(5);
     });
   });
@@ -142,7 +142,7 @@ test.describe('Layer Configs Package', () => {
         );
         return config?.id;
       });
-      expect(configId).toBe('osm-carto-dark');
+      expect(configId).toBe('cartodb-dark');
     });
 
     test('detectFromUrls returns correct config for OSM standard', async ({ page }) => {
@@ -172,15 +172,15 @@ test.describe('Layer Configs Package', () => {
         ]);
         return config?.id;
       });
-      expect(configId).toBe('osm-carto-dark');
+      expect(configId).toBe('cartodb-dark');
     });
 
     test('get returns registered config by id', async ({ page }) => {
       const config = await page.evaluate(() => {
-        const c = window.layerConfigsPackage.layerConfigs.get('osm-carto-dark');
+        const c = window.layerConfigsPackage.layerConfigs.get('cartodb-dark');
         return c ? { id: c.id } : null;
       });
-      expect(config).toEqual({ id: 'osm-carto-dark' });
+      expect(config).toEqual({ id: 'cartodb-dark' });
     });
 
     test('get returns undefined for unknown id', async ({ page }) => {
@@ -194,7 +194,7 @@ test.describe('Layer Configs Package', () => {
       const ids = await page.evaluate(() => {
         return window.layerConfigsPackage.layerConfigs.getAvailableIds();
       });
-      expect(ids).toContain('osm-carto-dark');
+      expect(ids).toContain('cartodb-dark');
       expect(ids).toContain('osm-carto');
     });
   });

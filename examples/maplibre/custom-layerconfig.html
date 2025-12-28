@@ -109,7 +109,7 @@
         // Add OSM DE tiles using corrections protocol with explicit config ID
         map.addSource('basemap', {
           type: 'raster',
-          tiles: ['corrections://osm-de@https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
+          tiles: ['ibc://osm-de@https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
           tileSize: 256,
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Hosted by <a href="https://openstreetmap.de">openstreetmap.de</a>',
         });

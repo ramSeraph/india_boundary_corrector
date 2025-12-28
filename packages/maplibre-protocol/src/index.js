@@ -6,16 +6,16 @@ import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefi
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
 
-const PROTOCOL_PREFIX = 'corrections';
+const PROTOCOL_PREFIX = 'ibc';
 
 /**
- * Parse a corrections:// URL.
- * Format: corrections://[configId@]originalUrl
+ * Parse an ibc:// URL.
+ * Format: ibc://[configId@]originalUrl
  * Examples:
- *   corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png
- *   corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png
+ *   ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png
+ *   ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png
  * 
- * @param {string} url - The full URL with corrections:// prefix
+ * @param {string} url - The full URL with ibc:// prefix
  * @returns {{ configId: string|null, tileUrl: string, z: number, x: number, y: number }}
  */
 function parseCorrectionsUrl(url) {
@@ -64,9 +64,9 @@ function parseCorrectionsUrl(url) {
  *   protocol.register(maplibregl);
  * 
  *   // In your style:
- *   tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png']
+ *   tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png']
  *   // Or with explicit config:
- *   tiles: ['corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png']
+ *   tiles: ['ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png']
  */
 export class CorrectionProtocol {
   /**
@@ -216,7 +216,7 @@ export class CorrectionProtocol {
  *     sources: {
  *       osm: {
  *         type: 'raster',
- *         tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+ *         tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
  *         tileSize: 256
  *       }
  *     },

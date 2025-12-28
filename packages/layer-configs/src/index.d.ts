@@ -88,7 +88,7 @@ export class LayerConfigRegistry {
 export const layerConfigs: LayerConfigRegistry;
 
 /** Pre-built config for CartoDB dark tiles */
-export const osmCartoDark: LayerConfig;
+export const cartoDbDark: LayerConfig;
 
 /** Pre-built config for OpenStreetMap standard tiles */
 export const osmCarto: LayerConfig;

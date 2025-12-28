@@ -291,7 +291,7 @@
     <div class="section">
       <h2>Layer Config</h2>
       <textarea id="configEditor">{
-  "id": "osm-carto-dark",
+  "id": "cartodb-dark",
   "startZoom": 0,
   "zoomThreshold": 5,
   "tileUrlPattern": "(cartocdn\\.com|cartodb-basemaps).*dark_all",
@@ -339,7 +339,7 @@
     import { extendLeaflet } from './packages/leaflet-layer/dist/index.js';
     import { LayerConfig } from './packages/layer-configs/dist/index.js';
     
-    // Extend Leaflet with CorrectedTileLayer
+    // Extend Leaflet with IndiaBoundaryCorrectedTileLayer
     extendLeaflet(L);
 
     // Preset configs
@@ -348,7 +348,7 @@
         tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         config: {
-          id: 'osm-carto-dark',
+          id: 'cartodb-dark',
           startZoom: 0,
           zoomThreshold: 5,
           tileUrlPattern: '(cartocdn\\.com|cartodb-basemaps).*dark_all',
@@ -466,7 +466,7 @@
         }
 
         // Create new corrected tile layer
-        currentLayer = L.tileLayer.corrected(tileUrl, {
+        currentLayer = L.tileLayer.indiaBoundaryCorrected(tileUrl, {
           attribution,
           maxZoom: 19,
           pmtilesUrl,

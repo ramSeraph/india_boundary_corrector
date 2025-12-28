@@ -68,8 +68,8 @@
       // Create the map
       const map = L.map('map').setView([20.5937, 78.9629], 4);
 
-      // Use L.tileLayer.corrected() - auto-detects config from URL
-      const layer = L.tileLayer.corrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Use L.tileLayer.indiaBoundaryCorrected() - auto-detects config from URL
+      const layer = L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
         // pmtilesUrl is only needed when loading from local path.

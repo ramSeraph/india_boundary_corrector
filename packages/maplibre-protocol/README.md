@@ -22,7 +22,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 <div id="map" style="height: 400px;"></div>
 
 <script>
-  // Register the corrections:// protocol
+  // Register the ibc:// protocol
   IndiaBoundaryCorrector.registerCorrectionProtocol(maplibregl);
 
   // Use in map style
@@ -33,7 +33,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
       sources: {
         osm: {
           type: 'raster',
-          tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
           tileSize: 256
         }
       },
@@ -53,7 +53,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 import maplibregl from 'maplibre-gl';
 import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
 
-// Register the corrections:// protocol
+// Register the ibc:// protocol
 registerCorrectionProtocol(maplibregl);
 
 // Use in map style
@@ -64,7 +64,7 @@ const map = new maplibregl.Map({
     sources: {
       osm: {
         type: 'raster',
-        tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256
       }
     },
@@ -82,7 +82,7 @@ const map = new maplibregl.Map({
 Specify the config ID in the URL:
 
 ```javascript
-tiles: ['corrections://osm-carto-dark@https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png']
+tiles: ['ibc://cartodb-dark@https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png']
 ```
 
 ### With Custom Layer Config
@@ -117,8 +117,8 @@ const map = new maplibregl.Map({
     sources: {
       osmde: {
         type: 'raster',
-        tiles: ['corrections://https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
-        // Or explicit: tiles: ['corrections://osm-de@https://tile.openstreetmap.de/{z}/{x}/{y}.png']
+        tiles: ['ibc://https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
+        // Or explicit: tiles: ['ibc://osm-de@https://tile.openstreetmap.de/{z}/{x}/{y}.png']
         tileSize: 256
       }
     },
@@ -132,15 +132,15 @@ const map = new maplibregl.Map({
 ## URL Format
 
 ```
-corrections://[configId@]originalTileUrl
+ibc://[configId@]originalTileUrl
 ```
 
 - `configId` (optional): Layer config ID to use
 - `originalTileUrl`: The original tile URL template
 
 Examples:
-- `corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png` (auto-detect)
-- `corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png` (explicit)
+- `ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png` (auto-detect)
+- `ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png` (explicit)
 
 ## API
 

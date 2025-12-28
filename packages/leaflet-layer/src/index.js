@@ -28,16 +28,16 @@ function createMergedRegistry(extraLayerConfigs) {
 }
 
 /**
- * Extend Leaflet with CorrectedTileLayer.
+ * Extend Leaflet with IndiaBoundaryCorrectedTileLayer.
  * @param {L} L - Leaflet namespace
  */
 function extendLeaflet(L) {
   // Avoid re-extending
-  if (L.TileLayer.Corrected) {
+  if (L.TileLayer.IndiaBoundaryCorrected) {
     return;
   }
 
-  L.TileLayer.Corrected = L.TileLayer.extend({
+  L.TileLayer.IndiaBoundaryCorrected = L.TileLayer.extend({
     options: {
       pmtilesUrl: null,
       layerConfig: null,
@@ -60,7 +60,7 @@ function extendLeaflet(L) {
       }
       
       if (!this._layerConfig) {
-        console.warn('[L.TileLayer.Corrected] Could not detect layer config from URL. Corrections will not be applied.');
+        console.warn('[L.TileLayer.IndiaBoundaryCorrected] Could not detect layer config from URL. Corrections will not be applied.');
       }
     },
 
@@ -126,7 +126,7 @@ function extendLeaflet(L) {
           };
         })
         .catch((err) => {
-          console.warn('[L.TileLayer.Corrected] Error applying corrections, falling back to original:', err);
+          console.warn('[L.TileLayer.IndiaBoundaryCorrected] Error applying corrections, falling back to original:', err);
           tile.onload = () => done(null, tile);
           tile.onerror = (e) => done(e, tile);
           tile.src = tileUrl;
@@ -144,14 +144,9 @@ function extendLeaflet(L) {
     },
   });
 
-  L.tileLayer.corrected = function (url, options) {
-    return new L.TileLayer.Corrected(url, options);
+  L.tileLayer.indiaBoundaryCorrected = function (url, options) {
+    return new L.TileLayer.IndiaBoundaryCorrected(url, options);
   };
-}
-
-// Auto-extend Leaflet if available globally
-if (typeof window !== 'undefined' && window.L) {
-  extendLeaflet(window.L);
 }
 
 // Export for manual extension if needed (e.g., ES modules with imported L)

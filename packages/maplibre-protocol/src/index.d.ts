@@ -22,9 +22,9 @@ export interface CorrectionProtocolOptions {
  *   protocol.register(maplibregl);
  * 
  *   // In your style:
- *   tiles: ['corrections://https://tile.openstreetmap.org/{z}/{x}/{y}.png']
+ *   tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png']
  *   // Or with explicit config:
- *   tiles: ['corrections://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png']
+ *   tiles: ['ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png']
  */
 export declare class CorrectionProtocol {
   constructor(options?: CorrectionProtocolOptions);

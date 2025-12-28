@@ -38,16 +38,18 @@ Line widths scale dynamically with zoom level for consistent appearance.
 
 ## Quick Start
 
-### Leaflet - Corrected TileLayer
+### Leaflet - IndiaBoundaryCorrected TileLayer
 
 ```javascript
 import L from 'leaflet';
-import '@india-boundary-corrector/leaflet-layer';
+import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
+
+extendLeaflet(L);
 
 const map = L.map('map').setView([20.5937, 78.9629], 4);
 
-// Use L.correctedTileLayer instead of L.tileLayer
-L.correctedTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// Use L.tileLayer.indiaBoundaryCorrected instead of L.tileLayer
+L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors',
   // layerConfig: 'osm-carto', // Optional: auto-detected from URL
 }).addTo(map);
@@ -58,12 +60,12 @@ L.correctedTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 ```javascript
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
 const map = new Map({
   target: 'map',
   layers: [
-    new CorrectedTileLayer({
+    new IndiaBoundaryCorrectedTileLayer({
       url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       // layerConfig: 'osm-carto', // Optional: auto-detected from URL
     }),
@@ -89,8 +91,8 @@ const map = new maplibregl.Map({
     sources: {
       basemap: {
         type: 'raster',
-        // Prefix tile URL with 'corrections://' to apply corrections
-        tiles: ['corrections://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        // Prefix tile URL with 'ibc://' to apply corrections
+        tiles: ['ibc://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
       },
     },
@@ -120,7 +122,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 ## Supported Tile Providers
 
 Built-in configurations for:
-- **OSM Carto Dark** (`osm-carto-dark`): CartoDB dark_all tiles
+- **OSM Carto Dark** (`cartodb-dark`): CartoDB dark_all tiles
 - **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles (with dashed boundary lines)
 
 Custom configurations can be created for other tile providers using `LayerConfig`.

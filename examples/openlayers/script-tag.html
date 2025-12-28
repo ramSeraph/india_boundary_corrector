@@ -58,12 +58,12 @@
 
     try {
       // The IIFE bundle exposes IndiaBoundaryCorrector global
-      const { CorrectedTileLayer } = IndiaBoundaryCorrector;
+      const { IndiaBoundaryCorrectedTileLayer } = IndiaBoundaryCorrector;
 
       statusEl.textContent = '✓ Plugin loaded, initializing map...';
 
       // Create corrected tile layer - auto-detects config from URL
-      const layer = new CorrectedTileLayer({
+      const layer = new IndiaBoundaryCorrectedTileLayer({
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         // pmtilesUrl is only needed when loading from local path.
         // When using the CDN bundle, the PMTiles data is included automatically.

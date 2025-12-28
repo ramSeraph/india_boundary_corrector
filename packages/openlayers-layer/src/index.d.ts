@@ -7,9 +7,9 @@ export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-confi
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
 
 /**
- * Options for CorrectedTileLayer
+ * Options for IndiaBoundaryCorrectedTileLayer
  */
-export interface CorrectedTileLayerOptions {
+export interface IndiaBoundaryCorrectedTileLayerOptions {
   /** Tile URL template with {x}, {y}, {z} placeholders */
   url: string;
   /** URL to PMTiles file (defaults to CDN) */
@@ -29,8 +29,8 @@ export interface CorrectedTileLayerOptions {
 /**
  * Extended OpenLayers TileLayer with India boundary corrections.
  */
-export declare class CorrectedTileLayer extends TileLayer<XYZ> {
-  constructor(options: CorrectedTileLayerOptions);
+export declare class IndiaBoundaryCorrectedTileLayer extends TileLayer<XYZ> {
+  constructor(options: IndiaBoundaryCorrectedTileLayerOptions);
   
   /** Get the TileFixer instance */
   getTileFixer(): TileFixer;
@@ -43,6 +43,6 @@ export declare class CorrectedTileLayer extends TileLayer<XYZ> {
 }
 
 /**
- * Factory function to create a CorrectedTileLayer.
+ * Factory function to create an IndiaBoundaryCorrectedTileLayer.
  */
-export declare function correctedTileLayer(options: CorrectedTileLayerOptions): CorrectedTileLayer;
+export declare function indiaBoundaryCorrectedTileLayer(options: IndiaBoundaryCorrectedTileLayerOptions): IndiaBoundaryCorrectedTileLayer;

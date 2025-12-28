@@ -4,14 +4,14 @@ Pre-built layer configurations for India boundary corrector packages.
 
 ## Available Configs
 
-- `osmCartoDark` - CartoDB dark_all tiles
+- `cartoDbDark` - CartoDB dark_all tiles
 - `osmCarto` - OpenStreetMap standard tiles (with dashed boundary lines)
 
 ## Usage
 
 ```javascript
 import { 
-  osmCartoDark, 
+  cartoDbDark, 
   osmCarto, 
   layerConfigs, 
   LayerConfig 
@@ -20,7 +20,7 @@ import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
 
 // Use a pre-defined config
 addBoundaryCorrector(map, {
-  layerConfig: osmCartoDark,
+  layerConfig: cartoDbDark,
 });
 
 // Or detect from tile URLs using the registry
@@ -34,10 +34,10 @@ if (config) {
 }
 
 // List available config ids
-console.log(layerConfigs.getAvailableIds()); // ['osm-carto-dark', 'osm-carto']
+console.log(layerConfigs.getAvailableIds()); // ['cartodb-dark', 'osm-carto']
 
 // Get a config by id
-const darkConfig = layerConfigs.get('osm-carto-dark');
+const darkConfig = layerConfigs.get('cartodb-dark');
 
 // Create and register a custom config
 const myConfig = new LayerConfig({

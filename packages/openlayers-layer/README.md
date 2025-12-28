@@ -22,12 +22,12 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 <div id="map" style="height: 400px;"></div>
 
 <script>
-  const { CorrectedTileLayer } = IndiaBoundaryCorrector;
+  const { IndiaBoundaryCorrectedTileLayer } = IndiaBoundaryCorrector;
 
   const map = new ol.Map({
     target: 'map',
     layers: [
-      new CorrectedTileLayer({
+      new IndiaBoundaryCorrectedTileLayer({
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
       })
     ],
@@ -44,12 +44,12 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 ```javascript
 import { Map, View } from 'ol';
 import { fromLonLat } from 'ol/proj';
-import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
 const map = new Map({
   target: 'map',
   layers: [
-    new CorrectedTileLayer({
+    new IndiaBoundaryCorrectedTileLayer({
       url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
     })
   ],
@@ -63,18 +63,18 @@ const map = new Map({
 ### With Explicit Layer Config
 
 ```javascript
-import { CorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
-const layer = new CorrectedTileLayer({
+const layer = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  layerConfig: 'osm-carto-dark'
+  layerConfig: 'cartodb-dark'
 });
 ```
 
 ### With Custom Layer Config
 
 ```javascript
-import { CorrectedTileLayer, LayerConfig } from '@india-boundary-corrector/openlayers-layer';
+import { IndiaBoundaryCorrectedTileLayer, LayerConfig } from '@india-boundary-corrector/openlayers-layer';
 
 const osmDeConfig = new LayerConfig({
   id: 'osm-de',
@@ -87,13 +87,13 @@ const osmDeConfig = new LayerConfig({
   addLineHaloAlpha: 0.5,
 });
 
-const layer = new CorrectedTileLayer({
+const layer = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
   layerConfig: osmDeConfig
 });
 
 // Or use extraLayerConfigs for auto-detection
-const layer2 = new CorrectedTileLayer({
+const layer2 = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
   extraLayerConfigs: [osmDeConfig]
 });
@@ -102,9 +102,9 @@ const layer2 = new CorrectedTileLayer({
 ### Factory Function
 
 ```javascript
-import { correctedTileLayer } from '@india-boundary-corrector/openlayers-layer';
+import { indiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
-const layer = correctedTileLayer({
+const layer = indiaBoundaryCorrectedTileLayer({
   url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 });
 ```
