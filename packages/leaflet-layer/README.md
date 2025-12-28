@@ -84,8 +84,9 @@ const map = L.map('map').setView([20.5937, 78.9629], 5);
 const osmDeConfig = new LayerConfig({
   id: 'osm-de',
   tileUrlPattern: /tile\.openstreetmap\.de/,
-  osmAddLineColor: 'rgb(180,195,180)',
-  neAddLineColor: 'rgb(180,195,180)',
+  osmAddLineColor: 'rgb(165, 180, 165)',
+  neAddLineColor: 'rgb(165, 180, 165)',
+  lineWidthMultiplier: 1.5,
   addLineDashed: true,
   addLineDashArray: [10, 1, 2, 1],
   addLineHaloRatio: 1.0,
