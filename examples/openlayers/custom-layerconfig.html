@@ -67,7 +67,7 @@
     import View from 'ol/View.js';
     import { fromLonLat } from 'ol/proj.js';
     import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
-    import { LayerConfig, layerConfigs } from '@india-boundary-corrector/layer-configs';
+    import { LayerConfig } from '@india-boundary-corrector/layer-configs';
 
     const statusEl = document.getElementById('status');
 
@@ -88,10 +88,7 @@
         addLineHaloAlpha: 0.5,
       });
 
-      // Register the custom config so it can be auto-detected
-      layerConfigs.register(osmDE);
-
-      statusEl.textContent = '✓ Custom config registered, creating map...';
+      statusEl.textContent = '✓ Custom config created, creating map...';
 
       // Create the map
       const map = new Map({
@@ -103,9 +100,10 @@
       });
 
       // Create corrected tile layer with OSM DE tiles
-      // The layerConfig will be auto-detected from the URL pattern
+      // Pass the custom layerConfig directly as an option
       const layer = new IndiaBoundaryCorrectedTileLayer({
         url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+        layerConfig: osmDE,
         sourceOptions: {
           attributions: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Hosted by <a href="https://openstreetmap.de">openstreetmap.de</a>',
         },
@@ -113,17 +111,17 @@
 
       map.getLayers().insertAt(0, layer);
 
-      const detectedConfig = layer.getLayerConfig();
-      if (detectedConfig && detectedConfig.id === 'osm-de') {
-        statusEl.textContent = `✓ Using custom config: ${detectedConfig.id}`;
+      const usedConfig = layer.getLayerConfig();
+      if (usedConfig && usedConfig.id === 'osm-de') {
+        statusEl.textContent = `✓ Using custom config: ${usedConfig.id}`;
         statusEl.className = 'status success';
       } else {
-        statusEl.textContent = '⚠ Config not auto-detected';
+        statusEl.textContent = '⚠ Config not applied';
         statusEl.className = 'status';
       }
 
       console.log('Custom LayerConfig:', osmDE);
-      console.log('Detected config:', detectedConfig);
+      console.log('Used config:', usedConfig);
 
     } catch (error) {
       statusEl.textContent = '✗ Error: ' + error.message;

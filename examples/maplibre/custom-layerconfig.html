@@ -64,7 +64,7 @@
   <script type="module">
     import maplibregl from 'maplibre-gl';
     import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
-    import { LayerConfig, layerConfigs } from '@india-boundary-corrector/layer-configs';
+    import { LayerConfig } from '@india-boundary-corrector/layer-configs';
 
     const statusEl = document.getElementById('status');
 
@@ -85,13 +85,12 @@
         addLineHaloAlpha: 0.5,
       });
 
-      // Register the custom config so it can be auto-detected
-      layerConfigs.register(osmDE);
-
       // Register the corrections protocol with maplibre
+      // and add the custom config to it
       const protocol = registerCorrectionProtocol(maplibregl);
+      protocol.addLayerConfig(osmDE);
 
-      statusEl.textContent = '✓ Custom config registered, creating map...';
+      statusEl.textContent = '✓ Custom config added to protocol, creating map...';
 
       // Create the map
       const map = new maplibregl.Map({
@@ -125,7 +124,7 @@
       });
 
       console.log('Custom LayerConfig:', osmDE);
-      console.log('Registered configs:', Array.from(layerConfigs.registry.keys()));
+      console.log('Registered configs:', protocol.getRegistry().getAvailableIds());
 
     } catch (error) {
       statusEl.textContent = '✗ Error: ' + error.message;
