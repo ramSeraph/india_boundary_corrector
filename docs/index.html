@@ -242,27 +242,6 @@
     #map.color-picker-active {
       cursor: crosshair;
     }
-    
-    .tile-preset {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    
-    .tile-preset button {
-      flex: 1;
-      padding: 6px 10px;
-      font-size: 0.8rem;
-      background: #6c757d;
-    }
-    
-    .tile-preset button:hover {
-      background: #545b62;
-    }
-    
-    .tile-preset button.active {
-      background: #007bff;
-    }
   </style>
 </head>
 <body>
@@ -277,15 +256,10 @@
     
     <div class="section">
       <h2>Tile Layer</h2>
-      <div class="tile-preset">
-        <button id="btnCartoDark" class="active">Carto Dark</button>
-        <button id="btnOsmCarto">OSM Carto</button>
-        <button id="btnCustom">Custom</button>
-      </div>
       <label for="tileUrl">Tile URL Template</label>
-      <input type="text" id="tileUrl" value="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png">
+      <input type="text" id="tileUrl" value="https://tile.openstreetmap.org/{z}/{x}/{y}.png">
       <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
-      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap &copy; CARTO">
+      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap contributors">
       <label style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
         <input type="checkbox" id="correctionsToggle" checked style="width: auto;">
         <span>Enable boundary corrections</span>
@@ -295,17 +269,17 @@
     <div class="section">
       <h2>Layer Config</h2>
       <textarea id="configEditor">{
-  "id": "cartodb-dark",
-  "startZoom": 0,
-  "zoomThreshold": 5,
-  "tileUrlPattern": "(cartocdn\\.com|cartodb-basemaps).*dark_all",
-  "osmAddLineColor": "rgb(40, 40, 40)",
-  "neAddLineColor": "rgb(40, 40, 40)",
-  "addLineDashed": false,
-  "addLineDashArray": [],
-  "addLineHaloRatio": 0,
-  "addLineHaloAlpha": 0,
-  "lineWidthMultiplier": 1.0
+  "id": "osm-carto",
+  "startZoom": 1,
+  "zoomThreshold": 1,
+  "tileUrlPattern": "tile\\.openstreetmap\\.org.*\\.png",
+  "osmAddLineColor": "#b9a8b9",
+  "neAddLineColor": "#b9a8b9",
+  "addLineDashed": true,
+  "addLineDashArray": [10, 1, 2, 1],
+  "addLineHaloRatio": 1.0,
+  "addLineHaloAlpha": 0.5,
+  "lineWidthMultiplier": 1.5
 }</textarea>
       <div id="configStatus"></div>
     </div>
@@ -346,62 +320,6 @@
     // Extend Leaflet with IndiaBoundaryCorrectedTileLayer
     extendLeaflet(L);
 
-    // Preset configs
-    const presets = {
-      cartoDark: {
-        tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        config: {
-          id: 'cartodb-dark',
-          startZoom: 0,
-          zoomThreshold: 5,
-          tileUrlPattern: '(cartocdn\\.com|cartodb-basemaps).*dark_all',
-          osmAddLineColor: 'rgb(40, 40, 40)',
-          neAddLineColor: 'rgb(40, 40, 40)',
-          addLineDashed: false,
-          addLineDashArray: [],
-          addLineHaloRatio: 0,
-          addLineHaloAlpha: 0,
-          lineWidthMultiplier: 1.0
-        }
-      },
-      osmCarto: {
-        tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; OpenStreetMap contributors',
-        config: {
-          id: 'osm-carto',
-          startZoom: 1,
-          zoomThreshold: 1,
-          tileUrlPattern: 'tile\\.openstreetmap\\.org.*\\.png',
-          osmAddLineColor: '#b9a8b9',
-          neAddLineColor: '#b9a8b9',
-          addLineDashed: true,
-          addLineDashArray: [10, 1, 2, 1],
-          addLineHaloRatio: 1.0,
-          addLineHaloAlpha: 0.5,
-          lineWidthMultiplier: 1.5
-        }
-      },
-      custom: {
-        tileUrl: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
-        attribution: '&copy; OpenStreetMap contributors',
-        config: {
-          id: 'custom',
-          startZoom: 0,
-          zoomThreshold: 5,
-          // tileUrlPattern: 'your-pattern-here',
-          osmAddLineColor: 'rgb(180, 195, 180)',
-          neAddLineColor: 'rgb(180, 195, 180)',
-          addLineDashed: true,
-          addLineDashArray: [10, 1, 2, 1],
-          addLineHaloRatio: 1.0,
-          addLineHaloAlpha: 0.5,
-          lineWidthMultiplier: 1.0
-        }
-      }
-    };
-
-    let currentPreset = 'cartoDark';
     let map = null;
     let currentLayer = null;
 
@@ -412,26 +330,7 @@
     const configEditor = document.getElementById('configEditor');
     const configStatus = document.getElementById('configStatus');
     const applyBtn = document.getElementById('applyBtn');
-    const btnCartoDark = document.getElementById('btnCartoDark');
-    const btnOsmCarto = document.getElementById('btnOsmCarto');
-    const btnCustom = document.getElementById('btnCustom');
     const correctionsToggle = document.getElementById('correctionsToggle');
-
-    function setActiveButton(preset) {
-      btnCartoDark.classList.toggle('active', preset === 'cartoDark');
-      btnOsmCarto.classList.toggle('active', preset === 'osmCarto');
-      btnCustom.classList.toggle('active', preset === 'custom');
-    }
-
-    function loadPreset(preset) {
-      currentPreset = preset;
-      const p = presets[preset];
-      tileUrlInput.value = p.tileUrl;
-      tileAttributionInput.value = p.attribution;
-      configEditor.value = JSON.stringify(p.config, null, 2);
-      setActiveButton(preset);
-      configStatus.innerHTML = '';
-    }
 
     function parseConfig() {
       try {
@@ -709,9 +608,6 @@
     map.addControl(colorPickerControl);
 
     // Event listeners
-    btnCartoDark.addEventListener('click', () => loadPreset('cartoDark'));
-    btnOsmCarto.addEventListener('click', () => loadPreset('osmCarto'));
-    btnCustom.addEventListener('click', () => loadPreset('custom'));
     applyBtn.addEventListener('click', applyConfiguration);
     configEditor.addEventListener('input', parseConfig);
     if (correctionsToggle) {
