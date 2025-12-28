@@ -59,12 +59,12 @@
   {
     "imports": {
       "@india-boundary-corrector/data": "../../packages/data/index.js",
-      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js"
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js"
     }
   }
   </script>
   <script type="module">
-    import { registerCorrectionServiceWorker } from '../../packages/service-worker/src/index.js';
+    import { registerCorrectionServiceWorker } from '../../packages/service-worker/dist/index.js';
 
     const statusEl = document.getElementById('status');
     const basemapSelect = document.getElementById('basemap');
