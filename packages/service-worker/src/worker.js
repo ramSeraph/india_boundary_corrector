@@ -7,7 +7,7 @@
  */
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfigRegistry, LayerConfig } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs, LayerConfigRegistry, LayerConfig, parseTileUrl } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Message types
@@ -52,49 +52,6 @@ function reinitTileFixer() {
 }
 
 /**
- * Extract z, x, y from a tile URL.
- * Supports common patterns like /{z}/{x}/{y}.png
- * @param {string} url
- * @returns {{ z: number, x: number, y: number } | null}
- */
-function extractTileCoords(url) {
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-    
-    // Find z/x/y pattern - typically last 3 numeric segments
-    for (let i = pathParts.length - 1; i >= 2; i--) {
-      const yPart = pathParts[i].replace(/\.[^.]+$/, ''); // Remove extension
-      const xPart = pathParts[i - 1];
-      const zPart = pathParts[i - 2];
-      
-      if (/^\d+$/.test(zPart) && /^\d+$/.test(xPart) && /^\d+$/.test(yPart)) {
-        return {
-          z: parseInt(zPart, 10),
-          x: parseInt(xPart, 10),
-          y: parseInt(yPart, 10),
-        };
-      }
-    }
-    
-    // Try query parameters (some tile servers use ?x=&y=&z=)
-    const z = urlObj.searchParams.get('z');
-    const x = urlObj.searchParams.get('x');
-    const y = urlObj.searchParams.get('y');
-    if (z && x && y) {
-      return {
-        z: parseInt(z, 10),
-        x: parseInt(x, 10),
-        y: parseInt(y, 10),
-      };
-    }
-  } catch (e) {
-    // Invalid URL
-  }
-  return null;
-}
-
-/**
  * Check if a request is for a map tile that we should intercept.
  * @param {Request} request
  * @returns {{ layerConfig: Object, coords: { z: number, x: number, y: number } } | null}
@@ -103,17 +60,7 @@ function shouldIntercept(request) {
   if (!enabled) return null;
   if (request.method !== 'GET') return null;
   
-  const url = request.url;
-  
-  // Check if URL matches any layer config
-  const layerConfig = registry.detectFromUrls([url]);
-  if (!layerConfig) return null;
-  
-  // Extract tile coordinates
-  const coords = extractTileCoords(url);
-  if (!coords) return null;
-  
-  return { layerConfig, coords };
+  return parseTileUrl(request.url, registry);
 }
 
 /**

@@ -3,6 +3,7 @@ import { cartoDbDark, osmCarto } from './configs.js';
 // Re-export all layer configs
 export { cartoDbDark, osmCarto } from './configs.js';
 export { LayerConfig } from './layerconfig.js';
+export { extractTileCoords, parseTileUrl } from './tile-url-utils.js';
 
 /**
  * Layer configuration registry

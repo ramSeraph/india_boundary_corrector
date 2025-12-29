@@ -261,4 +261,239 @@ test.describe('Layer Configs Package', () => {
       expect(matches).toBe(true);
     });
   });
+
+  test.describe('extractTileCoords', () => {
+    test('extracts coordinates from standard z/x/y pattern', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://tile.openstreetmap.org/5/15/12.png'
+        );
+      });
+      expect(coords).toEqual({ z: 5, x: 15, y: 12 });
+    });
+
+    test('extracts coordinates with subdomain', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://a.tile.openstreetmap.org/10/512/341.png'
+        );
+      });
+      expect(coords).toEqual({ z: 10, x: 512, y: 341 });
+    });
+
+    test('extracts coordinates from CartoDB URL', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png'
+        );
+      });
+      expect(coords).toEqual({ z: 3, x: 4, y: 2 });
+    });
+
+    test('extracts coordinates with retina suffix', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png'
+        );
+      });
+      expect(coords).toEqual({ z: 7, x: 64, y: 42 });
+    });
+
+    test('extracts coordinates with query parameters in URL', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://tile.openstreetmap.org/8/128/96.png?v=1'
+        );
+      });
+      expect(coords).toEqual({ z: 8, x: 128, y: 96 });
+    });
+
+    test('extracts coordinates from query parameters format', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://example.com/tiles?z=5&x=15&y=12'
+        );
+      });
+      expect(coords).toEqual({ z: 5, x: 15, y: 12 });
+    });
+
+    test('handles high zoom levels (z=18)', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://tile.openstreetmap.org/18/131072/87381.png'
+        );
+      });
+      expect(coords).toEqual({ z: 18, x: 131072, y: 87381 });
+    });
+
+    test('handles zoom level 0', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://tile.openstreetmap.org/0/0/0.png'
+        );
+      });
+      expect(coords).toEqual({ z: 0, x: 0, y: 0 });
+    });
+
+    test('returns null for invalid URL', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords('not-a-url');
+      });
+      expect(coords).toBeNull();
+    });
+
+    test('returns null when no z/x/y pattern found', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://example.com/about'
+        );
+      });
+      expect(coords).toBeNull();
+    });
+
+    test('returns null for URL with only partial coordinates', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://example.com/5/15/notanumber.png'
+        );
+      });
+      expect(coords).toBeNull();
+    });
+
+    test('extracts from nested path structure', async ({ page }) => {
+      const coords = await page.evaluate(() => {
+        return window.layerConfigsPackage.extractTileCoords(
+          'https://example.com/api/v1/tiles/dark/5/15/12.png'
+        );
+      });
+      expect(coords).toEqual({ z: 5, x: 15, y: 12 });
+    });
+  });
+
+  test.describe('parseTileUrl', () => {
+    test('parses OSM tile URL with coords and config', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const parsed = window.layerConfigsPackage.parseTileUrl(
+          'https://tile.openstreetmap.org/5/15/12.png',
+          window.layerConfigsPackage.layerConfigs
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      expect(result).toEqual({
+        configId: 'osm-carto',
+        coords: { z: 5, x: 15, y: 12 },
+      });
+    });
+
+    test('parses CartoDB tile URL with coords and config', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const parsed = window.layerConfigsPackage.parseTileUrl(
+          'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png',
+          window.layerConfigsPackage.layerConfigs
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      expect(result).toEqual({
+        configId: 'cartodb-dark',
+        coords: { z: 3, x: 4, y: 2 },
+      });
+    });
+
+    test('returns null for unknown tile provider', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        return window.layerConfigsPackage.parseTileUrl(
+          'https://unknown.example.com/tiles/5/15/12.png',
+          window.layerConfigsPackage.layerConfigs
+        );
+      });
+      expect(result).toBeNull();
+    });
+
+    test('returns null when URL has no coordinates', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        return window.layerConfigsPackage.parseTileUrl(
+          'https://tile.openstreetmap.org/about',
+          window.layerConfigsPackage.layerConfigs
+        );
+      });
+      expect(result).toBeNull();
+    });
+
+    test('works with template URLs containing {z}/{x}/{y}', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        // Even though this is a template, the pattern should match for config
+        // but coords extraction will fail, so should return null
+        return window.layerConfigsPackage.parseTileUrl(
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          window.layerConfigsPackage.layerConfigs
+        );
+      });
+      expect(result).toBeNull(); // No actual numeric coords
+    });
+
+    test('works with custom registry', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        // Create custom registry with custom config
+        const customRegistry = new window.layerConfigsPackage.LayerConfigRegistry();
+        const customConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'custom-tiles',
+          tileUrlPattern: /custom\.example\.com/,
+        });
+        customRegistry.register(customConfig);
+
+        const parsed = window.layerConfigsPackage.parseTileUrl(
+          'https://custom.example.com/tiles/5/15/12.png',
+          customRegistry
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      expect(result).toEqual({
+        configId: 'custom-tiles',
+        coords: { z: 5, x: 15, y: 12 },
+      });
+    });
+
+    test('parses retina tiles correctly', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const parsed = window.layerConfigsPackage.parseTileUrl(
+          'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png',
+          window.layerConfigsPackage.layerConfigs
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      expect(result).toEqual({
+        configId: 'cartodb-dark',
+        coords: { z: 7, x: 64, y: 42 },
+      });
+    });
+
+    test('handles URLs with query parameters', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const parsed = window.layerConfigsPackage.parseTileUrl(
+          'https://tile.openstreetmap.org/8/128/96.png?v=1&key=value',
+          window.layerConfigsPackage.layerConfigs
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      expect(result).toEqual({
+        configId: 'osm-carto',
+        coords: { z: 8, x: 128, y: 96 },
+      });
+    });
+  });
 });
