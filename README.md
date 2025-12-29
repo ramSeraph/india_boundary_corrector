@@ -14,15 +14,22 @@ Most international map tile providers (OpenStreetMap, Carto, etc.) show disputed
 
 ## The Solution
 
-This monorepo provides map library integrations that overlay correction vectors on top of existing raster tile layers:
-1. **Delete layers**: Draw lines matching the background color to mask incorrect boundaries
-2. **Add layers**: Draw the correct India boundaries
+This monorepo provides map library integrations that modify raster tiles directly to correct boundaries:
+1. **Delete corrections**: Apply median blur along incorrect boundary lines to mask them
+2. **Add corrections**: Draw the correct India boundaries on top
 
 The corrections use different data sources based on zoom level:
-- **Lower zoom (< threshold)**: Natural Earth data corrections
-- **Higher zoom (≥ threshold)**: OpenStreetMap data corrections
+- **Lower zoom (< threshold)**: Natural Earth data corrections (`to-add-ne`, `to-del-ne` layers)
+- **Higher zoom (≥ threshold)**: OpenStreetMap data corrections (`to-add-osm`, `to-del-osm` layers)
 
-Line widths scale dynamically with zoom level for consistent appearance.
+All boundary data is packaged in a single PMTiles file. Line widths scale dynamically with zoom level for consistent appearance.
+
+### Before
+![Before correction](./images/before.jpg)
+
+### After
+![After correction](./images/after.jpg)
+
 
 ## Packages
 
