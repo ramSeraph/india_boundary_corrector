@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OpenLayers Layer Test</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "ol/layer/Tile.js": "/node_modules/ol/layer/Tile.js",
+        "ol/source/XYZ.js": "/node_modules/ol/source/XYZ.js",
+        "@india-boundary-corrector/data": "/packages/data/index.js",
+        "@india-boundary-corrector/tilefixer": "/packages/tilefixer/dist/index.js",
+        "@india-boundary-corrector/layer-configs": "/packages/layer-configs/dist/index.js",
+        "@india-boundary-corrector/openlayers-layer": "/packages/openlayers-layer/dist/index.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import { IndiaBoundaryCorrectedTileLayer, fetchAndFixTile } from '@india-boundary-corrector/openlayers-layer';
+    import { layerConfigs } from '@india-boundary-corrector/layer-configs';
+    import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+    import { getPmtilesUrl } from '@india-boundary-corrector/data';
+
+    // Create a test layer instance
+    const testLayer = new IndiaBoundaryCorrectedTileLayer({
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      layerConfig: 'osm-carto'
+    });
+
+    // Get layer config and tilefixer for direct testing
+    const layerConfig = testLayer.getLayerConfig();
+    const tileFixer = testLayer.getTileFixer();
+
+    // Mock fetch for testing different scenarios
+    const originalFetch = window.fetch;
+    
+    // Create mock tile data (256x256 white PNG)
+    const createMockTile = () => {
+      const canvas = new OffscreenCanvas(256, 256);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, 256, 256);
+      return canvas.convertToBlob({ type: 'image/png' }).then(blob => blob.arrayBuffer());
+    };
+
+    // Create corrupted data
+    const createCorruptedData = () => {
+      const arr = new Uint8Array(100);
+      for (let i = 0; i < 100; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return Promise.resolve(arr.buffer);
+    };
+
+    // Mock URL generator with different scenarios
+    window.createMockTileUrl = (scenario) => {
+      return `mock://${scenario}/tile.png`;
+    };
+
+    // Override fetch to handle mock URLs
+    window.fetch = function(url, ...args) {
+      if (typeof url === 'string' && url.startsWith('mock://')) {
+        const parts = url.split('/');
+        const scenario = parts[2];
+
+        switch (scenario) {
+          case 'success':
+            return createMockTile().then(buffer => ({
+              ok: true,
+              status: 200,
+              arrayBuffer: () => Promise.resolve(buffer)
+            }));
+
+          case 'tile-fail':
+            return Promise.resolve({
+              ok: false,
+              status: 404,
+              arrayBuffer: () => Promise.reject(new Error('Tile fetch failed: 404'))
+            });
+
+          case 'timeout':
+            return new Promise((resolve, reject) => {
+              setTimeout(() => reject(new Error('Network timeout')), 100);
+            });
+
+          case 'corrupted':
+            return createCorruptedData().then(buffer => ({
+              ok: true,
+              status: 200,
+              arrayBuffer: () => Promise.resolve(buffer)
+            }));
+
+          default:
+            return createMockTile().then(buffer => ({
+              ok: true,
+              status: 200,
+              arrayBuffer: () => Promise.resolve(buffer)
+            }));
+        }
+      }
+      
+      // Pass through to original fetch for real URLs
+      return originalFetch(url, ...args);
+    };
+
+    // Expose for testing
+    window.testLayer = testLayer;
+    window.testContext = {
+      fetchAndFixTile,
+      tileFixer,
+      layerConfig,
+    };
+    window.IndiaBoundaryCorrectedTileLayer = IndiaBoundaryCorrectedTileLayer;
+    window.openlayersLayerLoaded = true;
+  </script>
+</body>
+</html>

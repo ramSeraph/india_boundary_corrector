@@ -30,6 +30,73 @@ function createMergedRegistry(extraLayerConfigs) {
 }
 
 /**
+ * Handle tile fetching and correction application logic.
+ * This method is extracted for testability.
+ * @param {string} src - URL of the raster tile
+ * @param {number} z - Zoom level
+ * @param {number} x - Tile X coordinate
+ * @param {number} y - Tile Y coordinate
+ * @param {TileFixer} tileFixer - TileFixer instance
+ * @param {Object} layerConfig - Layer configuration
+ * @param {number} tileSize - Tile size in pixels
+ * @returns {Promise<{blob: Blob, wasFixed: boolean}>}
+ */
+async function fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize) {
+  try {
+    // Fetch both raster tile and corrections in parallel
+    const [tileResult, correctionsResult] = await Promise.allSettled([
+      fetch(src, { mode: 'cors' }).then(r => {
+        if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
+        return r.arrayBuffer();
+      }),
+      tileFixer.getCorrections(z, x, y)
+    ]);
+
+    // Handle various failure scenarios
+    const tileData = tileResult.status === 'fulfilled' ? tileResult.value : null;
+    const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
+
+    // Case 1: Both failed
+    if (!tileData && (!corrections || Object.keys(corrections).length === 0)) {
+      const error = new Error('Both tile and corrections failed to load');
+      error.tileError = tileResult.reason;
+      error.correctionsError = correctionsResult.reason;
+      throw error;
+    }
+
+    // Case 2: Tile failed but corrections available - return error (can't fix non-existent tile)
+    if (!tileData) {
+      throw tileResult.reason || new Error('Tile fetch failed');
+    }
+
+    // Case 3: Tile succeeded but corrections failed or empty - return original tile
+    const hasCorrections = corrections && Object.values(corrections).some(arr => arr && arr.length > 0);
+    if (!hasCorrections) {
+      const blob = new Blob([tileData]);
+      return { blob, wasFixed: false };
+    }
+
+    // Case 4: Both succeeded - apply corrections
+    const fixedTileData = await tileFixer.fixTile(
+      corrections,
+      tileData,
+      layerConfig,
+      z,
+      tileSize
+    );
+
+    const blob = new Blob([fixedTileData], { type: 'image/png' });
+    return { blob, wasFixed: true };
+  } catch (err) {
+    // Re-throw with context
+    if (!err.message) {
+      err.message = 'Error in tile fetch and fix';
+    }
+    throw err;
+  }
+}
+
+/**
  * Create a custom tileLoadFunction that applies boundary corrections.
  * @param {TileFixer} tileFixer - The TileFixer instance
  * @param {Object} layerConfig - The layer configuration
@@ -44,43 +111,14 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
     const y = tileCoord[2];
 
     try {
-      // Fetch tile and corrections in parallel
-      const [tileResponse, corrections] = await Promise.all([
-        fetch(src, { mode: 'cors' }),
-        tileFixer.getCorrections(z, x, y)
-      ]);
-
-      if (!tileResponse.ok) {
-        throw new Error(`Tile fetch failed: ${tileResponse.status}`);
-      }
-
-      const tileData = await tileResponse.arrayBuffer();
-
-      // Check if there are any corrections to apply
-      const hasCorrections = Object.values(corrections).some(arr => arr.length > 0);
-
-      let finalBlob;
-      if (hasCorrections) {
-        // Apply corrections
-        const fixedTileData = await tileFixer.fixTile(
-          corrections,
-          tileData,
-          layerConfig,
-          z,
-          tileSize
-        );
-        finalBlob = new Blob([fixedTileData], { type: 'image/png' });
-      } else {
-        // No corrections needed
-        finalBlob = new Blob([tileData]);
-      }
+      const { blob } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
 
       const image = imageTile.getImage();
       
       // Check if image is a canvas (OffscreenCanvas) or HTMLImageElement
       if (typeof image.getContext === 'function') {
         // OffscreenCanvas path
-        const imageBitmap = await createImageBitmap(finalBlob);
+        const imageBitmap = await createImageBitmap(blob);
         image.width = imageBitmap.width;
         image.height = imageBitmap.height;
         const ctx = image.getContext('2d');
@@ -89,7 +127,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
         image.dispatchEvent(new Event('load'));
       } else {
         // HTMLImageElement path - use blob URL
-        const blobUrl = URL.createObjectURL(finalBlob);
+        const blobUrl = URL.createObjectURL(blob);
         image.onload = () => {
           URL.revokeObjectURL(blobUrl);
         };
@@ -199,7 +237,24 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
   getRegistry() {
     return this._registry;
   }
+
+  /**
+   * Fetch and fix a tile (exposed for testing).
+   * @param {string} src - Tile URL
+   * @param {number} z - Zoom level
+   * @param {number} x - Tile X coordinate
+   * @param {number} y - Tile Y coordinate
+   * @returns {Promise<{blob: Blob, wasFixed: boolean}>}
+   * @private
+   */
+  async _fetchAndFixTile(src, z, x, y) {
+    const tileSize = this.getSource().getTileGrid()?.getTileSize(z) || 256;
+    return fetchAndFixTile(src, z, x, y, this._tileFixer, this._layerConfig, tileSize);
+  }
 }
+
+// Export for testing
+export { fetchAndFixTile };
 
 /**
  * Factory function to create an IndiaBoundaryCorrectedTileLayer.
