@@ -57,6 +57,63 @@ function parseCorrectionsUrl(url) {
 }
 
 /**
+ * Fetch and fix a tile for MapLibre protocol.
+ * Extracted for testability.
+ * @param {string} tileUrl - URL of the raster tile
+ * @param {number} z - Zoom level
+ * @param {number} x - Tile X coordinate
+ * @param {number} y - Tile Y coordinate
+ * @param {TileFixer} tileFixer - TileFixer instance
+ * @param {Object} layerConfig - Layer configuration (can be null)
+ * @param {number} tileSize - Tile size in pixels
+ * @param {Object} [options] - Fetch options
+ * @param {AbortSignal} [options.signal] - Abort signal
+ * @returns {Promise<{data: ArrayBuffer}>}
+ */
+async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
+  try {
+    // Fetch tile and corrections in parallel
+    const [tileResponse, corrections] = await Promise.all([
+      fetch(tileUrl, { signal: options.signal }),
+      tileFixer.getCorrections(z, x, y)
+    ]);
+
+    if (!tileResponse.ok) {
+      throw new Error(`Tile fetch failed: ${tileResponse.status}`);
+    }
+
+    const tileData = await tileResponse.arrayBuffer();
+
+    // Check if there are any corrections to apply
+    const hasCorrections = layerConfig && Object.values(corrections).some(arr => arr.length > 0);
+
+    if (hasCorrections) {
+      // Apply corrections
+      const fixedTileData = await tileFixer.fixTile(
+        corrections,
+        tileData,
+        layerConfig,
+        z,
+        tileSize
+      );
+      return { data: fixedTileData };
+    } else {
+      // No corrections needed
+      return { data: tileData };
+    }
+  } catch (err) {
+    // Re-throw abort errors as-is
+    if (err.name === 'AbortError') {
+      throw err;
+    }
+    // Wrap other errors with context
+    const error = new Error(`Error applying corrections: ${err.message}`);
+    error.originalError = err;
+    throw error;
+  }
+}
+
+/**
  * India boundary corrections protocol for MapLibre GL.
  * 
  * Usage:
@@ -153,43 +210,16 @@ export class CorrectionProtocol {
         layerConfig = self._registry.detectFromUrls([tileUrl]);
       }
       
-      try {
-        // Fetch tile and corrections in parallel
-        const [tileResponse, corrections] = await Promise.all([
-          fetch(tileUrl, { signal: abortController?.signal }),
-          self._tileFixer.getCorrections(z, x, y)
-        ]);
-
-        if (!tileResponse.ok) {
-          throw new Error(`Tile fetch failed: ${tileResponse.status}`);
-        }
-
-        const tileData = await tileResponse.arrayBuffer();
-
-        // Check if there are any corrections to apply
-        const hasCorrections = layerConfig && Object.values(corrections).some(arr => arr.length > 0);
-
-        if (hasCorrections) {
-          // Apply corrections
-          const fixedTileData = await self._tileFixer.fixTile(
-            corrections,
-            tileData,
-            layerConfig,
-            z,
-            self._tileSize
-          );
-          return { data: fixedTileData };
-        } else {
-          // No corrections needed
-          return { data: tileData };
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          throw err;
-        }
-        console.warn('[CorrectionProtocol] Error applying corrections:', err);
-        throw err;
-      }
+      return fetchAndFixTile(
+        tileUrl,
+        z, 
+        x,
+        y,
+        self._tileFixer,
+        layerConfig,
+        self._tileSize,
+        { signal: abortController?.signal }
+      );
     };
   }
 }
@@ -228,3 +258,6 @@ export function registerCorrectionProtocol(maplibregl, options = {}) {
   const protocol = new CorrectionProtocol(options);
   return protocol.register(maplibregl);
 }
+
+// Export for testing
+export { parseCorrectionsUrl, fetchAndFixTile };
