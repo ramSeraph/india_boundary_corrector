@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Worker Test</title>
+</head>
+<body>
+  <h1>Service Worker Test Page</h1>
+  <script type="importmap">
+    {
+      "imports": {
+        "@india-boundary-corrector/data": "/packages/data/index.js",
+        "@india-boundary-corrector/layer-configs": "/packages/layer-configs/dist/index.js",
+        "@india-boundary-corrector/service-worker": "/packages/service-worker/dist/index.js"
+      }
+    }
+  </script>
+  <script type="module">
+    try {
+      const {
+        CorrectionServiceWorker,
+        registerCorrectionServiceWorker,
+        getWorkerImportSnippet,
+        MessageTypes,
+        LayerConfig,
+        layerConfigs,
+        getPmtilesUrl
+      } = await import('@india-boundary-corrector/service-worker');
+
+      // Expose for testing
+      window.CorrectionServiceWorker = CorrectionServiceWorker;
+      window.registerCorrectionServiceWorker = registerCorrectionServiceWorker;
+      window.getWorkerImportSnippet = getWorkerImportSnippet;
+      window.MessageTypes = MessageTypes;
+      window.LayerConfig = LayerConfig;
+      window.layerConfigs = layerConfigs;
+      window.getPmtilesUrl = getPmtilesUrl;
+      window.serviceWorkerTestLoaded = true;
+    } catch (error) {
+      console.error('Error loading modules:', error);
+      window.loadError = error.message;
+    }
+  </script>
+</body>
+</html>

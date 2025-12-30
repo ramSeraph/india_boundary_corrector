@@ -64,21 +64,23 @@ function shouldIntercept(request) {
 }
 
 /**
- * Apply corrections to a tile.
- * @param {Request} request
- * @param {Object} layerConfig
- * @param {{ z: number, x: number, y: number }} coords
+ * Fetch and fix a tile for service worker.
+ * Extracted for testability.
+ * @param {string} tileUrl - URL of the raster tile
+ * @param {number} z - Zoom level
+ * @param {number} x - Tile X coordinate
+ * @param {number} y - Tile Y coordinate
+ * @param {TileFixer} tileFixer - TileFixer instance
+ * @param {Object} layerConfig - Layer configuration
+ * @param {number} tileSize - Tile size in pixels
+ * @param {Object} [options] - Fetch options
  * @returns {Promise<Response>}
  */
-async function applyCorrectedTile(request, layerConfig, coords) {
-  const { z, x, y } = coords;
-  
-  const fixer = getTileFixer();
-  
+async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
   // Fetch tile with CORS mode and corrections in parallel
   const [tileResponse, corrections] = await Promise.all([
-    fetch(request.url, { mode: 'cors' }),
-    fixer.getCorrections(z, x, y),
+    fetch(tileUrl, { mode: 'cors', ...options }),
+    tileFixer.getCorrections(z, x, y),
   ]);
   
   if (!tileResponse.ok) {
@@ -94,7 +96,7 @@ async function applyCorrectedTile(request, layerConfig, coords) {
   
   // Apply corrections
   const tileData = await tileResponse.arrayBuffer();
-  const fixedTileData = await fixer.fixTile(
+  const fixedTileData = await tileFixer.fixTile(
     corrections,
     tileData,
     layerConfig,
@@ -111,6 +113,20 @@ async function applyCorrectedTile(request, layerConfig, coords) {
       'X-Boundary-Corrected': 'true',
     },
   });
+}
+
+/**
+ * Apply corrections to a tile.
+ * @param {Request} request
+ * @param {Object} layerConfig
+ * @param {{ z: number, x: number, y: number }} coords
+ * @returns {Promise<Response>}
+ */
+async function applyCorrectedTile(request, layerConfig, coords) {
+  const { z, x, y } = coords;
+  const fixer = getTileFixer();
+  
+  return fetchAndFixTile(request.url, z, x, y, fixer, layerConfig, tileSize);
 }
 
 // Install event
