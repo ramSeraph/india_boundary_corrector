@@ -64,6 +64,72 @@ function extendLeaflet(L) {
       }
     },
 
+    /**
+     * Handle tile fetching and correction application logic.
+     * This method is extracted for testability.
+     * @param {string} tileUrl - URL of the raster tile
+     * @param {number} z - Zoom level
+     * @param {number} x - Tile X coordinate
+     * @param {number} y - Tile Y coordinate
+     * @param {number} tileSize - Tile size in pixels
+     * @returns {Promise<{blob: Blob, wasFixed: boolean, error?: Error}>}
+     * @private
+     */
+    _fetchAndFixTile: async function (tileUrl, z, x, y, tileSize) {
+      try {
+        // Fetch both raster tile and corrections in parallel
+        const [tileResult, correctionsResult] = await Promise.allSettled([
+          fetch(tileUrl).then(r => {
+            if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
+            return r.arrayBuffer();
+          }),
+          this._tileFixer.getCorrections(z, x, y)
+        ]);
+
+        // Handle various failure scenarios
+        const tileData = tileResult.status === 'fulfilled' ? tileResult.value : null;
+        const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
+
+        // Case 1: Both failed
+        if (!tileData && (!corrections || Object.keys(corrections).length === 0)) {
+          const error = new Error('Both tile and corrections failed to load');
+          error.tileError = tileResult.reason;
+          error.correctionsError = correctionsResult.reason;
+          throw error;
+        }
+
+        // Case 2: Tile failed but corrections available - return error (can't fix non-existent tile)
+        if (!tileData) {
+          throw tileResult.reason || new Error('Tile fetch failed');
+        }
+
+        // Case 3: Tile succeeded but corrections failed or empty - return original tile
+        const hasCorrections = corrections && Object.values(corrections).some(arr => arr && arr.length > 0);
+        if (!hasCorrections) {
+          const blob = new Blob([tileData]);
+          return { blob, wasFixed: false };
+        }
+
+        // Case 4: Both succeeded - apply corrections
+        const fixedTileData = await this._tileFixer.fixTile(
+          corrections,
+          tileData,
+          this._layerConfig,
+          z,
+          tileSize
+        );
+
+        const blob = new Blob([fixedTileData], { type: 'image/png' });
+        return { blob, wasFixed: true };
+      } catch (err) {
+        // Re-throw with context
+        if (!err.message) {
+          err.message = 'Error in tile fetch and fix';
+        }
+        throw err;
+      }
+    },
+
     createTile: function (coords, done) {
       const tile = document.createElement('img');
       
@@ -90,35 +156,8 @@ function extendLeaflet(L) {
       const y = coords.y;
       const tileSize = this.options.tileSize || 256;
 
-      Promise.all([
-        fetch(tileUrl).then(r => {
-          if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
-          return r.arrayBuffer();
-        }),
-        this._tileFixer.getCorrections(z, x, y)
-      ])
-        .then(async ([tileData, corrections]) => {
-          const hasCorrections = Object.values(corrections).some(arr => arr.length > 0);
-          
-          if (!hasCorrections) {
-            const blob = new Blob([tileData]);
-            tile.src = URL.createObjectURL(blob);
-            tile.onload = () => {
-              URL.revokeObjectURL(tile.src);
-              done(null, tile);
-            };
-            return;
-          }
-          
-          const fixedTileData = await this._tileFixer.fixTile(
-            corrections,
-            tileData,
-            this._layerConfig,
-            z,
-            tileSize
-          );
-          
-          const blob = new Blob([fixedTileData], { type: 'image/png' });
+      this._fetchAndFixTile(tileUrl, z, x, y, tileSize)
+        .then(({ blob, wasFixed }) => {
           tile.src = URL.createObjectURL(blob);
           tile.onload = () => {
             URL.revokeObjectURL(tile.src);
