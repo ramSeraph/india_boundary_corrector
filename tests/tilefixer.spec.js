@@ -538,4 +538,243 @@ test.describe('TileFixer Package', () => {
       expect(result.onRemainingLine.isColored).toBe(true);
     });
   });
+
+  test.describe('fetchAndFixTile - Success Cases', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('returns fixed tile when corrections are available', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 182, y = 101; // Tile with corrections
+        
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+          dataSize: result.data.byteLength,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(true);
+      expect(result.dataSize).toBeGreaterThan(0);
+    });
+
+    test('returns original tile when no corrections exist', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 0, y = 0; // Tile outside India - no corrections
+        
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+          dataSize: result.data.byteLength,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+      expect(result.dataSize).toBeGreaterThan(0);
+    });
+
+    test('returns original tile when corrections fail to load', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 999, x = 999999, y = 999999; // Invalid coords cause correction failure
+        
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+    });
+
+    test('returns original tile when layerConfig is null', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 182, y = 101;
+        
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, null, { tileSize: 256 });
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+    });
+  });
+
+  test.describe('fetchAndFixTile - Failure Cases', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('throws error when tile fetch fails', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('tile-fail');
+        const z = 8, x = 182, y = 101;
+        
+        try {
+          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          return { error: null };
+        } catch (err) {
+          return { error: err.message };
+        }
+      });
+
+      expect(result.error).toBeTruthy();
+      expect(result.error).toContain('Tile fetch failed');
+    });
+
+    test('handles network timeout', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('timeout');
+        const z = 8, x = 182, y = 101;
+        
+        try {
+          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          return { error: null, timedOut: false };
+        } catch (err) {
+          return { error: err.message, timedOut: true };
+        }
+      });
+
+      expect(result.timedOut).toBe(true);
+      expect(result.error).toBeTruthy();
+    });
+
+    test('handles abort signal', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('abort');
+        const z = 8, x = 182, y = 101;
+        
+        const controller = new AbortController();
+        
+        const fetchPromise = corrector.fetchAndFixTile(
+          mockTileUrl, z, x, y, layerConfig, 
+          { tileSize: 256, signal: controller.signal }
+        );
+        
+        // Abort after a short delay
+        setTimeout(() => controller.abort(), 50);
+        
+        try {
+          await fetchPromise;
+          return { aborted: false, error: null };
+        } catch (err) {
+          return { aborted: err.name === 'AbortError', error: err.message };
+        }
+      });
+
+      expect(result.aborted).toBe(true);
+    });
+  });
+
+  test.describe('fetchAndFixTile - Edge Cases', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('handles corrupted tile data gracefully', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('corrupted');
+        const z = 8, x = 182, y = 101;
+        
+        try {
+          const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          return { success: true, hasData: result.data instanceof ArrayBuffer };
+        } catch (err) {
+          return { success: false, error: err.message };
+        }
+      });
+
+      // Either succeeds with data or fails gracefully
+      if (result.success) {
+        expect(result.hasData).toBe(true);
+      } else {
+        expect(result.error).toBeTruthy();
+      }
+    });
+
+    test('handles empty corrections object', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 1, x = 0, y = 0; // Very low zoom, likely no corrections
+        
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+    });
+
+    test('respects mode option for CORS', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 0, y = 0;
+        
+        // This should work with cors mode
+        const result = await corrector.fetchAndFixTile(
+          mockTileUrl, z, x, y, layerConfig, 
+          { tileSize: 256, mode: 'cors' }
+        );
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+    });
+  });
 });

@@ -99,6 +99,22 @@ const fixedTile: Promise<ArrayBuffer> = tileFixer.fixTile(
   256
 );
 
+// Test fetchAndFixTile
+import type { FetchAndFixTileResult, FetchAndFixTileOptions } from '@india-boundary-corrector/tilefixer';
+const fetchResult: Promise<FetchAndFixTileResult> = tileFixer.fetchAndFixTile(
+  'https://tile.openstreetmap.org/10/512/512.png',
+  10,
+  512,
+  512,
+  customConfig,
+  { tileSize: 256, mode: 'cors' }
+);
+
+// Test fetchAndFixTile result properties
+const result = await fetchResult;
+const resultData: ArrayBuffer = result.data;
+const resultWasFixed: boolean = result.wasFixed;
+
 // Test @india-boundary-corrector/leaflet-layer types
 import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
 

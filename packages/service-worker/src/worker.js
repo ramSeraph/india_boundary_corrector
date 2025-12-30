@@ -77,40 +77,16 @@ function shouldIntercept(request) {
  * @returns {Promise<Response>}
  */
 async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
-  // Fetch tile with CORS mode and corrections in parallel
-  const [tileResponse, corrections] = await Promise.all([
-    fetch(tileUrl, { mode: 'cors', ...options }),
-    tileFixer.getCorrections(z, x, y),
-  ]);
-  
-  if (!tileResponse.ok) {
-    return tileResponse;
-  }
-  
-  // Check if there are any corrections to apply
-  const hasCorrections = Object.values(corrections).some(arr => arr.length > 0);
-  
-  if (!hasCorrections) {
-    return tileResponse;
-  }
-  
-  // Apply corrections
-  const tileData = await tileResponse.arrayBuffer();
-  const fixedTileData = await tileFixer.fixTile(
-    corrections,
-    tileData,
-    layerConfig,
-    z,
-    tileSize
+  const { data, wasFixed } = await tileFixer.fetchAndFixTile(
+    tileUrl, z, x, y, layerConfig, { tileSize, mode: 'cors', ...options }
   );
   
-  // Return corrected tile
-  return new Response(fixedTileData, {
+  return new Response(data, {
     status: 200,
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': tileResponse.headers.get('Cache-Control') || 'max-age=3600',
-      'X-Boundary-Corrected': 'true',
+      'Cache-Control': 'max-age=3600',
+      'X-Boundary-Corrected': wasFixed ? 'true' : 'false',
     },
   });
 }

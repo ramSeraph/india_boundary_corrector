@@ -45,8 +45,8 @@ test.describe('MapLibre Protocol Package', () => {
     });
   });
 
-  test.describe('fetchAndFixTile - Success Cases', () => {
-    test('returns fixed tile when both raster and corrections are available', async ({ page }) => {
+  test.describe('fetchAndFixTile - Wrapper Behavior', () => {
+    test('returns ArrayBuffer data', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
         
@@ -66,47 +66,7 @@ test.describe('MapLibre Protocol Package', () => {
       expect(result.dataSize).toBeGreaterThan(0);
     });
 
-    test('returns original tile when corrections are empty', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 0, y = 0; // Far from India
-        const tileSize = 256;
-        
-        const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-        
-        return {
-          hasData: result.data instanceof ArrayBuffer,
-          dataSize: result.data.byteLength,
-        };
-      });
-
-      expect(result.hasData).toBe(true);
-      expect(result.dataSize).toBeGreaterThan(0);
-    });
-
-    test('returns original tile when layerConfig is null', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, null, tileSize);
-        
-        return {
-          hasData: result.data instanceof ArrayBuffer,
-        };
-      });
-
-      expect(result.hasData).toBe(true);
-    });
-  });
-
-  test.describe('fetchAndFixTile - Failure Cases', () => {
-    test('throws error when tile fetch fails', async ({ page }) => {
+    test('propagates errors from tilefixer', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
         
@@ -118,126 +78,12 @@ test.describe('MapLibre Protocol Package', () => {
           await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
           return { error: null };
         } catch (err) {
-          return { 
-            error: err.message,
-          };
+          return { error: err.message };
         }
       });
 
       expect(result.error).toBeTruthy();
       expect(result.error).toContain('Tile fetch failed');
-    });
-
-    test('returns original tile when corrections fail', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 999, x = 999999, y = 999999; // Invalid coordinates - corrections will fail
-        const tileSize = 256;
-        
-        try {
-          // With Promise.all (not allSettled), if corrections fail, the whole thing fails
-          const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-          return {
-            hasData: result.data instanceof ArrayBuffer,
-            error: null,
-          };
-        } catch (err) {
-          return { 
-            hasData: false,
-            error: err.message,
-          };
-        }
-      });
-
-      // Either succeeds (corrections returned empty) or fails (corrections threw error)
-      // Both are acceptable since we use Promise.all
-      if (result.hasData) {
-        expect(result.hasData).toBe(true);
-      } else {
-        expect(result.error).toBeTruthy();
-      }
-    });
-
-    test('handles network timeout for tile fetch', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('timeout');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        try {
-          await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-          return { error: null, timedOut: false };
-        } catch (err) {
-          return { 
-            error: err.message,
-            timedOut: true,
-          };
-        }
-      });
-
-      expect(result.timedOut).toBe(true);
-      expect(result.error).toBeTruthy();
-    });
-
-    test('handles abort signal', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('slow');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 100);
-        
-        try {
-          await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize, {
-            signal: controller.signal
-          });
-          return { error: null, wasAborted: false };
-        } catch (err) {
-          return { 
-            error: err.message,
-            wasAborted: err.name === 'AbortError',
-          };
-        }
-      });
-
-      expect(result.wasAborted).toBe(true);
-    });
-  });
-
-  test.describe('fetchAndFixTile - Edge Cases', () => {
-    test('handles corrupted tile data', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('corrupted');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        try {
-          const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-          return {
-            hasData: result.data instanceof ArrayBuffer,
-            error: null,
-          };
-        } catch (err) {
-          return { 
-            hasData: false,
-            error: err.message,
-          };
-        }
-      });
-
-      // Should either return data or throw error
-      if (!result.hasData) {
-        expect(result.error).toBeTruthy();
-      }
     });
   });
 
@@ -283,57 +129,6 @@ test.describe('MapLibre Protocol Package', () => {
       });
 
       expect(result.hasCustomConfig).toBe(true);
-    });
-  });
-
-  test.describe('Integration - Parallel Fetching', () => {
-    test('handles parallel tile fetches efficiently', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        const mockTileUrl = window.createMockTileUrl('success');
-        const tileSize = 256;
-        
-        const promises = [];
-        for (let i = 0; i < 5; i++) {
-          promises.push(
-            fetchAndFixTile(mockTileUrl, 8, 182 + i, 101, tileFixer, layerConfig, tileSize)
-          );
-        }
-        
-        const results = await Promise.all(promises);
-        
-        return {
-          count: results.length,
-          allSucceeded: results.every(r => r.data instanceof ArrayBuffer),
-        };
-      });
-
-      expect(result.count).toBe(5);
-      expect(result.allSucceeded).toBe(true);
-    });
-
-    test('handles mixed success/failure in parallel fetches', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        const tileSize = 256;
-        
-        const promises = [
-          fetchAndFixTile(window.createMockTileUrl('success'), 8, 182, 101, tileFixer, layerConfig, tileSize),
-          fetchAndFixTile(window.createMockTileUrl('tile-fail'), 8, 183, 101, tileFixer, layerConfig, tileSize)
-            .catch(err => ({ error: err.message })),
-          fetchAndFixTile(window.createMockTileUrl('success'), 8, 184, 101, tileFixer, layerConfig, tileSize),
-        ];
-        
-        const results = await Promise.all(promises);
-        
-        return {
-          successCount: results.filter(r => r.data instanceof ArrayBuffer).length,
-          errorCount: results.filter(r => r.error).length,
-        };
-      });
-
-      expect(result.successCount).toBe(2);
-      expect(result.errorCount).toBe(1);
     });
   });
 });

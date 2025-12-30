@@ -268,4 +268,52 @@ export class BoundaryCorrector {
     const outputBlob = await canvas.convertToBlob({ type: 'image/png' });
     return outputBlob.arrayBuffer();
   }
+
+  /**
+   * Fetch a tile, apply corrections, and return the result.
+   * @param {string} tileUrl - URL of the raster tile
+   * @param {number} z - Zoom level
+   * @param {number} x - Tile X coordinate
+   * @param {number} y - Tile Y coordinate
+   * @param {Object} layerConfig - Layer configuration with colors and styles
+   * @param {Object} [options] - Fetch options
+   * @param {number} [options.tileSize=256] - Tile size in pixels
+   * @param {AbortSignal} [options.signal] - Abort signal for fetch
+   * @param {RequestMode} [options.mode] - Fetch mode (e.g., 'cors')
+   * @returns {Promise<{data: ArrayBuffer, wasFixed: boolean}>}
+   */
+  async fetchAndFixTile(tileUrl, z, x, y, layerConfig, options = {}) {
+    const { tileSize = 256, signal, mode } = options;
+    const fetchOptions = {};
+    if (signal) fetchOptions.signal = signal;
+    if (mode) fetchOptions.mode = mode;
+
+    // Fetch tile and corrections in parallel
+    const [tileResult, correctionsResult] = await Promise.allSettled([
+      fetch(tileUrl, fetchOptions).then(r => {
+        if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
+        return r.arrayBuffer();
+      }),
+      this.getCorrections(z, x, y)
+    ]);
+
+    // Handle fetch failure
+    if (tileResult.status === 'rejected') {
+      throw tileResult.reason;
+    }
+
+    const tileData = tileResult.value;
+    const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
+
+    // Check if there are any corrections to apply
+    const hasCorrections = layerConfig && Object.values(corrections).some(arr => arr && arr.length > 0);
+
+    if (!hasCorrections) {
+      return { data: tileData, wasFixed: false };
+    }
+
+    // Apply corrections
+    const fixedData = await this.fixTile(corrections, tileData, layerConfig, z, tileSize);
+    return { data: fixedData, wasFixed: true };
+  }
 }

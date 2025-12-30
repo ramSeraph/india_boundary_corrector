@@ -115,4 +115,45 @@ export declare class BoundaryCorrector {
     zoom: number,
     tileSize?: number
   ): Promise<ArrayBuffer>;
+
+  /**
+   * Fetch a tile, apply corrections, and return the result.
+   * @param tileUrl - URL of the raster tile
+   * @param z - Zoom level
+   * @param x - Tile X coordinate
+   * @param y - Tile Y coordinate
+   * @param layerConfig - Layer configuration with colors and styles
+   * @param options - Fetch options
+   * @returns The tile data and whether corrections were applied
+   */
+  fetchAndFixTile(
+    tileUrl: string,
+    z: number,
+    x: number,
+    y: number,
+    layerConfig: LayerConfig,
+    options?: FetchAndFixTileOptions
+  ): Promise<FetchAndFixTileResult>;
+}
+
+/**
+ * Options for fetchAndFixTile method.
+ */
+export interface FetchAndFixTileOptions {
+  /** Tile size in pixels (default: 256) */
+  tileSize?: number;
+  /** Abort signal for fetch */
+  signal?: AbortSignal;
+  /** Fetch mode (e.g., 'cors') */
+  mode?: RequestMode;
+}
+
+/**
+ * Result of fetchAndFixTile method.
+ */
+export interface FetchAndFixTileResult {
+  /** The tile data as ArrayBuffer */
+  data: ArrayBuffer;
+  /** Whether corrections were applied */
+  wasFixed: boolean;
 }

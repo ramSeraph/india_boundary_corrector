@@ -71,46 +71,10 @@ function parseCorrectionsUrl(url) {
  * @returns {Promise<{data: ArrayBuffer}>}
  */
 async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
-  try {
-    // Fetch tile and corrections in parallel
-    const [tileResponse, corrections] = await Promise.all([
-      fetch(tileUrl, { signal: options.signal }),
-      tileFixer.getCorrections(z, x, y)
-    ]);
-
-    if (!tileResponse.ok) {
-      throw new Error(`Tile fetch failed: ${tileResponse.status}`);
-    }
-
-    const tileData = await tileResponse.arrayBuffer();
-
-    // Check if there are any corrections to apply
-    const hasCorrections = layerConfig && Object.values(corrections).some(arr => arr.length > 0);
-
-    if (hasCorrections) {
-      // Apply corrections
-      const fixedTileData = await tileFixer.fixTile(
-        corrections,
-        tileData,
-        layerConfig,
-        z,
-        tileSize
-      );
-      return { data: fixedTileData };
-    } else {
-      // No corrections needed
-      return { data: tileData };
-    }
-  } catch (err) {
-    // Re-throw abort errors as-is
-    if (err.name === 'AbortError') {
-      throw err;
-    }
-    // Wrap other errors with context
-    const error = new Error(`Error applying corrections: ${err.message}`);
-    error.originalError = err;
-    throw error;
-  }
+  const { data } = await tileFixer.fetchAndFixTile(
+    tileUrl, z, x, y, layerConfig, { tileSize, signal: options.signal }
+  );
+  return { data };
 }
 
 /**
