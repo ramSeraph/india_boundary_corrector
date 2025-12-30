@@ -48,6 +48,7 @@ test.describe('Service Worker Package', () => {
         'CLEAR_CACHE',
         'GET_STATUS',
         'REMOVE_LAYER_CONFIG',
+        'RESET_CONFIG',
         'SET_ENABLED',
         'SET_PMTILES_URL',
       ]);
@@ -372,6 +373,253 @@ test.describe('Service Worker Package', () => {
       });
 
       expect(result.isBoolean).toBe(true);
+    });
+  });
+
+  test.describe('Integration - Service Worker Behavior', () => {
+    test('registers and controls the page', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        return {
+          isControlling: sw.isControlling(),
+          hasWorker: sw.getWorker() !== null,
+        };
+      });
+
+      expect(result.isControlling).toBe(true);
+      expect(result.hasWorker).toBe(true);
+    });
+
+    test('getStatus returns correct initial state', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        const status = await sw.getStatus();
+        
+        return {
+          enabled: status.enabled,
+          hasConfigIds: Array.isArray(status.configIds),
+          configIds: status.configIds,
+          hasPmtilesUrl: typeof status.pmtilesUrl === 'string',
+        };
+      });
+
+      expect(result.enabled).toBe(true);
+      expect(result.hasConfigIds).toBe(true);
+      expect(result.configIds).toContain('osm-carto');
+      expect(result.configIds).toContain('cartodb-dark');
+      expect(result.hasPmtilesUrl).toBe(true);
+    });
+
+    test('setEnabled toggles correction state', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Initially enabled
+        const status1 = await sw.getStatus();
+        
+        // Disable
+        await sw.setEnabled(false);
+        const status2 = await sw.getStatus();
+        
+        // Re-enable
+        await sw.setEnabled(true);
+        const status3 = await sw.getStatus();
+        
+        return {
+          initialEnabled: status1.enabled,
+          afterDisable: status2.enabled,
+          afterReEnable: status3.enabled,
+        };
+      });
+
+      expect(result.initialEnabled).toBe(true);
+      expect(result.afterDisable).toBe(false);
+      expect(result.afterReEnable).toBe(true);
+    });
+
+    test('addLayerConfig adds new config', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        const statusBefore = await sw.getStatus();
+        
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'custom-test-config',
+          zoomThreshold: 5,
+          tileUrlPattern: /custom\.test\.com/,
+        }));
+        
+        const statusAfter = await sw.getStatus();
+        
+        return {
+          configsBefore: statusBefore.configIds,
+          configsAfter: statusAfter.configIds,
+        };
+      });
+
+      expect(result.configsBefore).not.toContain('custom-test-config');
+      expect(result.configsAfter).toContain('custom-test-config');
+    });
+
+    test('removeLayerConfig removes config', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Add a config first
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'to-be-removed',
+          zoomThreshold: 5,
+          tileUrlPattern: /remove\.test\.com/,
+        }));
+        
+        const statusBefore = await sw.getStatus();
+        
+        await sw.removeLayerConfig('to-be-removed');
+        
+        const statusAfter = await sw.getStatus();
+        
+        return {
+          hadConfig: statusBefore.configIds.includes('to-be-removed'),
+          configRemoved: !statusAfter.configIds.includes('to-be-removed'),
+        };
+      });
+
+      expect(result.hadConfig).toBe(true);
+      expect(result.configRemoved).toBe(true);
+    });
+
+    test('resetConfig restores default configuration', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Add custom config
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'custom-config',
+          zoomThreshold: 5,
+          tileUrlPattern: /custom\.com/,
+        }));
+        
+        // Remove a default config
+        await sw.removeLayerConfig('osm-carto');
+        
+        const statusBefore = await sw.getStatus();
+        
+        // Reset
+        await sw.resetConfig();
+        
+        const statusAfter = await sw.getStatus();
+        
+        return {
+          beforeHadCustom: statusBefore.configIds.includes('custom-config'),
+          beforeMissingOsmCarto: !statusBefore.configIds.includes('osm-carto'),
+          afterNoCustom: !statusAfter.configIds.includes('custom-config'),
+          afterHasOsmCarto: statusAfter.configIds.includes('osm-carto'),
+          afterHasCartodbDark: statusAfter.configIds.includes('cartodb-dark'),
+        };
+      });
+
+      expect(result.beforeHadCustom).toBe(true);
+      expect(result.beforeMissingOsmCarto).toBe(true);
+      expect(result.afterNoCustom).toBe(true);
+      expect(result.afterHasOsmCarto).toBe(true);
+      expect(result.afterHasCartodbDark).toBe(true);
+    });
+
+    test('setPmtilesUrl changes the PMTiles source', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        const statusBefore = await sw.getStatus();
+        
+        await sw.setPmtilesUrl('https://example.com/custom.pmtiles');
+        
+        const statusAfter = await sw.getStatus();
+        
+        return {
+          urlBefore: statusBefore.pmtilesUrl,
+          urlAfter: statusAfter.pmtilesUrl,
+        };
+      });
+
+      expect(result.urlBefore).toContain('india_boundary_corrections.pmtiles');
+      expect(result.urlAfter).toBe('https://example.com/custom.pmtiles');
+    });
+
+    test('clearCache clears the tile cache', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // clearCache should not throw
+        await sw.clearCache();
+        
+        return {
+          success: true,
+        };
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    test('unregister removes the service worker', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        const controllingBefore = sw.isControlling();
+        
+        const unregistered = await sw.unregister();
+        
+        // Check registrations
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const hasOurSw = registrations.some(r => r.active?.scriptURL.includes('sw.js'));
+        
+        return {
+          controllingBefore,
+          unregistered,
+          hasOurSw,
+        };
+      });
+
+      expect(result.controllingBefore).toBe(true);
+      expect(result.unregistered).toBe(true);
+      expect(result.hasOurSw).toBe(false);
     });
   });
 });

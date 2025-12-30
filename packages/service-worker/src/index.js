@@ -16,6 +16,7 @@ export const MessageTypes = {
   SET_ENABLED: 'SET_ENABLED',
   CLEAR_CACHE: 'CLEAR_CACHE',
   GET_STATUS: 'GET_STATUS',
+  RESET_CONFIG: 'RESET_CONFIG',
 };
 
 /**
@@ -61,6 +62,9 @@ export class CorrectionServiceWorker {
     if (!navigator.serviceWorker.controller) {
       await this._waitForController();
     }
+
+    // Reset config to defaults when connecting to an existing service worker
+    await this.resetConfig();
 
     // Set PMTiles URL if provided
     if (this._pmtilesUrl) {
@@ -207,6 +211,17 @@ export class CorrectionServiceWorker {
   async getStatus() {
     return this.sendMessage({
       type: MessageTypes.GET_STATUS,
+    });
+  }
+
+  /**
+   * Reset the service worker configuration to defaults.
+   * Resets pmtilesUrl to default and restores default layer configs.
+   * @returns {Promise<void>}
+   */
+  async resetConfig() {
+    await this.sendMessage({
+      type: MessageTypes.RESET_CONFIG,
     });
   }
 }

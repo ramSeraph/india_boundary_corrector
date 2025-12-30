@@ -14,6 +14,7 @@ export declare const MessageTypes: {
   SET_ENABLED: 'SET_ENABLED';
   CLEAR_CACHE: 'CLEAR_CACHE';
   GET_STATUS: 'GET_STATUS';
+  RESET_CONFIG: 'RESET_CONFIG';
 };
 
 /**
@@ -35,7 +36,6 @@ export interface ServiceWorkerStatus {
   enabled: boolean;
   pmtilesUrl: string;
   configIds: string[];
-  cacheSize: number;
 }
 
 /**
@@ -76,6 +76,9 @@ export declare class CorrectionServiceWorker {
   
   /** Get the status of the service worker */
   getStatus(): Promise<ServiceWorkerStatus>;
+  
+  /** Reset configuration to defaults (pmtilesUrl and layer configs) */
+  resetConfig(): Promise<void>;
 }
 
 /**

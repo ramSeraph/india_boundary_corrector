@@ -18,6 +18,7 @@ const MessageTypes = {
   SET_ENABLED: 'SET_ENABLED',
   CLEAR_CACHE: 'CLEAR_CACHE',
   GET_STATUS: 'GET_STATUS',
+  RESET_CONFIG: 'RESET_CONFIG',
 };
 
 // Cache name for corrected tiles
@@ -31,9 +32,22 @@ let enabled = true;
 let tileSize = 256;
 
 // Initialize registry with default configs
-for (const id of layerConfigs.getAvailableIds()) {
-  registry.register(layerConfigs.get(id));
+function initDefaultRegistry() {
+  registry = new LayerConfigRegistry();
+  for (const id of layerConfigs.getAvailableIds()) {
+    registry.register(layerConfigs.get(id));
+  }
 }
+
+// Reset to default configuration
+function resetConfig() {
+  pmtilesUrl = null;
+  tileFixer = null;
+  enabled = true;
+  initDefaultRegistry();
+}
+
+initDefaultRegistry();
 
 // Initialize TileFixer lazily
 function getTileFixer() {
@@ -170,12 +184,16 @@ self.addEventListener('message', (event) => {
         });
         break;
         
+      case MessageTypes.RESET_CONFIG:
+        resetConfig();
+        port?.postMessage({ success: true });
+        break;
+        
       case MessageTypes.GET_STATUS:
         port?.postMessage({
           enabled,
           pmtilesUrl: pmtilesUrl || getPmtilesUrl(),
           configIds: registry.getAvailableIds(),
-          cacheSize: tileFixer?.getCache()?.size ?? 0,
         });
         break;
         

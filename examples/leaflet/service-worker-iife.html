@@ -113,8 +113,9 @@
         updateStatus('Registering service worker...');
 
         // Register the service worker
+        // For local development, we use sw.js which imports the worker bundle.
+        // For production with CDN, you can use the worker.global.js URL directly.
         // pmtilesUrl is only needed when loading from local path.
-        // When using the CDN bundle, the PMTiles data is included automatically.
         const sw = await registerCorrectionServiceWorker('./sw.js', {
           pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
         });

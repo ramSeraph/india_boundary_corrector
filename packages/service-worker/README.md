@@ -74,6 +74,54 @@ await sw.addLayerConfig(new LayerConfig({
 }));
 ```
 
+## Usage with IIFE (No Bundler)
+
+For projects without a module bundler, you can use the CDN builds directly.
+
+### 1. Create a Service Worker File
+
+Create `sw.js` in your public directory. This file **must** be hosted on your own domain (service workers cannot be loaded from a CDN):
+
+```javascript
+importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/worker.global.js');
+```
+
+### 2. Include the Script and Register
+
+```html
+<script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
+<script>
+  // The library is available as IndiaBoundaryCorrector on the global window object
+  const { registerCorrectionServiceWorker, LayerConfig } = IndiaBoundaryCorrector;
+
+  registerCorrectionServiceWorker('./sw.js').then(sw => {
+    console.log('Service worker registered');
+    
+    // Now any matching tile requests will be automatically corrected
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  });
+</script>
+```
+
+### With Custom Layer Config (IIFE)
+
+```html
+<script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
+<script>
+  const { registerCorrectionServiceWorker, LayerConfig } = IndiaBoundaryCorrector;
+
+  registerCorrectionServiceWorker('./sw.js').then(async sw => {
+    // Add custom config for a different tile provider
+    await sw.addLayerConfig(new LayerConfig({
+      id: 'my-tiles',
+      tileUrlPattern: /mytiles\.example\.com/,
+      osmAddLineColor: 'rgb(165, 180, 165)',
+      neAddLineColor: 'rgb(165, 180, 165)',
+    }));
+  });
+</script>
+```
+
 ## API
 
 ### `registerCorrectionServiceWorker(workerUrl, options?)`
@@ -104,6 +152,7 @@ Returns: `Promise<CorrectionServiceWorker>`
 | `setEnabled(enabled)` | `Promise<void>` | Enable/disable corrections |
 | `clearCache()` | `Promise<void>` | Clear the tile cache |
 | `getStatus()` | `Promise<Object>` | Get SW status |
+| `resetConfig()` | `Promise<void>` | Reset to default pmtilesUrl and layer configs |
 
 ## Built-in Configs
 
