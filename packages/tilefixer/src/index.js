@@ -1,7 +1,5 @@
 import { CorrectionsSource } from './corrections.js';
 
-const DEFAULT_TILE_SIZE = 512;
-
 /**
  * Calculate line width based on zoom level.
  * @param {number} zoom - Zoom level
@@ -252,12 +250,6 @@ export class BoundaryCorrector {
       applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize);
     }
 
-    // Old approach: draw deletion lines with background color
-    // const delFeatures = corrections[delLayerName] || [];
-    // if (delFeatures.length > 0) {
-    //   drawFeatures(ctx, delFeatures, delColor, delLineWidth, tileSize);
-    // }
-
     // Draw addition lines on top (correct boundaries)
     const addFeatures = corrections[addLayerName] || [];
     if (addFeatures.length > 0) {
@@ -288,6 +280,13 @@ export class BoundaryCorrector {
     if (signal) fetchOptions.signal = signal;
     if (mode) fetchOptions.mode = mode;
 
+    // No layerConfig means no corrections needed
+    if (!layerConfig) {
+      const response = await fetch(tileUrl, fetchOptions);
+      if (!response.ok) throw new Error(`Tile fetch failed: ${response.status}`);
+      return { data: await response.arrayBuffer(), wasFixed: false };
+    }
+
     // Fetch tile and corrections in parallel
     const [tileResult, correctionsResult] = await Promise.allSettled([
       fetch(tileUrl, fetchOptions).then(r => {
@@ -306,7 +305,7 @@ export class BoundaryCorrector {
     const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
 
     // Check if there are any corrections to apply
-    const hasCorrections = layerConfig && Object.values(corrections).some(arr => arr && arr.length > 0);
+    const hasCorrections = Object.values(corrections).some(arr => arr && arr.length > 0);
 
     if (!hasCorrections) {
       return { data: tileData, wasFixed: false };
