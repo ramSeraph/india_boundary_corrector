@@ -248,6 +248,7 @@ export class BoundaryCorrector {
       zoomThreshold,
       lineWidthStops,
       lineStyles,
+      delWidthFactor,
     } = layerConfig;
 
     // Don't apply corrections below startZoom
@@ -269,9 +270,9 @@ export class BoundaryCorrector {
     const imageBitmap = await createImageBitmap(blob);
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
-    // Calculate base line width (deletion is twice this)
+    // Calculate base line width and deletion width
     const baseLineWidth = getLineWidth(zoom, lineWidthStops);
-    const delLineWidth = baseLineWidth * 2;
+    const delLineWidth = baseLineWidth * delWidthFactor;
 
     // Apply median blur along deletion paths to erase incorrect boundaries
     const delFeatures = corrections[delLayerName] || [];

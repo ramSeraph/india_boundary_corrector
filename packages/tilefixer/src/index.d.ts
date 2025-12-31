@@ -36,6 +36,7 @@ export interface LayerConfig {
   zoomThreshold: number;
   lineWidthStops: Record<number, number>;
   lineStyles: LineStyle[];
+  delWidthFactor?: number;
 }
 
 /**

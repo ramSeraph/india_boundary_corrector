@@ -26,6 +26,8 @@ export interface LayerConfigOptions {
   lineWidthStops?: Record<number, number>;
   /** Line styles array - lines are drawn in order */
   lineStyles?: LineStyle[];
+  /** Factor to multiply line width for deletion blur (default: 1.5) */
+  delWidthFactor?: number;
 }
 
 /**
@@ -38,6 +40,7 @@ export class LayerConfig {
   readonly tileUrlPattern: RegExp | null;
   readonly lineWidthStops: Record<number, number>;
   readonly lineStyles: LineStyle[];
+  readonly delWidthFactor: number;
 
   constructor(options: LayerConfigOptions);
 

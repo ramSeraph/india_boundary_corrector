@@ -17,6 +17,10 @@ export class LayerConfig {
     // { color: string, widthFraction: number, dashArray?: number[] }
     // Lines are drawn in array order
     lineStyles = [{ color: 'green', widthFraction: 1.0 }],
+    // Factor to multiply line width for deletion blur (default 1.5)
+    // Higher values leave gaps where wiped lines meet existing lines
+    // Lower values mean wiped lines show through
+    delWidthFactor = 1.5,
   }) {
     this.id = id;
     this.startZoom = startZoom;
@@ -37,6 +41,9 @@ export class LayerConfig {
     
     // Line styles
     this.lineStyles = lineStyles;
+    
+    // Deletion width factor
+    this.delWidthFactor = delWidthFactor;
   }
 
   /**
@@ -65,6 +72,7 @@ export class LayerConfig {
       tileUrlPattern: this._tileUrlPatternSource,
       lineWidthStops: this.lineWidthStops,
       lineStyles: this.lineStyles,
+      delWidthFactor: this.delWidthFactor,
     };
   }
 
