@@ -142,13 +142,16 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `startZoom` | number | 0 | Minimum zoom to start rendering |
 | `zoomThreshold` | number | 5 | Zoom level to switch NE/OSM data |
 | `tileUrlPattern` | RegExp | null | Pattern for URL auto-detection |
-| `osmAddLineColor` | string | 'green' | Addition line color (high zoom) |
-| `neAddLineColor` | string | osmAddLineColor | Addition line color (low zoom) |
-| `addLineDashed` | boolean | false | Use dashed lines for additions |
-| `addLineDashArray` | number[] | [] | Dash pattern |
-| `addLineHaloRatio` | number | 0 | Halo width ratio |
-| `addLineHaloAlpha` | number | 0 | Halo opacity |
-| `lineWidthMultiplier` | number | 1.0 | Width multiplier |
+| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
+| `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+
+### LineStyle Object
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `color` | string | required | Line color (CSS color) |
+| `widthFraction` | number | 1.0 | Width as fraction of base width |
+| `dashArray` | number[] | - | Dash pattern (omit for solid) |
 
 ## Data Sources
 

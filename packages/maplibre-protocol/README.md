@@ -98,13 +98,11 @@ const protocol = new CorrectionProtocol();
 protocol.addLayerConfig(new LayerConfig({
   id: 'osm-de',
   tileUrlPattern: /tile\.openstreetmap\.de/,
-  osmAddLineColor: 'rgb(165, 180, 165)',
-  neAddLineColor: 'rgb(165, 180, 165)',
-  lineWidthMultiplier: 1.5,
-  addLineDashed: true,
-  addLineDashArray: [10, 1, 2, 1],
-  addLineHaloRatio: 1.0,
-  addLineHaloAlpha: 0.5,
+  lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
+  lineStyles: [
+    { color: 'rgb(180, 200, 180)' },
+    { color: 'rgb(121, 146, 127)', widthFraction: 1/3, dashArray: [30, 2, 8, 2] },
+  ],
 }));
 
 // Register with MapLibre

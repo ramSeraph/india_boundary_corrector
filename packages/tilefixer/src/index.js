@@ -1,19 +1,52 @@
 import { CorrectionsSource } from './corrections.js';
 
 /**
- * Calculate line width based on zoom level.
+ * Interpolate or extrapolate line width from a zoom-to-width map.
  * @param {number} zoom - Zoom level
- * @param {number} multiplier - Line width multiplier
- * @param {boolean} isDel - Whether this is a deletion line (thicker)
+ * @param {Object<number, number>} lineWidthStops - Map of zoom level to line width (at least 2 entries)
  * @returns {number}
  */
-function getLineWidth(zoom, multiplier, isDel) {
-  // Add lines: zoom / 4 (min 0.5)
-  // Del lines: zoom / 2 (min 1)
-  if (isDel) {
-    return Math.max(1, zoom / 2) * multiplier;
+function getLineWidth(zoom, lineWidthStops) {
+  const zooms = Object.keys(lineWidthStops).map(Number).sort((a, b) => a - b);
+  
+  // Exact match
+  if (lineWidthStops[zoom] !== undefined) {
+    return lineWidthStops[zoom];
   }
-  return Math.max(0.5, zoom / 4) * multiplier;
+  
+  // Below lowest zoom - extrapolate
+  if (zoom < zooms[0]) {
+    const z1 = zooms[0];
+    const z2 = zooms[1];
+    const w1 = lineWidthStops[z1];
+    const w2 = lineWidthStops[z2];
+    const slope = (w2 - w1) / (z2 - z1);
+    return Math.max(0.5, w1 + slope * (zoom - z1));
+  }
+  
+  // Above highest zoom - extrapolate
+  if (zoom > zooms[zooms.length - 1]) {
+    const z1 = zooms[zooms.length - 2];
+    const z2 = zooms[zooms.length - 1];
+    const w1 = lineWidthStops[z1];
+    const w2 = lineWidthStops[z2];
+    const slope = (w2 - w1) / (z2 - z1);
+    return Math.max(0.5, w2 + slope * (zoom - z2));
+  }
+  
+  // Interpolate between two stops
+  for (let i = 0; i < zooms.length - 1; i++) {
+    if (zoom > zooms[i] && zoom < zooms[i + 1]) {
+      const z1 = zooms[i];
+      const z2 = zooms[i + 1];
+      const w1 = lineWidthStops[z1];
+      const w2 = lineWidthStops[z2];
+      const t = (zoom - z1) / (z2 - z1);
+      return w1 + t * (w2 - w1);
+    }
+  }
+  
+  return 1; // fallback
 }
 
 /**
@@ -130,19 +163,19 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
  * @param {string} color - Line color
  * @param {number} lineWidth - Line width
  * @param {number} tileSize - Size of the tile in pixels
- * @param {boolean} dashed - Whether to use dashed lines
- * @param {number[]} dashArray - Dash array pattern
+ * @param {number[]} [dashArray] - Dash array pattern (omit for solid line)
  */
-function drawFeatures(ctx, features, color, lineWidth, tileSize, dashed = false, dashArray = []) {
+function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray) {
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
-  ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  if (dashed && dashArray.length > 0) {
+  if (dashArray && dashArray.length > 0) {
     ctx.setLineDash(dashArray);
+    ctx.lineCap = 'butt'; // Use butt cap for dashed lines to show gaps clearly
   } else {
     ctx.setLineDash([]);
+    ctx.lineCap = 'round';
   }
 
   for (const feature of features) {
@@ -213,11 +246,8 @@ export class BoundaryCorrector {
     const {
       startZoom = 0,
       zoomThreshold,
-      osmAddLineColor,
-      neAddLineColor,
-      addLineDashed,
-      addLineDashArray,
-      lineWidthMultiplier,
+      lineWidthStops,
+      lineStyles,
     } = layerConfig;
 
     // Don't apply corrections below startZoom
@@ -227,7 +257,6 @@ export class BoundaryCorrector {
 
     // Determine which data source to use based on zoom
     const useOsm = zoom >= zoomThreshold;
-    const addColor = useOsm ? osmAddLineColor : neAddLineColor;
     const addLayerName = useOsm ? 'to-add-osm' : 'to-add-ne';
     const delLayerName = useOsm ? 'to-del-osm' : 'to-del-ne';
 
@@ -240,9 +269,9 @@ export class BoundaryCorrector {
     const imageBitmap = await createImageBitmap(blob);
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
-    // Calculate line widths
-    const addLineWidth = getLineWidth(zoom, lineWidthMultiplier, false);
-    const delLineWidth = getLineWidth(zoom, lineWidthMultiplier, true);
+    // Calculate base line width (deletion is twice this)
+    const baseLineWidth = getLineWidth(zoom, lineWidthStops);
+    const delLineWidth = baseLineWidth * 2;
 
     // Apply median blur along deletion paths to erase incorrect boundaries
     const delFeatures = corrections[delLayerName] || [];
@@ -250,10 +279,14 @@ export class BoundaryCorrector {
       applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize);
     }
 
-    // Draw addition lines on top (correct boundaries)
+    // Draw addition lines using lineStyles (in order)
     const addFeatures = corrections[addLayerName] || [];
-    if (addFeatures.length > 0) {
-      drawFeatures(ctx, addFeatures, addColor, addLineWidth, tileSize, addLineDashed, addLineDashArray);
+    if (addFeatures.length > 0 && lineStyles && lineStyles.length > 0) {
+      for (const style of lineStyles) {
+        const { color, widthFraction = 1.0, dashArray } = style;
+        const lineWidth = baseLineWidth * widthFraction;
+        drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray);
+      }
     }
 
     // Convert canvas to ArrayBuffer (PNG)

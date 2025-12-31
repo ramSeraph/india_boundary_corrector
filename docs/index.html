@@ -271,13 +271,11 @@
   "startZoom": 1,
   "zoomThreshold": 1,
   "tileUrlPattern": "tile\\.openstreetmap\\.org.*\\.png",
-  "osmAddLineColor": "#b9a8b9",
-  "neAddLineColor": "#b9a8b9",
-  "addLineDashed": true,
-  "addLineDashArray": [10, 1, 2, 1],
-  "addLineHaloRatio": 1.0,
-  "addLineHaloAlpha": 0.5,
-  "lineWidthMultiplier": 1.5
+  "lineWidthStops": { "1": 0.5, "2": 0.6, "3": 0.7, "4": 1.0, "10": 3.75 },
+  "lineStyles": [
+    { "color": "rgb(200, 180, 200)" },
+    { "color": "rgb(160, 120, 160)", "widthFraction": 0.33, "dashArray": [30, 2, 8, 2] }
+  ]
 }</textarea>
       <div id="configStatus"></div>
     </div>
@@ -620,19 +618,103 @@
     const colorPickerControl = new ColorPickerControl();
     map.addControl(colorPickerControl);
 
+    // ========== URL Hash State Management ==========
+    function getStateFromHash() {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return null;
+      
+      const params = new URLSearchParams(hash);
+      return {
+        zoom: params.has('z') ? parseInt(params.get('z'), 10) : null,
+        lat: params.has('lat') ? parseFloat(params.get('lat')) : null,
+        lng: params.has('lng') ? parseFloat(params.get('lng')) : null,
+        tileUrl: params.get('tileUrl'),
+        attribution: params.get('attribution'),
+        pmtilesUrl: params.get('pmtilesUrl'),
+        corrections: params.has('corrections') ? params.get('corrections') === 'true' : null,
+        config: params.get('config'),
+      };
+    }
+
+    function updateHash() {
+      const center = map.getCenter();
+      const params = new URLSearchParams();
+      
+      params.set('z', map.getZoom());
+      params.set('lat', center.lat.toFixed(4));
+      params.set('lng', center.lng.toFixed(4));
+      params.set('tileUrl', tileUrlInput.value);
+      params.set('attribution', tileAttributionInput.value);
+      params.set('pmtilesUrl', pmtilesUrlInput.value);
+      params.set('corrections', correctionsToggle.checked);
+      params.set('config', configEditor.value);
+      
+      window.history.replaceState(null, '', '#' + params.toString());
+    }
+
+    function loadStateFromHash() {
+      const state = getStateFromHash();
+      if (!state) return false;
+      
+      let hasState = false;
+      
+      if (state.zoom !== null && state.lat !== null && state.lng !== null) {
+        map.setView([state.lat, state.lng], state.zoom);
+        hasState = true;
+      }
+      
+      if (state.tileUrl) {
+        tileUrlInput.value = state.tileUrl;
+        hasState = true;
+      }
+      
+      if (state.attribution !== null) {
+        tileAttributionInput.value = state.attribution;
+        hasState = true;
+      }
+      
+      if (state.pmtilesUrl) {
+        pmtilesUrlInput.value = state.pmtilesUrl;
+        hasState = true;
+      }
+      
+      if (state.corrections !== null) {
+        correctionsToggle.checked = state.corrections;
+        hasState = true;
+      }
+      
+      if (state.config) {
+        configEditor.value = state.config;
+        hasState = true;
+      }
+      
+      return hasState;
+    }
+
     // Event listeners
-    applyBtn.addEventListener('click', applyConfiguration);
+    applyBtn.addEventListener('click', () => {
+      applyConfiguration();
+      updateHash();
+    });
     configEditor.addEventListener('input', parseConfig);
     if (correctionsToggle) {
       correctionsToggle.addEventListener('change', () => {
         toggleSections();
         applyConfiguration();
+        updateHash();
       });
     }
+    
+    // Update hash on map move
+    map.on('moveend', updateHash);
 
-    // Initial setup
+    // Initial setup - load from hash or use defaults
+    const hasHashState = loadStateFromHash();
     toggleSections();
     applyConfiguration();
+    if (!hasHashState) {
+      updateHash();
+    }
   </script>
 </body>
 </html>

@@ -45,15 +45,13 @@ const myConfig = new LayerConfig({
   startZoom: 0,
   zoomThreshold: 5,
   tileUrlPattern: /mytiles\.com/,
-  osmAddLineColor: '#262626',
-  neAddLineColor: '#262626',
-  // Optional: dashed line styling for additions
-  addLineDashed: true,
-  addLineDashArray: [10, 1, 2, 1],
-  addLineHaloRatio: 1.0,
-  addLineHaloAlpha: 0.5,
-  // Optional: width multiplier
-  lineWidthMultiplier: 1.2,
+  // Zoom-to-width interpolation map
+  lineWidthStops: { 1: 0.6, 10: 3 },
+  // Line styles - drawn in order
+  lineStyles: [
+    { color: '#262626' },                                    // solid line
+    { color: '#262626', widthFraction: 0.5, dashArray: [30, 2, 8, 2] }, // dashed overlay
+  ],
 });
 layerConfigs.register(myConfig);
 
@@ -69,19 +67,22 @@ layerConfigs.remove('my-custom-style');
 | `startZoom` | number | 0 | Minimum zoom level to start rendering corrections |
 | `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
 | `tileUrlPattern` | RegExp \| string | null | Pattern for matching tile URLs |
-| `osmAddLineColor` | string | 'green' | Line color for additions (zoom >= threshold) |
-| `neAddLineColor` | string | osmAddLineColor | Line color for additions (zoom < threshold) |
-| `addLineDashed` | boolean | false | Whether addition lines should be dashed |
-| `addLineDashArray` | number[] | [] | Dash pattern array (e.g., `[10, 1, 2, 1]`) |
-| `addLineHaloRatio` | number | 0 | Halo width as ratio of line width (0 = no halo) |
-| `addLineHaloAlpha` | number | 0 | Halo opacity (0-1, 0 = no halo) |
-| `lineWidthMultiplier` | number | 1.0 | Multiplier for all line widths |
+| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
+| `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+
+### LineStyle Object
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `color` | string | required | Line color (CSS color string) |
+| `widthFraction` | number | 1.0 | Width as fraction of base line width |
+| `dashArray` | number[] | - | Dash pattern array (omit for solid line) |
 
 ### Line Width Calculation
 
-Line widths are calculated dynamically based on zoom level:
-- **Addition lines**: `zoom / 4 * lineWidthMultiplier` (minimum 0.5px)
-- **Deletion lines**: `zoom / 2 * lineWidthMultiplier` (minimum 1px)
+Line widths are interpolated/extrapolated from the `lineWidthStops` map:
+- **Addition lines**: Interpolated from `lineWidthStops` based on zoom level
+- **Deletion lines**: Twice the addition line width
 
 ## License
 

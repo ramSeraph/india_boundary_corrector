@@ -45,13 +45,11 @@ const customConfig = new LayerConfig({
   id: 'test-config',
   zoomThreshold: 6,
   tileUrlPattern: /example\.com/,
-  osmAddLineColor: '#000',
-  neAddLineColor: '#111',
-  addLineDashed: true,
-  addLineDashArray: [5, 3],
-  addLineHaloRatio: 0.5,
-  addLineHaloAlpha: 0.3,
-  lineWidthMultiplier: 1.5,
+  lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
+  lineStyles: [
+    { color: '#000' },
+    { color: '#111', widthFraction: 0.5, dashArray: [5, 3] },
+  ],
 });
 
 // Test LayerConfig properties

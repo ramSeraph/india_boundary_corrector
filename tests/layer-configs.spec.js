@@ -122,15 +122,16 @@ test.describe('Layer Configs Package', () => {
         return {
           id: c.id,
           zoomThreshold: c.zoomThreshold,
-          addLineDashed: c.addLineDashed,
-          addLineDashArray: c.addLineDashArray,
+          lineWidthStops: c.lineWidthStops,
+          lineStyles: c.lineStyles,
         };
       });
 
       expect(config.id).toBe('osm-carto');
       expect(config.zoomThreshold).toBe(1);
-      expect(config.addLineDashed).toBe(true);
-      expect(config.addLineDashArray).toEqual([10, 1, 2, 1]);
+      expect(config.lineStyles).toHaveLength(2);
+      expect(config.lineStyles[0].color).toBe('rgb(200, 180, 200)');
+      expect(config.lineStyles[1].dashArray).toEqual([30, 2, 8, 2]);
     });
   });
 
@@ -206,20 +207,18 @@ test.describe('Layer Configs Package', () => {
           id: 'custom-test',
           zoomThreshold: 7,
           tileUrlPattern: /example\.com.*tiles/,
-          osmAddLineColor: '#ff0000',
+          lineStyles: [{ color: '#ff0000' }],
         });
         return {
           id: custom.id,
           zoomThreshold: custom.zoomThreshold,
-          osmAddLineColor: custom.osmAddLineColor,
-          neAddLineColor: custom.neAddLineColor, // Should fallback to osm color
+          lineStyles: custom.lineStyles,
         };
       });
 
       expect(config.id).toBe('custom-test');
       expect(config.zoomThreshold).toBe(7);
-      expect(config.osmAddLineColor).toBe('#ff0000');
-      expect(config.neAddLineColor).toBe('#ff0000'); // Fallback
+      expect(config.lineStyles[0].color).toBe('#ff0000');
     });
 
     test('throws error when startZoom > zoomThreshold', async ({ page }) => {

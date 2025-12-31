@@ -17,16 +17,25 @@ export interface Feature {
 export type CorrectionResult = Record<string, Feature[]>;
 
 /**
+ * Line style definition for drawing boundary lines
+ */
+export interface LineStyle {
+  /** Line color (CSS color string) */
+  color: string;
+  /** Width as fraction of base line width (default: 1.0) */
+  widthFraction?: number;
+  /** Dash pattern array (omit for solid line) */
+  dashArray?: number[];
+}
+
+/**
  * Layer configuration for styling corrections.
  */
 export interface LayerConfig {
   startZoom?: number;
   zoomThreshold: number;
-  osmAddLineColor: string;
-  neAddLineColor: string;
-  addLineDashed: boolean;
-  addLineDashArray: number[];
-  lineWidthMultiplier: number;
+  lineWidthStops: Record<number, number>;
+  lineStyles: LineStyle[];
 }
 
 /**

@@ -1,4 +1,16 @@
 /**
+ * Line style definition for drawing boundary lines
+ */
+export interface LineStyle {
+  /** Line color (CSS color string) */
+  color: string;
+  /** Width as fraction of base line width (default: 1.0) */
+  widthFraction?: number;
+  /** Dash pattern array (omit for solid line) */
+  dashArray?: number[];
+}
+
+/**
  * Configuration options for LayerConfig
  */
 export interface LayerConfigOptions {
@@ -10,20 +22,10 @@ export interface LayerConfigOptions {
   zoomThreshold?: number;
   /** Regex pattern for matching tile URLs */
   tileUrlPattern?: RegExp | string | null;
-  /** Addition line color for OSM data (zoom >= zoomThreshold) */
-  osmAddLineColor?: string;
-  /** Addition line color for NE data (zoom < zoomThreshold), defaults to osmAddLineColor */
-  neAddLineColor?: string | null;
-  /** Use dashed lines for additions */
-  addLineDashed?: boolean;
-  /** Dash pattern array */
-  addLineDashArray?: readonly number[];
-  /** Halo width ratio (0 = no halo) */
-  addLineHaloRatio?: number;
-  /** Halo opacity (0-1) */
-  addLineHaloAlpha?: number;
-  /** Line width multiplier (default: 1.0) */
-  lineWidthMultiplier?: number;
+  /** Line width stops: map of zoom level to line width (at least 2 entries) */
+  lineWidthStops?: Record<number, number>;
+  /** Line styles array - lines are drawn in order */
+  lineStyles?: LineStyle[];
 }
 
 /**
@@ -34,13 +36,8 @@ export class LayerConfig {
   readonly startZoom: number;
   readonly zoomThreshold: number;
   readonly tileUrlPattern: RegExp | null;
-  readonly osmAddLineColor: string;
-  readonly neAddLineColor: string;
-  readonly addLineDashed: boolean;
-  readonly addLineDashArray: number[];
-  readonly addLineHaloRatio: number;
-  readonly addLineHaloAlpha: number;
-  readonly lineWidthMultiplier: number;
+  readonly lineWidthStops: Record<number, number>;
+  readonly lineStyles: LineStyle[];
 
   constructor(options: LayerConfigOptions);
 

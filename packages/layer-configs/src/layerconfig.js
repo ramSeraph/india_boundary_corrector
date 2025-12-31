@@ -11,17 +11,12 @@ export class LayerConfig {
     zoomThreshold = 5,
     // Regex pattern for matching tile URLs (optional)
     tileUrlPattern = null,
-    // OSM layer styles (zoom >= zoomThreshold)
-    osmAddLineColor = 'green',
-    // NE layer styles (zoom < zoomThreshold) - defaults to OSM values if not specified
-    neAddLineColor = null,
-    // Addition line style options
-    addLineDashed = false,
-    addLineDashArray = [],
-    addLineHaloRatio = 0,
-    addLineHaloAlpha = 0,
-    // Line width multiplier (default 1.0, increase for thicker lines)
-    lineWidthMultiplier = 1.0,
+    // Line width stops: map of zoom level to line width (at least 2 entries)
+    lineWidthStops = { 1: 0.5, 10: 2.5 },
+    // Line styles array - each element describes a line to draw
+    // { color: string, widthFraction: number, dashArray?: number[] }
+    // Lines are drawn in array order
+    lineStyles = [{ color: 'green', widthFraction: 1.0 }],
   }) {
     this.id = id;
     this.startZoom = startZoom;
@@ -37,20 +32,11 @@ export class LayerConfig {
     this.tileUrlPattern = tileUrlPattern instanceof RegExp ? tileUrlPattern : 
                           (tileUrlPattern ? new RegExp(tileUrlPattern, 'i') : null);
 
-    // OSM styles
-    this.osmAddLineColor = osmAddLineColor;
-
-    // NE styles (fallback to OSM values)
-    this.neAddLineColor = neAddLineColor ?? osmAddLineColor;
-
-    // Addition line style
-    this.addLineDashed = addLineDashed;
-    this.addLineDashArray = addLineDashArray;
-    this.addLineHaloRatio = addLineHaloRatio;
-    this.addLineHaloAlpha = addLineHaloAlpha;
+    // Line width stops
+    this.lineWidthStops = lineWidthStops;
     
-    // Line width multiplier
-    this.lineWidthMultiplier = lineWidthMultiplier;
+    // Line styles
+    this.lineStyles = lineStyles;
   }
 
   /**
@@ -77,13 +63,8 @@ export class LayerConfig {
       startZoom: this.startZoom,
       zoomThreshold: this.zoomThreshold,
       tileUrlPattern: this._tileUrlPatternSource,
-      osmAddLineColor: this.osmAddLineColor,
-      neAddLineColor: this.neAddLineColor,
-      addLineDashed: this.addLineDashed,
-      addLineDashArray: this.addLineDashArray,
-      addLineHaloRatio: this.addLineHaloRatio,
-      addLineHaloAlpha: this.addLineHaloAlpha,
-      lineWidthMultiplier: this.lineWidthMultiplier,
+      lineWidthStops: this.lineWidthStops,
+      lineStyles: this.lineStyles,
     };
   }
 

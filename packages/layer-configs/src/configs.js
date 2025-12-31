@@ -7,8 +7,10 @@ export const cartoDbDark = new LayerConfig({
   id: 'cartodb-dark',
   zoomThreshold: 5,
   tileUrlPattern: /(cartocdn\.com|cartodb-basemaps).*dark_all/,
-  osmAddLineColor: 'rgb(40, 40, 40)',
-  lineWidthMultiplier: 1.0,
+  lineWidthStops: { 1: 0.5, 10: 2.5 },
+  lineStyles: [
+    { color: 'rgb(40, 40, 40)' },
+  ],
 });
 
 export const osmCarto = new LayerConfig({
@@ -16,10 +18,9 @@ export const osmCarto = new LayerConfig({
   startZoom: 1,
   zoomThreshold: 1,
   tileUrlPattern: /tile\.openstreetmap\.org.*\.png/,
-  osmAddLineColor: 'rgb(185, 168, 185)',
-  addLineDashed: true,
-  addLineDashArray: [10, 1, 2, 1],
-  addLineHaloRatio: 1.0,
-  addLineHaloAlpha: 0.5,
-  lineWidthMultiplier: 1.5,
+  lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
+  lineStyles: [
+    { color: 'rgb(200, 180, 200)' },
+    { color: 'rgb(160, 120, 160)', widthFraction: 1/3, dashArray: [30, 2, 8, 2] },
+  ],
 });
