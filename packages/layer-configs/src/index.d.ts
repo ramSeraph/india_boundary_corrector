@@ -82,6 +82,12 @@ export class LayerConfigRegistry {
    * Get all available layer config ids
    */
   getAvailableIds(): string[];
+
+  /**
+   * Create a new registry with all configs from this registry plus extra configs.
+   * @param extraLayerConfigs - Additional configs to add
+   */
+  createMergedRegistry(extraLayerConfigs?: LayerConfig[]): LayerConfigRegistry;
 }
 
 /** Default registry with built-in configs */

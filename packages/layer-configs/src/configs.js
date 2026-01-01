@@ -13,6 +13,18 @@ export const cartoDbDark = new LayerConfig({
   ],
 });
 
+export const cartoDbLight = new LayerConfig({
+  id: 'cartodb-light',
+  zoomThreshold: 5,
+  tileUrlPattern: /(cartocdn\.com|cartodb-basemaps).*light_all/,
+  lineWidthStops: { 1: 1.0, 2: 1.5, 3: 2.0, 10: 5.5 },
+  lineStyles: [
+    { color: "rgb(246,244,242)", widthFraction: 1.0 },
+    { color: "rgb(235,214,216)", widthFraction: 0.33 }
+  ],
+  delWidthFactor: 2.0
+});
+
 export const osmCarto = new LayerConfig({
   id: 'osm-carto',
   startZoom: 1,

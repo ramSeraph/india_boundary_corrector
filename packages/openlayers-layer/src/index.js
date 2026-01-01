@@ -1,33 +1,12 @@
 import TileLayer from 'ol/layer/Tile.js';
 import XYZ from 'ol/source/XYZ.js';
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
-
-/**
- * Create a merged registry with global configs and extra configs
- * @param {LayerConfig[]} extraLayerConfigs
- * @returns {LayerConfigRegistry}
- */
-function createMergedRegistry(extraLayerConfigs) {
-  const registry = new LayerConfigRegistry();
-  
-  for (const id of layerConfigs.getAvailableIds()) {
-    registry.register(layerConfigs.get(id));
-  }
-  
-  if (extraLayerConfigs && extraLayerConfigs.length > 0) {
-    for (const config of extraLayerConfigs) {
-      registry.register(config);
-    }
-  }
-  
-  return registry;
-}
 
 /**
  * Handle tile fetching and correction application logic.
@@ -127,7 +106,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
     } = options;
 
     // Initialize registry and resolve layer config
-    const registry = createMergedRegistry(extraLayerConfigs);
+    const registry = layerConfigs.createMergedRegistry(extraLayerConfigs);
     let resolvedConfig;
     
     if (typeof layerConfig === 'string') {

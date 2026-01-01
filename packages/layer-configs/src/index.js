@@ -1,7 +1,7 @@
-import { cartoDbDark, osmCarto } from './configs.js';
+import { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
 
 // Re-export all layer configs
-export { cartoDbDark, osmCarto } from './configs.js';
+export { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
 export { LayerConfig } from './layerconfig.js';
 export { extractTileCoords, parseTileUrl } from './tile-url-utils.js';
 
@@ -58,10 +58,32 @@ export class LayerConfigRegistry {
   getAvailableIds() {
     return Object.keys(this.registry);
   }
+
+  /**
+   * Create a new registry with all configs from this registry plus extra configs.
+   * @param {LayerConfig[]} extraLayerConfigs - Additional configs to add
+   * @returns {LayerConfigRegistry} A new registry with merged configs
+   */
+  createMergedRegistry(extraLayerConfigs) {
+    const registry = new LayerConfigRegistry();
+    
+    for (const id of this.getAvailableIds()) {
+      registry.register(this.get(id));
+    }
+    
+    if (extraLayerConfigs && extraLayerConfigs.length > 0) {
+      for (const config of extraLayerConfigs) {
+        registry.register(config);
+      }
+    }
+    
+    return registry;
+  }
 }
 
 // Default registry with built-in configs
 export const layerConfigs = new LayerConfigRegistry();
 layerConfigs.register(cartoDbDark);
+layerConfigs.register(cartoDbLight);
 layerConfigs.register(osmCarto);
 

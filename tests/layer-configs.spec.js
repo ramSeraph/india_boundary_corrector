@@ -24,6 +24,8 @@ test.describe('Layer Configs Package', () => {
       'http://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
       // With query params
       'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?v=1',
+      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?apikey=API_KEY',
+      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?v=1&apikey=API_KEY',
     ];
 
     const invalidDarkUrls = [
@@ -84,6 +86,9 @@ test.describe('Layer Configs Package', () => {
       // With actual coordinates
       'https://tile.openstreetmap.org/5/23/14.png',
       'https://a.tile.openstreetmap.org/10/512/341.png',
+      // With query parameters
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png?apikey=API_KEY',
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png?v=1&apikey=API_KEY',
     ];
 
     const invalidOsmUrls = [

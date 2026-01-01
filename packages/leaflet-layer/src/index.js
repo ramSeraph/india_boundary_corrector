@@ -1,31 +1,10 @@
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
-
-/**
- * Create a merged registry with global configs and extra configs
- * @param {LayerConfig[]} extraLayerConfigs
- * @returns {LayerConfigRegistry}
- */
-function createMergedRegistry(extraLayerConfigs) {
-  const registry = new LayerConfigRegistry();
-  
-  for (const id of layerConfigs.getAvailableIds()) {
-    registry.register(layerConfigs.get(id));
-  }
-  
-  if (extraLayerConfigs && extraLayerConfigs.length > 0) {
-    for (const config of extraLayerConfigs) {
-      registry.register(config);
-    }
-  }
-  
-  return registry;
-}
 
 /**
  * Extend Leaflet with IndiaBoundaryCorrectedTileLayer.
@@ -49,7 +28,7 @@ function extendLeaflet(L) {
       
       this._pmtilesUrl = this.options.pmtilesUrl ?? getPmtilesUrl();
       this._tileFixer = new TileFixer(this._pmtilesUrl);
-      this._registry = createMergedRegistry(this.options.extraLayerConfigs);
+      this._registry = layerConfigs.createMergedRegistry(this.options.extraLayerConfigs);
       
       if (typeof this.options.layerConfig === 'string') {
         this._layerConfig = this._registry.get(this.options.layerConfig);

@@ -1,5 +1,5 @@
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
@@ -99,12 +99,7 @@ export class CorrectionProtocol {
     this._pmtilesUrl = options.pmtilesUrl ?? getPmtilesUrl();
     this._tileSize = options.tileSize ?? 256;
     this._tileFixer = new TileFixer(this._pmtilesUrl);
-    this._registry = new LayerConfigRegistry();
-    
-    // Copy all global configs
-    for (const id of layerConfigs.getAvailableIds()) {
-      this._registry.register(layerConfigs.get(id));
-    }
+    this._registry = layerConfigs.createMergedRegistry();
     
     this._loadFn = this._createLoadFunction();
   }

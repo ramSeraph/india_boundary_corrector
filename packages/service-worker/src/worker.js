@@ -7,7 +7,7 @@
  */
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfigRegistry, LayerConfig, parseTileUrl } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs, LayerConfig, parseTileUrl } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Message types
@@ -25,29 +25,19 @@ const MessageTypes = {
 const CACHE_NAME = 'india-boundary-corrections-v1';
 
 // State
-let registry = new LayerConfigRegistry();
+let registry = layerConfigs.createMergedRegistry();
 let tileFixer = null;
 let pmtilesUrl = null; // Will be set lazily or via message
 let enabled = true;
 let tileSize = 256;
-
-// Initialize registry with default configs
-function initDefaultRegistry() {
-  registry = new LayerConfigRegistry();
-  for (const id of layerConfigs.getAvailableIds()) {
-    registry.register(layerConfigs.get(id));
-  }
-}
 
 // Reset to default configuration
 function resetConfig() {
   pmtilesUrl = null;
   tileFixer = null;
   enabled = true;
-  initDefaultRegistry();
+  registry = layerConfigs.createMergedRegistry();
 }
-
-initDefaultRegistry();
 
 // Initialize TileFixer lazily
 function getTileFixer() {
