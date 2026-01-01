@@ -49,6 +49,24 @@ export class LayerConfig {
    * @param tiles - Single tile URL or array of tile URL templates
    */
   match(tiles: string | string[]): boolean;
+
+  /**
+   * Serialize the config to a plain object for postMessage
+   */
+  toJSON(): LayerConfigOptions;
+
+  /**
+   * Create a LayerConfig from a plain object (e.g., from postMessage)
+   */
+  static fromJSON(obj: LayerConfigOptions): LayerConfig;
+
+  /**
+   * Extract z, x, y from a tile URL.
+   * Supports common patterns like /{z}/{x}/{y}.png
+   * @param url - Tile URL to parse
+   * @returns Tile coordinates or null if not found
+   */
+  static extractTileCoords(url: string): TileCoords | null;
 }
 
 /**
@@ -88,6 +106,13 @@ export class LayerConfigRegistry {
    * @param extraLayerConfigs - Additional configs to add
    */
   createMergedRegistry(extraLayerConfigs?: LayerConfig[]): LayerConfigRegistry;
+
+  /**
+   * Parse a tile URL into its components: layer config and coordinates
+   * @param url - Tile URL to parse
+   * @returns Parsed tile URL result or null if not matched
+   */
+  parseTileUrl(url: string): ParsedTileUrl | null;
 }
 
 /** Default registry with built-in configs */
@@ -115,19 +140,3 @@ export interface ParsedTileUrl {
   layerConfig: LayerConfig;
   coords: TileCoords;
 }
-
-/**
- * Extract z, x, y from a tile URL.
- * Supports common patterns like /{z}/{x}/{y}.png
- * @param url - Tile URL to parse
- * @returns Tile coordinates or null if not found
- */
-export function extractTileCoords(url: string): TileCoords | null;
-
-/**
- * Parse a tile URL into its components: layer config and coordinates
- * @param url - Tile URL to parse
- * @param registry - Registry to detect layer config from
- * @returns Parsed tile URL result or null if not matched
- */
-export function parseTileUrl(url: string, registry: LayerConfigRegistry): ParsedTileUrl | null;

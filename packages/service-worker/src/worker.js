@@ -7,7 +7,7 @@
  */
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfig, parseTileUrl } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Message types
@@ -64,7 +64,7 @@ function shouldIntercept(request) {
   if (!enabled) return null;
   if (request.method !== 'GET') return null;
   
-  return parseTileUrl(request.url, registry);
+  return registry.parseTileUrl(request.url);
 }
 
 /**

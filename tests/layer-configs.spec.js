@@ -269,7 +269,7 @@ test.describe('Layer Configs Package', () => {
   test.describe('extractTileCoords', () => {
     test('extracts coordinates from standard z/x/y pattern', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://tile.openstreetmap.org/5/15/12.png'
         );
       });
@@ -278,7 +278,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with subdomain', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://a.tile.openstreetmap.org/10/512/341.png'
         );
       });
@@ -287,7 +287,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates from CartoDB URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png'
         );
       });
@@ -296,7 +296,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with retina suffix', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png'
         );
       });
@@ -305,7 +305,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with query parameters in URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://tile.openstreetmap.org/8/128/96.png?v=1'
         );
       });
@@ -314,7 +314,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates from query parameters format', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://example.com/tiles?z=5&x=15&y=12'
         );
       });
@@ -323,7 +323,7 @@ test.describe('Layer Configs Package', () => {
 
     test('handles high zoom levels (z=18)', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://tile.openstreetmap.org/18/131072/87381.png'
         );
       });
@@ -332,7 +332,7 @@ test.describe('Layer Configs Package', () => {
 
     test('handles zoom level 0', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://tile.openstreetmap.org/0/0/0.png'
         );
       });
@@ -341,14 +341,14 @@ test.describe('Layer Configs Package', () => {
 
     test('returns null for invalid URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords('not-a-url');
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords('not-a-url');
       });
       expect(coords).toBeNull();
     });
 
     test('returns null when no z/x/y pattern found', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://example.com/about'
         );
       });
@@ -357,7 +357,7 @@ test.describe('Layer Configs Package', () => {
 
     test('returns null for URL with only partial coordinates', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://example.com/5/15/notanumber.png'
         );
       });
@@ -366,7 +366,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts from nested path structure', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.extractTileCoords(
+        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
           'https://example.com/api/v1/tiles/dark/5/15/12.png'
         );
       });
@@ -377,9 +377,8 @@ test.describe('Layer Configs Package', () => {
   test.describe('parseTileUrl', () => {
     test('parses OSM tile URL with coords and config', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const parsed = window.layerConfigsPackage.parseTileUrl(
-          'https://tile.openstreetmap.org/5/15/12.png',
-          window.layerConfigsPackage.layerConfigs
+        const parsed = window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://tile.openstreetmap.org/5/15/12.png'
         );
         return parsed ? {
           configId: parsed.layerConfig.id,
@@ -394,9 +393,8 @@ test.describe('Layer Configs Package', () => {
 
     test('parses CartoDB tile URL with coords and config', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const parsed = window.layerConfigsPackage.parseTileUrl(
-          'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png',
-          window.layerConfigsPackage.layerConfigs
+        const parsed = window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png'
         );
         return parsed ? {
           configId: parsed.layerConfig.id,
@@ -411,9 +409,8 @@ test.describe('Layer Configs Package', () => {
 
     test('returns null for unknown tile provider', async ({ page }) => {
       const result = await page.evaluate(() => {
-        return window.layerConfigsPackage.parseTileUrl(
-          'https://unknown.example.com/tiles/5/15/12.png',
-          window.layerConfigsPackage.layerConfigs
+        return window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://unknown.example.com/tiles/5/15/12.png'
         );
       });
       expect(result).toBeNull();
@@ -421,9 +418,8 @@ test.describe('Layer Configs Package', () => {
 
     test('returns null when URL has no coordinates', async ({ page }) => {
       const result = await page.evaluate(() => {
-        return window.layerConfigsPackage.parseTileUrl(
-          'https://tile.openstreetmap.org/about',
-          window.layerConfigsPackage.layerConfigs
+        return window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://tile.openstreetmap.org/about'
         );
       });
       expect(result).toBeNull();
@@ -433,9 +429,8 @@ test.describe('Layer Configs Package', () => {
       const result = await page.evaluate(() => {
         // Even though this is a template, the pattern should match for config
         // but coords extraction will fail, so should return null
-        return window.layerConfigsPackage.parseTileUrl(
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          window.layerConfigsPackage.layerConfigs
+        return window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         );
       });
       expect(result).toBeNull(); // No actual numeric coords
@@ -451,9 +446,8 @@ test.describe('Layer Configs Package', () => {
         });
         customRegistry.register(customConfig);
 
-        const parsed = window.layerConfigsPackage.parseTileUrl(
-          'https://custom.example.com/tiles/5/15/12.png',
-          customRegistry
+        const parsed = customRegistry.parseTileUrl(
+          'https://custom.example.com/tiles/5/15/12.png'
         );
         return parsed ? {
           configId: parsed.layerConfig.id,
@@ -468,9 +462,8 @@ test.describe('Layer Configs Package', () => {
 
     test('parses retina tiles correctly', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const parsed = window.layerConfigsPackage.parseTileUrl(
-          'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png',
-          window.layerConfigsPackage.layerConfigs
+        const parsed = window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png'
         );
         return parsed ? {
           configId: parsed.layerConfig.id,
@@ -485,9 +478,8 @@ test.describe('Layer Configs Package', () => {
 
     test('handles URLs with query parameters', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const parsed = window.layerConfigsPackage.parseTileUrl(
-          'https://tile.openstreetmap.org/8/128/96.png?v=1&key=value',
-          window.layerConfigsPackage.layerConfigs
+        const parsed = window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://tile.openstreetmap.org/8/128/96.png?v=1&key=value'
         );
         return parsed ? {
           configId: parsed.layerConfig.id,

@@ -1,9 +1,9 @@
 import { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
+import { LayerConfig } from './layerconfig.js';
 
 // Re-export all layer configs
 export { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
 export { LayerConfig } from './layerconfig.js';
-export { extractTileCoords, parseTileUrl } from './tile-url-utils.js';
 
 /**
  * Layer configuration registry
@@ -78,6 +78,23 @@ export class LayerConfigRegistry {
     }
     
     return registry;
+  }
+
+  /**
+   * Parse a tile URL into its components: layer config and coordinates
+   * @param {string} url - Tile URL to parse
+   * @returns {{ layerConfig: LayerConfig, coords: { z: number, x: number, y: number } } | null}
+   */
+  parseTileUrl(url) {
+    // Check if URL matches any layer config
+    const layerConfig = this.detectFromUrls([url]);
+    if (!layerConfig) return null;
+    
+    // Extract tile coordinates
+    const coords = LayerConfig.extractTileCoords(url);
+    if (!coords) return null;
+    
+    return { layerConfig, coords };
   }
 }
 
