@@ -16,22 +16,17 @@ function templateToRegex(template) {
     // Make protocol flexible (http/https)
     .replace(/^https:\/\//, 'https?://')
     .replace(/^http:\/\//, 'https?://')
-    // Handle {s}. as optional subdomain with dot (Leaflet style)
-    .replace(/\{s\}\\\./gi, () => {
+    // Handle {a-c} or {1-4} etc (OpenLayers style subdomain)
+    .replace(/\{[a-z0-9]-[a-z0-9]\}/gi, () => {
       groups.push('s');
-      return '([a-z0-9]+\\.)?';
-    })
-    // Handle {a-c}. or {1-4}. etc as optional subdomain with dot (OpenLayers style)
-    .replace(/\{[a-z0-9]-[a-z0-9]\}\\\./gi, () => {
-      groups.push('s');
-      return '([a-z0-9]+\\.)?';
+      return '([a-z0-9]+)';
     })
     .replace(/\{(z|x|y|s|r)\}/gi, (_, name) => {
       const lowerName = name.toLowerCase();
       groups.push(lowerName);
       if (lowerName === 's') {
-        // Subdomain without trailing dot (rare case)
-        return '([a-z0-9]*)';
+        // Subdomain: single letter or short string
+        return '([a-z0-9]+)';
       }
       if (lowerName === 'r') {
         // Retina suffix: optional @2x or similar
@@ -39,11 +34,6 @@ function templateToRegex(template) {
       }
       // z, x, y: numeric
       return '(\\d+)';
-    })
-    // Handle standalone {a-c} or {1-4} without dot (OpenLayers style)
-    .replace(/\{[a-z0-9]-[a-z0-9]\}/gi, () => {
-      groups.push('s');
-      return '([a-z0-9]*)';
     });
   
   // Allow optional query string at end
@@ -65,15 +55,13 @@ function templateToTemplateRegex(template) {
     // Make protocol flexible (http/https)
     .replace(/^https:\/\//, 'https?://')
     .replace(/^http:\/\//, 'https?://')
-    // Handle {s}. as optional subdomain with dot (Leaflet style)
-    .replace(/\{s\}\\\./gi, '(\\{s\\}\\.|[a-z0-9]+\\.)?')
-    // Handle {a-c}. or {1-4}. as optional subdomain with dot (OpenLayers style)
-    .replace(/\{([a-z0-9])-([a-z0-9])\}\\\./gi, (_, start, end) => `(\\{${start}-${end}\\}\\.|[a-z0-9]+\\.)?`)
+    // Handle {a-c} or {1-4} (OpenLayers style subdomain)
+    .replace(/\{([a-z0-9])-([a-z0-9])\}/gi, (_, start, end) => `(\\{${start}-${end}\\}|[a-z0-9]+)`)
     .replace(/\{(z|x|y|s|r)\}/gi, (_, name) => {
       const lowerName = name.toLowerCase();
       if (lowerName === 's') {
-        // Match {s} placeholder or actual subdomain (without trailing dot)
-        return '(\\{s\\}|[a-z0-9]*)';
+        // Match {s} placeholder or actual subdomain
+        return '(\\{s\\}|[a-z0-9]+)';
       }
       if (lowerName === 'r') {
         // Match {r} placeholder or actual retina or empty
@@ -81,9 +69,7 @@ function templateToTemplateRegex(template) {
       }
       // Match {z}, {x}, {y} placeholders
       return `\\{${lowerName}\\}`;
-    })
-    // Handle standalone {a-c} or {1-4} without dot (OpenLayers style)
-    .replace(/\{([a-z0-9])-([a-z0-9])\}/gi, (_, start, end) => `(\\{${start}-${end}\\}|[a-z0-9]*)`);
+    });
   
   // Allow optional query string at end
   return new RegExp('^' + pattern + '(\\?.*)?$', 'i');
