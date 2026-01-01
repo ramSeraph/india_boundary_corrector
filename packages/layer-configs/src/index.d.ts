@@ -8,6 +8,8 @@ export interface LineStyle {
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
   dashArray?: number[];
+  /** Opacity/alpha value from 0 (transparent) to 1 (opaque) (default: 1.0) */
+  alpha?: number;
   /** Minimum zoom level for this style (default: layerConfig.startZoom) */
   startZoom?: number;
   /** Maximum zoom level for this style (default: Infinity) */
@@ -138,12 +140,6 @@ export class LayerConfigRegistry {
 
 /** Default registry with built-in configs */
 export const layerConfigs: LayerConfigRegistry;
-
-/** Pre-built config for CartoDB dark tiles */
-export const cartoDbDark: LayerConfig;
-
-/** Pre-built config for OpenStreetMap standard tiles */
-export const osmCarto: LayerConfig;
 
 /**
  * Tile coordinates

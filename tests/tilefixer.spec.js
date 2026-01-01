@@ -303,6 +303,186 @@ test.describe('TileFixer Package', () => {
       expect(result.maxX - result.minX).toBeGreaterThan(200);
       expect(result.maxY - result.minY).toBeGreaterThan(200);
     });
+
+    test('respects alpha in lineStyles for semi-transparent lines', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, getPixelColor } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 4096, y: 2048 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Config with fully opaque black line
+        const opaqueConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineStyles: [
+            { color: 'rgb(0, 0, 0)', alpha: 1.0 },
+          ],
+        };
+
+        // Config with semi-transparent black line (50% opacity)
+        const semiTransparentConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineStyles: [
+            { color: 'rgb(0, 0, 0)', alpha: 0.5 },
+          ],
+        };
+
+        const opaqueTile = await corrector.fixTile(corrections, blankTile, opaqueConfig, 6, tileSize);
+        const opaqueCenter = await getPixelColor(opaqueTile, tileSize, 128, 128);
+
+        const semiTransparentTile = await corrector.fixTile(corrections, blankTile, semiTransparentConfig, 6, tileSize);
+        const semiTransparentCenter = await getPixelColor(semiTransparentTile, tileSize, 128, 128);
+
+        return { opaqueCenter, semiTransparentCenter };
+      });
+
+      // Opaque line should be near black
+      expect(result.opaqueCenter.r).toBeLessThan(50);
+      expect(result.opaqueCenter.g).toBeLessThan(50);
+      expect(result.opaqueCenter.b).toBeLessThan(50);
+
+      // Semi-transparent line should be grayish (blended with white background)
+      // Black at 50% opacity on white = ~128
+      expect(result.semiTransparentCenter.r).toBeGreaterThan(100);
+      expect(result.semiTransparentCenter.r).toBeLessThan(180);
+      expect(result.semiTransparentCenter.g).toBeGreaterThan(100);
+      expect(result.semiTransparentCenter.b).toBeGreaterThan(100);
+    });
+
+    test('respects lineStyles startZoom and endZoom with plain object config', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, getPixelColor } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Create a horizontal line in both OSM and NE layers
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 4096, y: 2048 },
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-add-ne': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 4096, y: 2048 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Plain object config with lineStyles that have zoom constraints
+        // Only one style active at each zoom to make testing clear
+        const plainConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: [[0, 1], [10, 2], [14, 3]],
+          delWidthFactor: 3,
+          lineStyles: [
+            { color: 'rgb(255, 0, 0)', startZoom: 6, endZoom: 7 }, // z6-7 only
+          ],
+        };
+
+        // Test at z5: should NOT have the line (below startZoom 6)
+        const z5Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 5, tileSize);
+        const z5Center = await getPixelColor(z5Tile, tileSize, 128, 128);
+
+        // Test at z6: should have the line (within z6-7)
+        const z6Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 6, tileSize);
+        const z6Center = await getPixelColor(z6Tile, tileSize, 128, 128);
+
+        // Test at z8: should NOT have the line (above endZoom 7)
+        const z8Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 8, tileSize);
+        const z8Center = await getPixelColor(z8Tile, tileSize, 128, 128);
+
+        return { z5Center, z6Center, z8Center };
+      });
+
+      // z5 should NOT have colored pixel (below startZoom)
+      expect(result.z5Center.isColored).toBe(false);
+
+      // z6 should have colored pixel (within range)
+      expect(result.z6Center.isColored).toBe(true);
+
+      // z8 should NOT have colored pixel (above endZoom)
+      expect(result.z8Center.isColored).toBe(false);
+    });
+
+    test('lineStyles with endZoom are not drawn at higher zooms', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, getPixelColor } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 4096, y: 2048 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Config with only one style that ends at z5
+        const plainConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: [[0, 1], [10, 2], [14, 3]],
+          delWidthFactor: 3,
+          lineStyles: [
+            { color: 'red', endZoom: 5 }, // Only z1-5
+          ],
+        };
+
+        // Test at z5: should have the line
+        const z5Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 5, tileSize);
+        const z5Center = await getPixelColor(z5Tile, tileSize, 128, 128);
+
+        // Test at z6: should NOT have the line (beyond endZoom)
+        const z6Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 6, tileSize);
+        const z6Center = await getPixelColor(z6Tile, tileSize, 128, 128);
+
+        return { z5Center, z6Center };
+      });
+
+      // z5 should have colored pixel (line drawn)
+      expect(result.z5Center.isColored).toBe(true);
+
+      // z6 should NOT have colored pixel (line NOT drawn, beyond endZoom)
+      expect(result.z6Center.isColored).toBe(false);
+    });
   });
 
   test.describe('fixTile - Median Blur Deletion', () => {

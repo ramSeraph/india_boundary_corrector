@@ -163,6 +163,7 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `color` | string | required | Line color (CSS color) |
 | `widthFraction` | number | 1.0 | Width as fraction of base width |
 | `dashArray` | number[] | - | Dash pattern (omit for solid) |
+| `alpha` | number | 1.0 | Opacity (0 = transparent, 1 = opaque) |
 
 ## Data Sources
 

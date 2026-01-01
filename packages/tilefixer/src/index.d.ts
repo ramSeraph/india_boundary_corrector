@@ -26,6 +26,8 @@ export interface LineStyle {
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
   dashArray?: number[];
+  /** Opacity/alpha value from 0 (transparent) to 1 (opaque) (default: 1.0) */
+  alpha?: number;
 }
 
 /**

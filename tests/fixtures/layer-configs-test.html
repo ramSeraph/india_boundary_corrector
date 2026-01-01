@@ -15,9 +15,7 @@
     import { 
       LayerConfig, 
       LayerConfigRegistry,
-      layerConfigs,
-      cartoDbDark, 
-      osmCarto
+      layerConfigs
     } from '@india-boundary-corrector/layer-configs';
     
     // Expose for testing
@@ -25,8 +23,11 @@
       LayerConfig,
       LayerConfigRegistry,
       layerConfigs,
-      cartoDbDark,
-      osmCarto
+      // Get configs from registry for backward compatibility with tests
+      cartoDbDark: layerConfigs.get('cartodb-dark'),
+      cartoDbLight: layerConfigs.get('cartodb-light'),
+      osmCarto: layerConfigs.get('osm-carto'),
+      openTopo: layerConfigs.get('open-topo')
     };
     
     window.layerConfigsLoaded = true;

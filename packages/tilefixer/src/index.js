@@ -164,8 +164,13 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
  * @param {number} lineWidth - Line width
  * @param {number} tileSize - Size of the tile in pixels
  * @param {number[]} [dashArray] - Dash array pattern (omit for solid line)
+ * @param {number} [alpha] - Opacity/alpha value from 0 to 1
  */
-function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray) {
+function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray, alpha) {
+  const prevAlpha = ctx.globalAlpha;
+  if (alpha !== undefined) {
+    ctx.globalAlpha = alpha;
+  }
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
@@ -189,6 +194,9 @@ function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray) {
       }
       ctx.stroke();
     }
+  }
+  if (alpha !== undefined) {
+    ctx.globalAlpha = prevAlpha;
   }
 }
 
@@ -256,9 +264,18 @@ export class BoundaryCorrector {
     }
 
     // Get line styles active at this zoom level
-    const activeLineStyles = layerConfig.getLineStylesForZoom
-      ? layerConfig.getLineStylesForZoom(zoom)
-      : layerConfig.lineStyles || [];
+    let activeLineStyles;
+    if (layerConfig.getLineStylesForZoom) {
+      activeLineStyles = layerConfig.getLineStylesForZoom(zoom);
+    } else {
+      // Fallback for plain objects: filter by startZoom/endZoom
+      const allStyles = layerConfig.lineStyles || [];
+      activeLineStyles = allStyles.filter(style => {
+        const styleStart = style.startZoom ?? startZoom;
+        const styleEnd = style.endZoom ?? Infinity;
+        return zoom >= styleStart && zoom <= styleEnd;
+      });
+    }
 
     // Determine which data source to use based on zoom
     const useOsm = zoom >= zoomThreshold;
@@ -274,9 +291,14 @@ export class BoundaryCorrector {
     const imageBitmap = await createImageBitmap(blob);
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
-    // Calculate base line width and deletion width
+    // Calculate base line width
     const baseLineWidth = getLineWidth(zoom, lineWidthStops);
-    const delLineWidth = baseLineWidth * delWidthFactor;
+
+    // Calculate deletion width based on the thickest add line
+    const maxWidthFraction = activeLineStyles.length > 0
+      ? Math.max(...activeLineStyles.map(s => s.widthFraction ?? 1.0))
+      : 1.0;
+    const delLineWidth = baseLineWidth * maxWidthFraction * delWidthFactor;
 
     // Apply median blur along deletion paths to erase incorrect boundaries
     const delFeatures = corrections[delLayerName] || [];
@@ -288,9 +310,9 @@ export class BoundaryCorrector {
     const addFeatures = corrections[addLayerName] || [];
     if (addFeatures.length > 0 && activeLineStyles.length > 0) {
       for (const style of activeLineStyles) {
-        const { color, widthFraction = 1.0, dashArray } = style;
+        const { color, widthFraction = 1.0, dashArray, alpha = 1.0 } = style;
         const lineWidth = baseLineWidth * widthFraction;
-        drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray);
+        drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray, alpha);
       }
     }
 

@@ -1,8 +1,6 @@
-import { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
+import configsJson from './configs.json' with { type: 'json' };
 import { LayerConfig } from './layerconfig.js';
 
-// Re-export all layer configs
-export { cartoDbDark, cartoDbLight, osmCarto } from './configs.js';
 export { LayerConfig } from './layerconfig.js';
 
 /**
@@ -98,9 +96,9 @@ export class LayerConfigRegistry {
   }
 }
 
-// Default registry with built-in configs
+// Default registry with built-in configs loaded from JSON
 export const layerConfigs = new LayerConfigRegistry();
-layerConfigs.register(cartoDbDark);
-layerConfigs.register(cartoDbLight);
-layerConfigs.register(osmCarto);
+for (const configData of configsJson) {
+  layerConfigs.register(new LayerConfig(configData));
+}
 

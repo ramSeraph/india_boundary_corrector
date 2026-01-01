@@ -89,6 +89,30 @@ layerConfigs.remove('my-custom-style');
 | `color` | string | required | Line color (CSS color string) |
 | `widthFraction` | number | 1.0 | Width as fraction of base line width |
 | `dashArray` | number[] | - | Dash pattern array (omit for solid line) |
+| `alpha` | number | 1.0 | Opacity/alpha value from 0 (transparent) to 1 (opaque) |
+| `startZoom` | number | layerConfig.startZoom | Minimum zoom level for this style |
+| `endZoom` | number | Infinity | Maximum zoom level for this style |
+
+### Zoom-Specific Line Styles
+
+Line styles can be active only at certain zoom levels:
+
+```javascript
+const config = new LayerConfig({
+  id: 'zoom-specific',
+  startZoom: 1,
+  lineStyles: [
+    { color: 'red' },                              // Active at z1+ (all zooms)
+    { color: 'blue', startZoom: 5 },               // Active at z5+
+    { color: 'green', endZoom: 4 },                // Active at z1-4
+    { color: 'yellow', startZoom: 3, endZoom: 6 }, // Active at z3-6 only
+  ],
+});
+
+// Get active styles for a specific zoom
+config.getLineStylesForZoom(3); // Returns styles: red, green, yellow
+config.getLineStylesForZoom(7); // Returns styles: red, blue
+```
 
 ### Line Width Calculation
 

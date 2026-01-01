@@ -35,8 +35,6 @@ import {
   LayerConfig,
   LayerConfigRegistry,
   layerConfigs,
-  cartoDbDark,
-  osmCarto,
   type LayerConfigOptions,
 } from '@india-boundary-corrector/layer-configs';
 
@@ -49,8 +47,17 @@ const customConfig = new LayerConfig({
   lineStyles: [
     { color: '#000' },
     { color: '#111', widthFraction: 0.5, dashArray: [5, 3] },
+    { color: '#222', startZoom: 5 },
+    { color: '#333', endZoom: 8 },
+    { color: '#444', startZoom: 3, endZoom: 6 },
+    { color: '#555', alpha: 0.5 },
+    { color: '#666', widthFraction: 0.8, alpha: 0.7, startZoom: 4 },
   ],
 });
+
+// Test getting configs from registry
+const cartoDbDark = layerConfigs.get('cartodb-dark');
+const osmCarto = layerConfigs.get('osm-carto');
 
 // Test LayerConfig properties
 const configId: string = customConfig.id;
@@ -67,9 +74,9 @@ const detected: LayerConfig | undefined = registry.detectFromUrls(['https://exam
 const ids: string[] = registry.getAvailableIds();
 const removed: boolean = registry.remove('test-config');
 
-// Test built-in configs
-const darkConfig: LayerConfig = cartoDbDark;
-const cartoConfig: LayerConfig = osmCarto;
+// Test built-in configs from registry
+const darkConfig: LayerConfig | undefined = cartoDbDark;
+const cartoConfig: LayerConfig | undefined = osmCarto;
 
 // Test @india-boundary-corrector/tilefixer types
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
