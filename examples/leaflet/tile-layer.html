@@ -47,22 +47,19 @@
       "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
       "pbf": "https://esm.sh/pbf@4.0.1",
       "@india-boundary-corrector/data": "../../packages/data/index.js",
-      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
-      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/dist/index.js",
-      "@india-boundary-corrector/leaflet-layer": "../../packages/leaflet-layer/dist/index.js"
+      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/src/index.js",
+      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/src/index.js",
+      "@india-boundary-corrector/leaflet-layer": "../../packages/leaflet-layer/src/index.js"
     }
   }
   </script>
 </head>
 <body>
   <div class="info">
-    <h3>L.TileLayer.IndiaBoundaryCorrected Example</h3>
-    <p>Uses <code>L.tileLayer.indiaBoundaryCorrected()</code> to create a tile layer with built-in boundary corrections.</p>
+    <h3>L.TileLayer.IndiaBoundaryCorrected</h3>
+    <p>All built-in layer configs with India boundary corrections.</p>
     <label for="basemap">Select basemap:</label>
-    <select id="basemap">
-      <option value="osm-carto">OSM Carto</option>
-      <option value="cartodb-dark">Carto Dark</option>
-    </select>
+    <select id="basemap"></select>
     <label for="opacity">Opacity: <span id="opacity-value">100%</span></label>
     <input type="range" id="opacity" min="0" max="100" value="100" style="width: 100%;">
     <div id="status" class="status">Loading...</div>
@@ -70,19 +67,31 @@
   <div id="map"></div>
 
   <script type="module">
+    import { extendLeaflet, layerConfigs } from '@india-boundary-corrector/leaflet-layer';
+
     const statusEl = document.getElementById('status');
     const basemapSelect = document.getElementById('basemap');
     const opacitySlider = document.getElementById('opacity');
     const opacityValue = document.getElementById('opacity-value');
 
+    // Define all known basemaps with their configs
     const BASEMAPS = {
       'osm-carto': {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        name: 'OSM Standard',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
       'cartodb-dark': {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
+        name: 'CartoDB Dark',
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+      },
+      'cartodb-light': {
+        name: 'CartoDB Light',
+        url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
       },
     };
 
@@ -108,27 +117,36 @@
         map.removeLayer(currentLayer);
       }
 
-      currentLayer = L.tileLayer.indiaBoundaryCorrected(basemap.url, {
+      const options = {
         attribution: basemap.attribution,
         maxZoom: 19,
-      });
+      };
+      if (basemap.subdomains) {
+        options.subdomains = basemap.subdomains;
+      }
+
+      currentLayer = L.tileLayer.indiaBoundaryCorrected(basemap.url, options);
 
       currentLayer.addTo(map);
       updateStatus(currentLayer);
-
-      console.log('Switched to:', basemapId);
-      console.log('Layer config:', currentLayer.getLayerConfig());
     }
 
     try {
-      // Import the plugin and extend Leaflet
-      const { extendLeaflet } = await import('@india-boundary-corrector/leaflet-layer');
+      // Extend Leaflet with corrected tile layer
       extendLeaflet(L);
+
+      // Populate basemap dropdown
+      for (const [id, basemap] of Object.entries(BASEMAPS)) {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = basemap.name;
+        basemapSelect.appendChild(option);
+      }
 
       statusEl.textContent = '✓ Plugin loaded, initializing map...';
 
       // Create the map
-      map = L.map('map').setView([20.5937, 78.9629], 4);
+      map = L.map('map').setView([22.5, 78.9], 4);
 
       // Add initial layer
       switchBasemap('osm-carto');
