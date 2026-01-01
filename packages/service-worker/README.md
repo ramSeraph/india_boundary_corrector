@@ -63,7 +63,7 @@ const sw = await registerCorrectionServiceWorker('./sw.js');
 // Add custom config
 await sw.addLayerConfig(new LayerConfig({
   id: 'osm-de',
-  tileUrlPattern: /tile\.openstreetmap\.de/,
+  tileUrlTemplates: ['https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
   lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
   lineStyles: [
     { color: 'rgb(180, 200, 180)' },
@@ -112,9 +112,8 @@ importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/w
     // Add custom config for a different tile provider
     await sw.addLayerConfig(new LayerConfig({
       id: 'my-tiles',
-      tileUrlPattern: /mytiles\.example\.com/,
-      osmAddLineColor: 'rgb(165, 180, 165)',
-      neAddLineColor: 'rgb(165, 180, 165)',
+      tileUrlTemplates: ['https://mytiles.example.com/{z}/{x}/{y}.png'],
+      lineStyles: [{ color: 'rgb(165, 180, 165)' }],
     }));
   });
 </script>

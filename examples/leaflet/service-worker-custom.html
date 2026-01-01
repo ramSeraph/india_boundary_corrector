@@ -87,8 +87,8 @@
           id: 'osm-de',
           startZoom: 1,
           zoomThreshold: 1,
-          // Pattern to match OSM DE tile URLs
-          tileUrlPattern: /tile\.openstreetmap\.de/,
+          // URL templates for OSM DE tiles
+          tileUrlTemplates: ['https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
           // Line width stops
           lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
           // Line styles - drawn in order

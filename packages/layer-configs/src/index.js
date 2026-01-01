@@ -90,8 +90,8 @@ export class LayerConfigRegistry {
     const layerConfig = this.detectFromUrls([url]);
     if (!layerConfig) return null;
     
-    // Extract tile coordinates
-    const coords = LayerConfig.extractTileCoords(url);
+    // Extract tile coordinates using the matched config
+    const coords = layerConfig.extractCoords(url);
     if (!coords) return null;
     
     return { layerConfig, coords };

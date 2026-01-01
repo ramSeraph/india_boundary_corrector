@@ -211,7 +211,7 @@ test.describe('Layer Configs Package', () => {
         const custom = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-test',
           zoomThreshold: 7,
-          tileUrlPattern: /example\.com.*tiles/,
+          tileUrlTemplates: ['https://example.com/tiles/{z}/{x}/{y}.png'],
           lineStyles: [{ color: '#ff0000' }],
         });
         return {
@@ -244,7 +244,7 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('zoomThreshold');
     });
 
-    test('match returns false when no tileUrlPattern', async ({ page }) => {
+    test('match returns false when no tileUrlTemplates', async ({ page }) => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'no-pattern',
@@ -254,22 +254,22 @@ test.describe('Layer Configs Package', () => {
       expect(matches).toBe(false);
     });
 
-    test('accepts string pattern and converts to RegExp', async ({ page }) => {
+    test('accepts tileUrlTemplates string and works', async ({ page }) => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'string-pattern',
-          tileUrlPattern: 'example\\.com.*tiles',
+          id: 'template-config',
+          tileUrlTemplates: 'https://example.com/tiles/{z}/{x}/{y}.png',
         });
-        return config.match('https://example.com/my/tiles/here.png');
+        return config.match('https://example.com/tiles/5/10/15.png');
       });
       expect(matches).toBe(true);
     });
   });
 
-  test.describe('extractTileCoords', () => {
+  test.describe('extractCoords', () => {
     test('extracts coordinates from standard z/x/y pattern', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.osmCarto.extractCoords(
           'https://tile.openstreetmap.org/5/15/12.png'
         );
       });
@@ -278,7 +278,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with subdomain', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.osmCarto.extractCoords(
           'https://a.tile.openstreetmap.org/10/512/341.png'
         );
       });
@@ -287,7 +287,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates from CartoDB URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.cartoDbDark.extractCoords(
           'https://a.basemaps.cartocdn.com/dark_all/3/4/2.png'
         );
       });
@@ -296,7 +296,7 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with retina suffix', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.cartoDbDark.extractCoords(
           'https://a.basemaps.cartocdn.com/dark_all/7/64/42@2x.png'
         );
       });
@@ -305,25 +305,16 @@ test.describe('Layer Configs Package', () => {
 
     test('extracts coordinates with query parameters in URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.osmCarto.extractCoords(
           'https://tile.openstreetmap.org/8/128/96.png?v=1'
         );
       });
       expect(coords).toEqual({ z: 8, x: 128, y: 96 });
     });
 
-    test('extracts coordinates from query parameters format', async ({ page }) => {
-      const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
-          'https://example.com/tiles?z=5&x=15&y=12'
-        );
-      });
-      expect(coords).toEqual({ z: 5, x: 15, y: 12 });
-    });
-
     test('handles high zoom levels (z=18)', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.osmCarto.extractCoords(
           'https://tile.openstreetmap.org/18/131072/87381.png'
         );
       });
@@ -332,45 +323,73 @@ test.describe('Layer Configs Package', () => {
 
     test('handles zoom level 0', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        return window.layerConfigsPackage.osmCarto.extractCoords(
           'https://tile.openstreetmap.org/0/0/0.png'
         );
       });
       expect(coords).toEqual({ z: 0, x: 0, y: 0 });
     });
 
-    test('returns null for invalid URL', async ({ page }) => {
+    test('returns null for non-matching URL', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords('not-a-url');
-      });
-      expect(coords).toBeNull();
-    });
-
-    test('returns null when no z/x/y pattern found', async ({ page }) => {
-      const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
-          'https://example.com/about'
+        return window.layerConfigsPackage.osmCarto.extractCoords(
+          'https://example.com/other/5/15/12.png'
         );
       });
       expect(coords).toBeNull();
     });
 
-    test('returns null for URL with only partial coordinates', async ({ page }) => {
+    test('extracts from custom template', async ({ page }) => {
       const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
-          'https://example.com/5/15/notanumber.png'
-        );
-      });
-      expect(coords).toBeNull();
-    });
-
-    test('extracts from nested path structure', async ({ page }) => {
-      const coords = await page.evaluate(() => {
-        return window.layerConfigsPackage.LayerConfig.extractTileCoords(
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'custom',
+          tileUrlTemplates: 'https://example.com/api/v1/tiles/dark/{z}/{x}/{y}.png',
+        });
+        return config.extractCoords(
           'https://example.com/api/v1/tiles/dark/5/15/12.png'
         );
       });
       expect(coords).toEqual({ z: 5, x: 15, y: 12 });
+    });
+
+    test('supports OpenLayers {a-c} subdomain format', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'openlayers-style',
+          tileUrlTemplates: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        });
+        return {
+          matchesWithSubdomain: config.match('https://a.tile.openstreetmap.org/5/10/15.png'),
+          matchesWithoutSubdomain: config.match('https://tile.openstreetmap.org/5/10/15.png'),
+          matchesTemplate: config.match('https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+          coordsA: config.extractCoords('https://a.tile.openstreetmap.org/5/10/15.png'),
+          coordsB: config.extractCoords('https://b.tile.openstreetmap.org/8/100/200.png'),
+          coordsNoSubdomain: config.extractCoords('https://tile.openstreetmap.org/3/2/1.png'),
+        };
+      });
+      expect(result.matchesWithSubdomain).toBe(true);
+      expect(result.matchesWithoutSubdomain).toBe(true);
+      expect(result.matchesTemplate).toBe(true);
+      expect(result.coordsA).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.coordsB).toEqual({ z: 8, x: 100, y: 200 });
+      expect(result.coordsNoSubdomain).toEqual({ z: 3, x: 2, y: 1 });
+    });
+
+    test('supports OpenLayers {1-4} numeric subdomain format', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'numeric-subdomain',
+          tileUrlTemplates: 'https://tile{1-4}.example.com/{z}/{x}/{y}.png',
+        });
+        return {
+          matches1: config.match('https://tile1.example.com/5/10/15.png'),
+          matches2: config.match('https://tile2.example.com/5/10/15.png'),
+          coords: config.extractCoords('https://tile3.example.com/8/100/200.png'),
+        };
+      });
+      expect(result.matches1).toBe(true);
+      expect(result.matches2).toBe(true);
+      expect(result.coords).toEqual({ z: 8, x: 100, y: 200 });
     });
   });
 
@@ -442,7 +461,7 @@ test.describe('Layer Configs Package', () => {
         const customRegistry = new window.layerConfigsPackage.LayerConfigRegistry();
         const customConfig = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-tiles',
-          tileUrlPattern: /custom\.example\.com/,
+          tileUrlTemplates: 'https://custom.example.com/tiles/{z}/{x}/{y}.png',
         });
         customRegistry.register(customConfig);
 

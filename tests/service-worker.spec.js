@@ -315,7 +315,7 @@ test.describe('Service Worker Package', () => {
         
         return {
           isFunction: typeof LayerConfig === 'function',
-          canConstruct: !!new LayerConfig({ id: 'test', zoomThreshold: 5, tileUrlPattern: /test/ }),
+          canConstruct: !!new LayerConfig({ id: 'test', zoomThreshold: 5, tileUrlTemplates: ['https://test.com/{z}/{x}/{y}.png'] }),
         };
       });
 
@@ -329,7 +329,7 @@ test.describe('Service Worker Package', () => {
         const config = new LayerConfig({ 
           id: 'test-id', 
           zoomThreshold: 7, 
-          tileUrlPattern: /example\.com/ 
+          tileUrlTemplates: ['https://example.com/{z}/{x}/{y}.png'] 
         });
         
         return {
@@ -464,7 +464,7 @@ test.describe('Service Worker Package', () => {
         await sw.addLayerConfig(new LayerConfig({
           id: 'custom-test-config',
           zoomThreshold: 5,
-          tileUrlPattern: /custom\.test\.com/,
+          tileUrlTemplates: ['https://custom.test.com/{z}/{x}/{y}.png'],
         }));
         
         const statusAfter = await sw.getStatus();
@@ -491,7 +491,7 @@ test.describe('Service Worker Package', () => {
         await sw.addLayerConfig(new LayerConfig({
           id: 'to-be-removed',
           zoomThreshold: 5,
-          tileUrlPattern: /remove\.test\.com/,
+          tileUrlTemplates: ['https://remove.test.com/{z}/{x}/{y}.png'],
         }));
         
         const statusBefore = await sw.getStatus();
@@ -522,7 +522,7 @@ test.describe('Service Worker Package', () => {
         await sw.addLayerConfig(new LayerConfig({
           id: 'custom-config',
           zoomThreshold: 5,
-          tileUrlPattern: /custom\.com/,
+          tileUrlTemplates: ['https://custom.com/{z}/{x}/{y}.png'],
         }));
         
         // Remove a default config

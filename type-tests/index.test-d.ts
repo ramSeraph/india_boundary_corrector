@@ -44,7 +44,7 @@ import {
 const customConfig = new LayerConfig({
   id: 'test-config',
   zoomThreshold: 6,
-  tileUrlPattern: /example\.com/,
+  tileUrlTemplates: ['https://example.com/tiles/{z}/{x}/{y}.png'],
   lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
   lineStyles: [
     { color: '#000' },
@@ -55,14 +55,15 @@ const customConfig = new LayerConfig({
 // Test LayerConfig properties
 const configId: string = customConfig.id;
 const configZoom: number = customConfig.zoomThreshold;
-const configPattern: RegExp | null = customConfig.tileUrlPattern;
-const matchResult: boolean = customConfig.match(['https://example.com/tile.png']);
+const configTemplates: string[] = customConfig.tileUrlTemplates;
+const matchResult: boolean = customConfig.match(['https://example.com/tiles/5/10/15.png']);
+const coordsResult = customConfig.extractCoords('https://example.com/tiles/5/10/15.png');
 
 // Test LayerConfigRegistry
 const registry = new LayerConfigRegistry();
 registry.register(customConfig);
 const retrieved: LayerConfig | undefined = registry.get('test-config');
-const detected: LayerConfig | undefined = registry.detectFromUrls(['https://example.com/tile.png']);
+const detected: LayerConfig | undefined = registry.detectFromUrls(['https://example.com/tiles/5/10/15.png']);
 const ids: string[] = registry.getAvailableIds();
 const removed: boolean = registry.remove('test-config');
 

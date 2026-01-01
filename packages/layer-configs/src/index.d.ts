@@ -20,8 +20,8 @@ export interface LayerConfigOptions {
   startZoom?: number;
   /** Zoom level to switch from NE to OSM data (default: 5) */
   zoomThreshold?: number;
-  /** Regex pattern for matching tile URLs */
-  tileUrlPattern?: RegExp | string | null;
+  /** Tile URL templates for matching (e.g., "https://{s}.tile.example.com/{z}/{x}/{y}.png") */
+  tileUrlTemplates?: string | string[];
   /** Line width stops: map of zoom level to line width (at least 2 entries) */
   lineWidthStops?: Record<number, number>;
   /** Line styles array - lines are drawn in order */
@@ -37,7 +37,7 @@ export class LayerConfig {
   readonly id: string;
   readonly startZoom: number;
   readonly zoomThreshold: number;
-  readonly tileUrlPattern: RegExp | null;
+  readonly tileUrlTemplates: string[];
   readonly lineWidthStops: Record<number, number>;
   readonly lineStyles: LineStyle[];
   readonly delWidthFactor: number;
@@ -45,10 +45,29 @@ export class LayerConfig {
   constructor(options: LayerConfigOptions);
 
   /**
-   * Check if this config matches the given tile URLs
-   * @param tiles - Single tile URL or array of tile URL templates
+   * Check if this config matches the given URLs (works with both template URLs and actual tile URLs)
+   * @param urls - Single URL or array of URLs
    */
-  match(tiles: string | string[]): boolean;
+  match(urls: string | string[]): boolean;
+
+  /**
+   * Check if this config matches the given template URLs (with {z}/{x}/{y} placeholders)
+   * @param templates - Single template URL or array of template URLs
+   */
+  matchTemplate(templates: string | string[]): boolean;
+
+  /**
+   * Check if this config matches the given tile URLs (with actual coordinates)
+   * @param tiles - Single tile URL or array of tile URLs
+   */
+  matchTileUrl(tiles: string | string[]): boolean;
+
+  /**
+   * Extract tile coordinates (z, x, y) from a URL using this config's templates
+   * @param url - Tile URL to extract coordinates from
+   * @returns Tile coordinates or null if not found
+   */
+  extractCoords(url: string): TileCoords | null;
 
   /**
    * Serialize the config to a plain object for postMessage
@@ -59,14 +78,6 @@ export class LayerConfig {
    * Create a LayerConfig from a plain object (e.g., from postMessage)
    */
   static fromJSON(obj: LayerConfigOptions): LayerConfig;
-
-  /**
-   * Extract z, x, y from a tile URL.
-   * Supports common patterns like /{z}/{x}/{y}.png
-   * @param url - Tile URL to parse
-   * @returns Tile coordinates or null if not found
-   */
-  static extractTileCoords(url: string): TileCoords | null;
 }
 
 /**

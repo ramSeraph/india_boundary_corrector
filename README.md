@@ -141,9 +141,20 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `id` | string | required | Unique identifier |
 | `startZoom` | number | 0 | Minimum zoom to start rendering |
 | `zoomThreshold` | number | 5 | Zoom level to switch NE/OSM data |
-| `tileUrlPattern` | RegExp | null | Pattern for URL auto-detection |
+| `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+
+### URL Template Placeholders
+
+| Placeholder | Description |
+|-------------|-------------|
+| `{z}` | Zoom level |
+| `{x}` | Tile X coordinate |
+| `{y}` | Tile Y coordinate |
+| `{s}` | Subdomain - Leaflet style (optional) |
+| `{a-c}` | Subdomain - OpenLayers style |
+| `{r}` | Retina suffix (optional) |
 
 ### LineStyle Object
 

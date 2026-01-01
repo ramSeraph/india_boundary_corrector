@@ -44,7 +44,7 @@ const myConfig = new LayerConfig({
   id: 'my-custom-style',
   startZoom: 0,
   zoomThreshold: 5,
-  tileUrlPattern: /mytiles\.com/,
+  tileUrlTemplates: ['https://mytiles.com/{z}/{x}/{y}.png'],
   // Zoom-to-width interpolation map
   lineWidthStops: { 1: 0.6, 10: 3 },
   // Line styles - drawn in order
@@ -66,9 +66,21 @@ layerConfigs.remove('my-custom-style');
 | `id` | string | required | Unique identifier for the config |
 | `startZoom` | number | 0 | Minimum zoom level to start rendering corrections |
 | `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
-| `tileUrlPattern` | RegExp \| string | null | Pattern for matching tile URLs |
+| `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+
+### URL Template Placeholders
+
+| Placeholder | Description |
+|-------------|-------------|
+| `{z}` | Zoom level |
+| `{x}` | Tile X coordinate |
+| `{y}` | Tile Y coordinate |
+| `{s}` | Subdomain - Leaflet style (optional, matches a, b, c, etc.) |
+| `{a-c}` | Subdomain - OpenLayers style (matches a, b, c) |
+| `{1-4}` | Subdomain - OpenLayers numeric style (matches 1, 2, 3, 4) |
+| `{r}` | Retina suffix (optional, matches @2x, etc.) |
 
 ### LineStyle Object
 

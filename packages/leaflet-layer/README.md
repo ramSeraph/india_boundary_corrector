@@ -83,7 +83,7 @@ const map = L.map('map').setView([20.5937, 78.9629], 5);
 // Create custom config
 const osmDeConfig = new LayerConfig({
   id: 'osm-de',
-  tileUrlPattern: /tile\.openstreetmap\.de/,
+  tileUrlTemplates: ['https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
   lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
   lineStyles: [
     { color: 'rgb(180, 200, 180)' },
