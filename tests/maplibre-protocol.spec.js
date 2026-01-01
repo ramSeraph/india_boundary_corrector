@@ -120,11 +120,16 @@ test.describe('MapLibre Protocol Package', () => {
         const { CorrectionProtocol, LayerConfig } = window;
         const protocol = new CorrectionProtocol();
         
-        const customConfig = new LayerConfig('custom-test', 5, /custom\.example\.com/);
+        const customConfig = new LayerConfig({
+          id: 'custom-test',
+          zoomThreshold: 5,
+          tileUrlTemplates: ['https://custom.example.com/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red' }],
+        });
         protocol.addLayerConfig(customConfig);
         
         return {
-          hasCustomConfig: protocol.getRegistry().get('custom-test') !== null,
+          hasCustomConfig: protocol.getRegistry().get('custom-test') !== undefined,
         };
       });
 

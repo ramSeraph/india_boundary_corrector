@@ -63,14 +63,16 @@ const osmCarto = layerConfigs.get('osm-carto');
 const configId: string = customConfig.id;
 const configZoom: number = customConfig.zoomThreshold;
 const configTemplates: string[] = customConfig.tileUrlTemplates;
-const matchResult: boolean = customConfig.match(['https://example.com/tiles/5/10/15.png']);
+const matchTemplateResult: boolean = customConfig.matchTemplate(['https://example.com/tiles/{z}/{x}/{y}.png']);
+const matchTileUrlResult: boolean = customConfig.matchTileUrl(['https://example.com/tiles/5/10/15.png']);
 const coordsResult = customConfig.extractCoords('https://example.com/tiles/5/10/15.png');
 
 // Test LayerConfigRegistry
 const registry = new LayerConfigRegistry();
 registry.register(customConfig);
 const retrieved: LayerConfig | undefined = registry.get('test-config');
-const detected: LayerConfig | undefined = registry.detectFromUrls(['https://example.com/tiles/5/10/15.png']);
+const detectedFromTemplates: LayerConfig | undefined = registry.detectFromTemplates(['https://example.com/tiles/{z}/{x}/{y}.png']);
+const detectedFromTileUrls: LayerConfig | undefined = registry.detectFromTileUrls(['https://example.com/tiles/5/10/15.png']);
 const ids: string[] = registry.getAvailableIds();
 const removed: boolean = registry.remove('test-config');
 
@@ -88,7 +90,6 @@ const tileFixer = new TileFixer('https://example.com/tiles.pmtiles', {
 
 // Test TileFixer methods
 const source = tileFixer.getSource(); // PMTiles
-const cache = tileFixer.getCache(); // TileCache
 tileFixer.clearCache();
 
 // Test getCorrections

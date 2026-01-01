@@ -10,3 +10,4 @@ playwright-report/
 # my local files
 TODO.md 
 .github/copilot-instructions.md
+test-debug-images/

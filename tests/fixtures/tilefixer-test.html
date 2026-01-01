@@ -15,7 +15,7 @@
   </script>
   <script type="module">
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
-    import { BoundaryCorrector } from '@india-boundary-corrector/tilefixer';
+    import { BoundaryCorrector, getLineWidth } from '@india-boundary-corrector/tilefixer';
     import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
     // Create corrector instance
@@ -24,6 +24,9 @@
     
     // Get a default layer config for testing
     const layerConfig = layerConfigs.get('osm-carto');
+
+    // Expose getLineWidth for direct testing
+    window.getLineWidth = getLineWidth;
 
     // Helper functions for tests
     const testHelpers = {
@@ -188,6 +191,18 @@
           reduction: before.coloredPixels - after.coloredPixels,
           reductionPercent: ((before.coloredPixels - after.coloredPixels) / before.coloredPixels) * 100,
         };
+      },
+
+      /**
+       * Convert ArrayBuffer to base64 string for saving
+       */
+      arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
       },
     };
 

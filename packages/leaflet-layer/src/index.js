@@ -35,7 +35,7 @@ function extendLeaflet(L) {
       } else if (this.options.layerConfig) {
         this._layerConfig = this.options.layerConfig;
       } else {
-        this._layerConfig = this._registry.detectFromUrls([url]);
+        this._layerConfig = this._registry.detectFromTemplates([url]);
       }
       
       if (!this._layerConfig) {
@@ -94,6 +94,10 @@ function extendLeaflet(L) {
           tile.onload = () => {
             URL.revokeObjectURL(tile.src);
             done(null, tile);
+          };
+          tile.onerror = (e) => {
+            URL.revokeObjectURL(tile.src);
+            done(e, tile);
           };
         })
         .catch((err) => {

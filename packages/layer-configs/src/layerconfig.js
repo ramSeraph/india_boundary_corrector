@@ -99,6 +99,10 @@ export class LayerConfig {
     // Lower values mean wiped lines show through
     delWidthFactor = 1.5,
   }) {
+    if (!id || typeof id !== 'string') {
+      throw new Error('LayerConfig requires a non-empty string id');
+    }
+
     this.id = id;
     this.startZoom = startZoom;
     this.zoomThreshold = zoomThreshold;
@@ -118,8 +122,38 @@ export class LayerConfig {
     // Pre-compile regex patterns for matching template URLs (with {z}/{x}/{y} placeholders)
     this._templatePatterns = templates.map(t => templateToTemplateRegex(t));
 
-    // Line width stops
+    // Validate lineWidthStops
+    if (!lineWidthStops || typeof lineWidthStops !== 'object' || Array.isArray(lineWidthStops)) {
+      throw new Error(`LayerConfig "${id}": lineWidthStops must be an object`);
+    }
+    const stopKeys = Object.keys(lineWidthStops);
+    if (stopKeys.length < 2) {
+      throw new Error(`LayerConfig "${id}": lineWidthStops must have at least 2 entries`);
+    }
+    for (const key of stopKeys) {
+      const zoom = Number(key);
+      if (!Number.isInteger(zoom) || zoom < 0) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops keys must be non-negative integers, got "${key}"`);
+      }
+      if (typeof lineWidthStops[key] !== 'number' || lineWidthStops[key] <= 0) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops values must be positive numbers`);
+      }
+    }
     this.lineWidthStops = lineWidthStops;
+
+    // Validate lineStyles
+    if (!Array.isArray(lineStyles) || lineStyles.length === 0) {
+      throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
+    }
+    for (let i = 0; i < lineStyles.length; i++) {
+      const style = lineStyles[i];
+      if (!style || typeof style !== 'object') {
+        throw new Error(`LayerConfig "${id}": lineStyles[${i}] must be an object`);
+      }
+      if (!style.color || typeof style.color !== 'string') {
+        throw new Error(`LayerConfig "${id}": lineStyles[${i}].color must be a non-empty string`);
+      }
+    }
     
     // Line styles - normalize startZoom/endZoom defaults
     this.lineStyles = lineStyles.map(style => ({
@@ -139,25 +173,6 @@ export class LayerConfig {
    */
   getLineStylesForZoom(z) {
     return this.lineStyles.filter(style => z >= style.startZoom && z <= style.endZoom);
-  }
-
-  /**
-   * Check if this config matches the given URLs (works with both template URLs and actual tile URLs)
-   * @param {string | string[]} urls - Single URL or array of URLs
-   * @returns {boolean}
-   */
-  match(urls) {
-    if (this._compiledPatterns.length === 0) return false;
-    
-    const urlList = Array.isArray(urls) ? urls : [urls];
-    if (urlList.length === 0) return false;
-    
-    return urlList.some(url => 
-      // Check against actual tile URL patterns
-      this._compiledPatterns.some(({ pattern }) => pattern.test(url)) ||
-      // Check against template URL patterns
-      this._templatePatterns.some(pattern => pattern.test(url))
-    );
   }
 
   /**

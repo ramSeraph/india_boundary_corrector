@@ -39,10 +39,24 @@ test.describe('Layer Configs Package', () => {
       'https://example.com/tiles/{z}/{x}/{y}.png',
     ];
 
-    for (const url of validDarkUrls) {
-      test(`matches: ${url}`, async ({ page }) => {
+    // Template URLs should use matchTemplate
+    const templateUrls = validDarkUrls.filter(url => url.includes('{z}'));
+    // Actual tile URLs should use matchTileUrl  
+    const tileUrls = validDarkUrls.filter(url => !url.includes('{z}'));
+
+    for (const url of templateUrls) {
+      test(`matchTemplate: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.cartoDbDark.match(testUrl);
+          return window.layerConfigsPackage.cartoDbDark.matchTemplate(testUrl);
+        }, url);
+        expect(matches).toBe(true);
+      });
+    }
+
+    for (const url of tileUrls) {
+      test(`matchTileUrl: ${url}`, async ({ page }) => {
+        const matches = await page.evaluate((testUrl) => {
+          return window.layerConfigsPackage.cartoDbDark.matchTileUrl(testUrl);
         }, url);
         expect(matches).toBe(true);
       });
@@ -51,7 +65,9 @@ test.describe('Layer Configs Package', () => {
     for (const url of invalidDarkUrls) {
       test(`does not match: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.cartoDbDark.match(testUrl);
+          const config = window.layerConfigsPackage.cartoDbDark;
+          // Test both methods - neither should match
+          return config.matchTemplate(testUrl) || config.matchTileUrl(testUrl);
         }, url);
         expect(matches).toBe(false);
       });
@@ -103,10 +119,24 @@ test.describe('Layer Configs Package', () => {
       'https://tile.openstreetmap.org/about',
     ];
 
-    for (const url of validOsmUrls) {
-      test(`matches: ${url}`, async ({ page }) => {
+    // Template URLs should use matchTemplate
+    const templateUrls = validOsmUrls.filter(url => url.includes('{z}'));
+    // Actual tile URLs should use matchTileUrl
+    const tileUrls = validOsmUrls.filter(url => !url.includes('{z}'));
+
+    for (const url of templateUrls) {
+      test(`matchTemplate: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.osmCarto.match(testUrl);
+          return window.layerConfigsPackage.osmCarto.matchTemplate(testUrl);
+        }, url);
+        expect(matches).toBe(true);
+      });
+    }
+
+    for (const url of tileUrls) {
+      test(`matchTileUrl: ${url}`, async ({ page }) => {
+        const matches = await page.evaluate((testUrl) => {
+          return window.layerConfigsPackage.osmCarto.matchTileUrl(testUrl);
         }, url);
         expect(matches).toBe(true);
       });
@@ -115,7 +145,8 @@ test.describe('Layer Configs Package', () => {
     for (const url of invalidOsmUrls) {
       test(`does not match: ${url}`, async ({ page }) => {
         const matches = await page.evaluate((testUrl) => {
-          return window.layerConfigsPackage.osmCarto.match(testUrl);
+          const config = window.layerConfigsPackage.osmCarto;
+          return config.matchTemplate(testUrl) || config.matchTileUrl(testUrl);
         }, url);
         expect(matches).toBe(false);
       });
@@ -141,9 +172,9 @@ test.describe('Layer Configs Package', () => {
   });
 
   test.describe('LayerConfigRegistry', () => {
-    test('detectFromUrls returns correct config for CartoDB dark', async ({ page }) => {
+    test('detectFromTemplates returns correct config for CartoDB dark', async ({ page }) => {
       const configId = await page.evaluate(() => {
-        const config = window.layerConfigsPackage.layerConfigs.detectFromUrls(
+        const config = window.layerConfigsPackage.layerConfigs.detectFromTemplates(
           'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
         );
         return config?.id;
@@ -151,9 +182,9 @@ test.describe('Layer Configs Package', () => {
       expect(configId).toBe('cartodb-dark');
     });
 
-    test('detectFromUrls returns correct config for OSM standard', async ({ page }) => {
+    test('detectFromTemplates returns correct config for OSM standard', async ({ page }) => {
       const configId = await page.evaluate(() => {
-        const config = window.layerConfigsPackage.layerConfigs.detectFromUrls(
+        const config = window.layerConfigsPackage.layerConfigs.detectFromTemplates(
           'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
         );
         return config?.id;
@@ -161,24 +192,53 @@ test.describe('Layer Configs Package', () => {
       expect(configId).toBe('osm-carto');
     });
 
-    test('detectFromUrls returns undefined for unknown URLs', async ({ page }) => {
+    test('detectFromTemplates returns undefined for unknown URLs', async ({ page }) => {
       const config = await page.evaluate(() => {
-        return window.layerConfigsPackage.layerConfigs.detectFromUrls(
+        return window.layerConfigsPackage.layerConfigs.detectFromTemplates(
           'https://example.com/tiles/{z}/{x}/{y}.png'
         );
       });
       expect(config).toBeUndefined();
     });
 
-    test('detectFromUrls works with array of URLs', async ({ page }) => {
+    test('detectFromTemplates works with array of URLs', async ({ page }) => {
       const configId = await page.evaluate(() => {
-        const config = window.layerConfigsPackage.layerConfigs.detectFromUrls([
+        const config = window.layerConfigsPackage.layerConfigs.detectFromTemplates([
           'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
           'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
         ]);
         return config?.id;
       });
       expect(configId).toBe('cartodb-dark');
+    });
+
+    test('detectFromTileUrls returns correct config for CartoDB dark', async ({ page }) => {
+      const configId = await page.evaluate(() => {
+        const config = window.layerConfigsPackage.layerConfigs.detectFromTileUrls(
+          'https://a.basemaps.cartocdn.com/dark_all/5/10/15.png'
+        );
+        return config?.id;
+      });
+      expect(configId).toBe('cartodb-dark');
+    });
+
+    test('detectFromTileUrls returns correct config for OSM standard', async ({ page }) => {
+      const configId = await page.evaluate(() => {
+        const config = window.layerConfigsPackage.layerConfigs.detectFromTileUrls(
+          'https://tile.openstreetmap.org/8/128/96.png'
+        );
+        return config?.id;
+      });
+      expect(configId).toBe('osm-carto');
+    });
+
+    test('detectFromTileUrls returns undefined for unknown URLs', async ({ page }) => {
+      const config = await page.evaluate(() => {
+        return window.layerConfigsPackage.layerConfigs.detectFromTileUrls(
+          'https://example.com/tiles/5/10/15.png'
+        );
+      });
+      expect(config).toBeUndefined();
     });
 
     test('get returns registered config by id', async ({ page }) => {
@@ -244,23 +304,245 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('zoomThreshold');
     });
 
-    test('match returns false when no tileUrlTemplates', async ({ page }) => {
+    test('throws error when id is missing', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({});
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-empty string id');
+    });
+
+    test('throws error when id is empty string', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({ id: '' });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-empty string id');
+    });
+
+    test('throws error when id is not a string', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({ id: 123 });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-empty string id');
+    });
+
+    test('throws error when lineWidthStops is not an object', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: 'invalid',
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('lineWidthStops must be an object');
+    });
+
+    test('throws error when lineWidthStops is an array', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: [1, 2],
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('lineWidthStops must be an object');
+    });
+
+    test('throws error when lineWidthStops has fewer than 2 entries', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: { 1: 0.5 },
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('at least 2 entries');
+    });
+
+    test('throws error when lineWidthStops has non-integer key', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: { 'abc': 0.5, 10: 2.5 },
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-negative integers');
+    });
+
+    test('throws error when lineWidthStops has negative key', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: { '-1': 0.5, 10: 2.5 },
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-negative integers');
+    });
+
+    test('throws error when lineWidthStops has non-positive value', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineWidthStops: { 1: 0, 10: 2.5 },
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('positive numbers');
+    });
+
+    test('throws error when lineStyles is not an array', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineStyles: { color: 'red' },
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-empty array');
+    });
+
+    test('throws error when lineStyles is empty array', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineStyles: [],
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('non-empty array');
+    });
+
+    test('throws error when lineStyles entry is not an object', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineStyles: ['red'],
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('must be an object');
+    });
+
+    test('throws error when lineStyles entry has no color', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineStyles: [{ widthFraction: 1.0 }],
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('color must be a non-empty string');
+    });
+
+    test('throws error when lineStyles entry has empty color', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({
+            id: 'test',
+            lineStyles: [{ color: '' }],
+          });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('color must be a non-empty string');
+    });
+
+    test('matchTemplate returns false when no tileUrlTemplates', async ({ page }) => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'no-pattern',
         });
-        return config.match('https://example.com/tiles.png');
+        return config.matchTemplate('https://example.com/tiles/{z}/{x}/{y}.png');
       });
       expect(matches).toBe(false);
     });
 
-    test('accepts tileUrlTemplates string and works', async ({ page }) => {
+    test('matchTileUrl returns false when no tileUrlTemplates', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'no-pattern',
+        });
+        return config.matchTileUrl('https://example.com/tiles/5/10/15.png');
+      });
+      expect(matches).toBe(false);
+    });
+
+    test('accepts tileUrlTemplates string and matchTileUrl works', async ({ page }) => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'template-config',
           tileUrlTemplates: 'https://example.com/tiles/{z}/{x}/{y}.png',
         });
-        return config.match('https://example.com/tiles/5/10/15.png');
+        return config.matchTileUrl('https://example.com/tiles/5/10/15.png');
+      });
+      expect(matches).toBe(true);
+    });
+
+    test('accepts tileUrlTemplates string and matchTemplate works', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'template-config',
+          tileUrlTemplates: 'https://example.com/tiles/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://example.com/tiles/{z}/{x}/{y}.png');
       });
       expect(matches).toBe(true);
     });
@@ -308,6 +590,82 @@ test.describe('Layer Configs Package', () => {
       expect(result.z3).toEqual(['red', 'green', 'yellow']);
       expect(result.z5).toEqual(['red', 'blue', 'yellow']);
       expect(result.z7).toEqual(['red', 'blue']);
+    });
+
+    test('toJSON and fromJSON roundtrip preserves config', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const original = new window.layerConfigsPackage.LayerConfig({
+          id: 'roundtrip-test',
+          startZoom: 2,
+          zoomThreshold: 6,
+          tileUrlTemplates: ['https://example.com/{z}/{x}/{y}.png'],
+          lineWidthStops: { 1: 0.5, 10: 3.0 },
+          lineStyles: [
+            { color: 'red' },
+            { color: 'blue', widthFraction: 0.5, dashArray: [10, 5] },
+          ],
+          delWidthFactor: 2.0,
+        });
+
+        const json = original.toJSON();
+        const restored = window.layerConfigsPackage.LayerConfig.fromJSON(json);
+
+        return {
+          original: {
+            id: original.id,
+            startZoom: original.startZoom,
+            zoomThreshold: original.zoomThreshold,
+            tileUrlTemplates: original.tileUrlTemplates,
+            lineWidthStops: original.lineWidthStops,
+            lineStyles: original.lineStyles,
+            delWidthFactor: original.delWidthFactor,
+          },
+          restored: {
+            id: restored.id,
+            startZoom: restored.startZoom,
+            zoomThreshold: restored.zoomThreshold,
+            tileUrlTemplates: restored.tileUrlTemplates,
+            lineWidthStops: restored.lineWidthStops,
+            lineStyles: restored.lineStyles,
+            delWidthFactor: restored.delWidthFactor,
+          },
+          // Verify restored config still works
+          matchesUrl: restored.matchTileUrl('https://example.com/5/10/15.png'),
+          extractedCoords: restored.extractCoords('https://example.com/5/10/15.png'),
+        };
+      });
+
+      expect(result.original).toEqual(result.restored);
+      expect(result.matchesUrl).toBe(true);
+      expect(result.extractedCoords).toEqual({ z: 5, x: 10, y: 15 });
+    });
+
+    test('fromJSON creates functional config from plain object', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const plainObject = {
+          id: 'from-plain',
+          startZoom: 1,
+          zoomThreshold: 5,
+          tileUrlTemplates: ['https://{s}.tiles.test.com/{z}/{x}/{y}.png'],
+          lineWidthStops: { 1: 0.25, 8: 2.0 },
+          lineStyles: [{ color: 'green' }],
+          delWidthFactor: 1.5,
+        };
+
+        const config = window.layerConfigsPackage.LayerConfig.fromJSON(plainObject);
+
+        return {
+          id: config.id,
+          matchesUrl: config.matchTileUrl('https://a.tiles.test.com/3/4/5.png'),
+          extractedCoords: config.extractCoords('https://b.tiles.test.com/7/100/200.png'),
+          stylesAtZoom3: config.getLineStylesForZoom(3).map(s => s.color),
+        };
+      });
+
+      expect(result.id).toBe('from-plain');
+      expect(result.matchesUrl).toBe(true);
+      expect(result.extractedCoords).toEqual({ z: 7, x: 100, y: 200 });
+      expect(result.stylesAtZoom3).toEqual(['green']);
     });
   });
 

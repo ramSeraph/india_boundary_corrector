@@ -69,10 +69,14 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
         image.src = blobUrl;
       }
     } catch (err) {
-      console.warn('[IndiaBoundaryCorrectedTileLayer] Error applying corrections:', err);
-      // Signal error to OpenLayers
+      console.warn('[IndiaBoundaryCorrectedTileLayer] Error applying corrections, falling back to original:', err);
+      // Fall back to original tile
       const image = imageTile.getImage();
-      if (typeof image.dispatchEvent === 'function') {
+      if (typeof image.src !== 'undefined') {
+        // HTMLImageElement - load original tile
+        image.src = src;
+      } else if (typeof image.dispatchEvent === 'function') {
+        // OffscreenCanvas - can't fall back, signal error
         image.dispatchEvent(new Event('error'));
       }
     }
@@ -115,7 +119,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
       resolvedConfig = layerConfig;
     } else {
       // Auto-detect from URL
-      resolvedConfig = registry.detectFromUrls([url]);
+      resolvedConfig = registry.detectFromTemplates([url]);
     }
 
     // Create TileFixer

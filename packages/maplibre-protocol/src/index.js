@@ -161,12 +161,19 @@ export class CorrectionProtocol {
     return async (params, abortController) => {
       const { configId, tileUrl, z, x, y } = parseCorrectionsUrl(params.url);
       
+      // Validate parsed coordinates
+      if (z === undefined || x === undefined || y === undefined) {
+        console.warn(`[CorrectionProtocol] Could not parse tile coordinates from URL: ${params.url}, falling back to original`);
+        const response = await fetch(tileUrl, { signal: abortController?.signal });
+        return { data: await response.arrayBuffer() };
+      }
+      
       // Resolve layer config
       let layerConfig;
       if (configId) {
         layerConfig = self._registry.get(configId);
       } else {
-        layerConfig = self._registry.detectFromUrls([tileUrl]);
+        layerConfig = self._registry.detectFromTileUrls([tileUrl]);
       }
       
       return fetchAndFixTile(

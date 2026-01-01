@@ -57,12 +57,6 @@ export class LayerConfig {
   getLineStylesForZoom(z: number): LineStyle[];
 
   /**
-   * Check if this config matches the given URLs (works with both template URLs and actual tile URLs)
-   * @param urls - Single URL or array of URLs
-   */
-  match(urls: string | string[]): boolean;
-
-  /**
    * Check if this config matches the given template URLs (with {z}/{x}/{y} placeholders)
    * @param templates - Single template URL or array of template URLs
    */
@@ -114,10 +108,16 @@ export class LayerConfigRegistry {
   remove(id: string): boolean;
 
   /**
-   * Detect layer config from raster tile URLs
-   * @param tiles - Single tile URL or array of tile URL templates
+   * Detect layer config from tile URL templates (with {z}/{x}/{y} placeholders)
+   * @param templates - Single template URL or array of template URLs
    */
-  detectFromUrls(tiles: string | string[]): LayerConfig | undefined;
+  detectFromTemplates(templates: string | string[]): LayerConfig | undefined;
+
+  /**
+   * Detect layer config from actual tile URLs (with numeric coordinates)
+   * @param urls - Single tile URL or array of tile URLs
+   */
+  detectFromTileUrls(urls: string | string[]): LayerConfig | undefined;
 
   /**
    * Get all available layer config ids

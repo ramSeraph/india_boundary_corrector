@@ -4,40 +4,37 @@ Pre-built layer configurations for India boundary corrector packages.
 
 ## Available Configs
 
-- `cartoDbDark` - CartoDB dark_all tiles
-- `osmCarto` - OpenStreetMap standard tiles (with dashed boundary lines)
+- `cartodb-dark` - CartoDB dark tiles
+- `cartodb-light` - CartoDB light/voyager tiles
+- `open-topo` - OpenTopoMap tiles
+- `osm-carto` - OpenStreetMap standard tiles
+- `osm-hot` - Humanitarian OpenStreetMap tiles
 
 ## Usage
 
 ```javascript
 import { 
-  cartoDbDark, 
-  osmCarto, 
   layerConfigs, 
   LayerConfig 
 } from '@india-boundary-corrector/layer-configs';
-import { addBoundaryCorrector } from '@india-boundary-corrector/maplibre';
-
-// Use a pre-defined config
-addBoundaryCorrector(map, {
-  layerConfig: cartoDbDark,
-});
-
-// Or detect from tile URLs using the registry
-const tileUrls = [
-  'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-];
-const config = layerConfigs.detectFromUrls(tileUrls);
-if (config) {
-  addBoundaryCorrector(map, { layerConfig: config });
-}
-
-// List available config ids
-console.log(layerConfigs.getAvailableIds()); // ['cartodb-dark', 'osm-carto']
 
 // Get a config by id
 const darkConfig = layerConfigs.get('cartodb-dark');
+
+// Or detect from tile URL templates using the registry
+const tileUrlTemplates = [
+  'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+];
+const config = layerConfigs.detectFromTemplates(tileUrlTemplates);
+
+// Or detect from actual tile URLs (with numeric coordinates)
+const actualTileUrl = 'https://a.basemaps.cartocdn.com/dark_all/5/10/15.png';
+const config2 = layerConfigs.detectFromTileUrls([actualTileUrl]);
+
+// List available config ids
+console.log(layerConfigs.getAvailableIds()); 
+// ['cartodb-dark', 'cartodb-light', 'open-topo', 'osm-carto', 'osm-hot']
 
 // Create and register a custom config
 const myConfig = new LayerConfig({
@@ -69,6 +66,7 @@ layerConfigs.remove('my-custom-style');
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+| `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
 
 ### URL Template Placeholders
 
@@ -117,8 +115,8 @@ config.getLineStylesForZoom(7); // Returns styles: red, blue
 ### Line Width Calculation
 
 Line widths are interpolated/extrapolated from the `lineWidthStops` map:
-- **Addition lines**: Interpolated from `lineWidthStops` based on zoom level
-- **Deletion lines**: Twice the addition line width
+- **Addition lines**: `baseLineWidth * widthFraction` where baseLineWidth is interpolated from `lineWidthStops`
+- **Deletion lines**: `baseLineWidth * maxWidthFraction * delWidthFactor` where maxWidthFraction is the largest widthFraction among active styles
 
 ## License
 

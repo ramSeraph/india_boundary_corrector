@@ -1,9 +1,5 @@
 # India Boundary Corrector
 
-> ⚠️ **WORK IN PROGRESS** ⚠️
->
-> This project is currently under active development and is not yet ready for production use.
-
 **[Config Editor](https://ramseraph.github.io/india_boundary_corrector/)** | **[Examples](https://ramseraph.github.io/india_boundary_corrector/examples/)** - See the boundary corrections in action across Leaflet, MapLibre, and OpenLayers.
 
 A set of JavaScript packages to display maps with India's official boundaries, correcting the disputed territory representations commonly found in international map tile providers.
@@ -129,8 +125,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 ## Supported Tile Providers
 
 Built-in configurations for:
-- **OSM Carto Dark** (`cartodb-dark`): CartoDB dark_all tiles
-- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles (with dashed boundary lines)
+- **CartoDB Dark** (`cartodb-dark`): CartoDB dark tiles
+- **CartoDB Light** (`cartodb-light`): CartoDB light/voyager tiles
+- **OpenTopoMap** (`open-topo`): OpenTopoMap tiles
+- **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles
+- **OSM HOT** (`osm-hot`): Humanitarian OpenStreetMap tiles
 
 Custom configurations can be created for other tile providers using `LayerConfig`.
 
@@ -144,6 +143,7 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
+| `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
 
 ### URL Template Placeholders
 
@@ -164,6 +164,8 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `widthFraction` | number | 1.0 | Width as fraction of base width |
 | `dashArray` | number[] | - | Dash pattern (omit for solid) |
 | `alpha` | number | 1.0 | Opacity (0 = transparent, 1 = opaque) |
+| `startZoom` | number | layerConfig.startZoom | Minimum zoom for this style |
+| `endZoom` | number | Infinity | Maximum zoom for this style |
 
 ## Data Sources
 

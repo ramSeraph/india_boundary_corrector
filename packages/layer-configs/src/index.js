@@ -35,14 +35,30 @@ export class LayerConfigRegistry {
   }
 
   /**
-   * Detect layer config from raster tile URLs
-   * @param {string | string[]} tiles - Single tile URL or array of tile URL templates
+   * Detect layer config from tile URL templates (with {z}/{x}/{y} placeholders)
+   * @param {string | string[]} templates - Single template URL or array of template URLs
    */
-  detectFromUrls(tiles) {
-    if (!tiles || (Array.isArray(tiles) && tiles.length === 0)) return undefined;
+  detectFromTemplates(templates) {
+    if (!templates || (Array.isArray(templates) && templates.length === 0)) return undefined;
     
     for (const config of Object.values(this.registry)) {
-      if (config.match && config.match(tiles)) {
+      if (config.matchTemplate(templates)) {
+        return config;
+      }
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Detect layer config from actual tile URLs (with numeric coordinates)
+   * @param {string | string[]} urls - Single tile URL or array of tile URLs
+   */
+  detectFromTileUrls(urls) {
+    if (!urls || (Array.isArray(urls) && urls.length === 0)) return undefined;
+    
+    for (const config of Object.values(this.registry)) {
+      if (config.matchTileUrl(urls)) {
         return config;
       }
     }
@@ -85,7 +101,7 @@ export class LayerConfigRegistry {
    */
   parseTileUrl(url) {
     // Check if URL matches any layer config
-    const layerConfig = this.detectFromUrls([url]);
+    const layerConfig = this.detectFromTileUrls([url]);
     if (!layerConfig) return null;
     
     // Extract tile coordinates using the matched config

@@ -21,9 +21,6 @@ const MessageTypes = {
   RESET_CONFIG: 'RESET_CONFIG',
 };
 
-// Cache name for corrected tiles
-const CACHE_NAME = 'india-boundary-corrections-v1';
-
 // State
 let registry = layerConfigs.createMergedRegistry();
 let tileFixer = null;
@@ -111,13 +108,11 @@ async function applyCorrectedTile(request, layerConfig, coords) {
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('[CorrectionSW] Installing...');
   self.skipWaiting();
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log('[CorrectionSW] Activating...');
   event.waitUntil(self.clients.claim());
 });
 
@@ -168,10 +163,8 @@ self.addEventListener('message', (event) => {
         break;
         
       case MessageTypes.CLEAR_CACHE:
-        caches.delete(CACHE_NAME).then(() => {
-          tileFixer?.clearCache();
-          port?.postMessage({ success: true });
-        });
+        tileFixer?.clearCache();
+        port?.postMessage({ success: true });
         break;
         
       case MessageTypes.RESET_CONFIG:
@@ -194,5 +187,3 @@ self.addEventListener('message', (event) => {
     port?.postMessage({ error: error.message });
   }
 });
-
-console.log('[CorrectionSW] Service worker loaded');

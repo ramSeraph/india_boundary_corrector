@@ -1,12 +1,17 @@
 import { CorrectionsSource } from './corrections.js';
 
 /**
+ * Minimum line width used when extrapolating below the lowest zoom stop.
+ */
+export const MIN_LINE_WIDTH = 0.5;
+
+/**
  * Interpolate or extrapolate line width from a zoom-to-width map.
  * @param {number} zoom - Zoom level
  * @param {Object<number, number>} lineWidthStops - Map of zoom level to line width (at least 2 entries)
  * @returns {number}
  */
-function getLineWidth(zoom, lineWidthStops) {
+export function getLineWidth(zoom, lineWidthStops) {
   const zooms = Object.keys(lineWidthStops).map(Number).sort((a, b) => a - b);
   
   // Exact match
@@ -21,7 +26,7 @@ function getLineWidth(zoom, lineWidthStops) {
     const w1 = lineWidthStops[z1];
     const w2 = lineWidthStops[z2];
     const slope = (w2 - w1) / (z2 - z1);
-    return Math.max(0.5, w1 + slope * (zoom - z1));
+    return Math.max(MIN_LINE_WIDTH, w1 + slope * (zoom - z1));
   }
   
   // Above highest zoom - extrapolate
@@ -31,7 +36,7 @@ function getLineWidth(zoom, lineWidthStops) {
     const w1 = lineWidthStops[z1];
     const w2 = lineWidthStops[z2];
     const slope = (w2 - w1) / (z2 - z1);
-    return Math.max(0.5, w2 + slope * (zoom - z2));
+    return Math.max(MIN_LINE_WIDTH, w2 + slope * (zoom - z2));
   }
   
   // Interpolate between two stops

@@ -155,8 +155,11 @@ Returns: `Promise<CorrectionServiceWorker>`
 
 The service worker comes with pre-registered configs:
 
-- `osm-carto`: OpenStreetMap standard tiles
 - `cartodb-dark`: CartoDB dark tiles
+- `cartodb-light`: CartoDB light/voyager tiles
+- `open-topo`: OpenTopoMap tiles
+- `osm-carto`: OpenStreetMap standard tiles
+- `osm-hot`: Humanitarian OpenStreetMap tiles
 
 ## Scope Considerations
 

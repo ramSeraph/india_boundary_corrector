@@ -1,5 +1,4 @@
-import { LayerConfig, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
-import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+import { LayerConfig } from '@india-boundary-corrector/layer-configs';
 
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
@@ -21,7 +20,7 @@ export declare const MessageTypes: {
  * Options for CorrectionServiceWorker
  */
 export interface CorrectionServiceWorkerOptions {
-  /** Service worker scope (default: '/') */
+  /** Service worker scope (defaults to workerUrl directory) */
   scope?: string;
   /** PMTiles URL to set after registration */
   pmtilesUrl?: string;

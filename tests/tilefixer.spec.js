@@ -1,6 +1,203 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
+// Debug image saving - set TILEFIXER_DEBUG_IMAGES=1 to save intermediate images
+const DEBUG_IMAGES = process.env.TILEFIXER_DEBUG_IMAGES === '1';
+const DEBUG_DIR = 'test-debug-images';
+
+/**
+ * Save a tile image for debugging
+ * @param {string} testName - Name of the test (used for folder)
+ * @param {string} imageName - Name of the image file
+ * @param {Buffer|ArrayBuffer|string} imageData - Image data (Buffer, ArrayBuffer, or base64 string)
+ */
+async function saveDebugImage(testName, imageName, imageData) {
+  if (!DEBUG_IMAGES) return;
+  
+  // Sanitize test name for folder
+  const safeName = testName.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const testDir = path.join(DEBUG_DIR, safeName);
+  
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(DEBUG_DIR)) {
+    fs.mkdirSync(DEBUG_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(testDir)) {
+    fs.mkdirSync(testDir, { recursive: true });
+  }
+  
+  const filePath = path.join(testDir, imageName);
+  
+  // Handle different input types
+  let buffer;
+  if (typeof imageData === 'string') {
+    // Base64 string
+    buffer = Buffer.from(imageData, 'base64');
+  } else if (imageData instanceof ArrayBuffer) {
+    buffer = Buffer.from(imageData);
+  } else {
+    buffer = imageData;
+  }
+  
+  fs.writeFileSync(filePath, buffer);
+  console.log(`  [DEBUG] Saved: ${filePath}`);
+}
 
 test.describe('TileFixer Package', () => {
+  test.describe('getLineWidth', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('returns exact value for matching zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 1: 0.5, 5: 1.0, 10: 2.5 };
+        return {
+          z1: getLineWidth(1, stops),
+          z5: getLineWidth(5, stops),
+          z10: getLineWidth(10, stops),
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      expect(result.z5).toBe(1.0);
+      expect(result.z10).toBe(2.5);
+    });
+
+    test('interpolates between stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 0: 1.0, 10: 3.0 };
+        return {
+          z0: getLineWidth(0, stops),
+          z5: getLineWidth(5, stops),
+          z10: getLineWidth(10, stops),
+        };
+      });
+
+      expect(result.z0).toBe(1.0);
+      expect(result.z5).toBe(2.0); // midpoint between 1.0 and 3.0
+      expect(result.z10).toBe(3.0);
+    });
+
+    test('interpolates between non-zero start stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 4: 1.0, 8: 3.0 };
+        return {
+          z5: getLineWidth(5, stops),
+          z6: getLineWidth(6, stops),
+          z7: getLineWidth(7, stops),
+        };
+      });
+
+      expect(result.z5).toBe(1.5);  // 1/4 of the way
+      expect(result.z6).toBe(2.0);  // 1/2 of the way
+      expect(result.z7).toBe(2.5);  // 3/4 of the way
+    });
+
+    test('extrapolates below lowest zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 4: 1.0, 8: 2.0 };
+        // slope = (2.0 - 1.0) / (8 - 4) = 0.25
+        // z2: 1.0 + 0.25 * (2 - 4) = 1.0 - 0.5 = 0.5
+        // z0: 1.0 + 0.25 * (0 - 4) = 1.0 - 1.0 = 0.0 -> clamped to 0.5
+        return {
+          z2: getLineWidth(2, stops),
+          z0: getLineWidth(0, stops),
+        };
+      });
+
+      expect(result.z2).toBeCloseTo(0.5, 5);
+      expect(result.z0).toBe(0.5); // clamped to minimum 0.5
+    });
+
+    test('extrapolates above highest zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 4: 1.0, 8: 2.0 };
+        // slope = (2.0 - 1.0) / (8 - 4) = 0.25
+        // z10: 2.0 + 0.25 * (10 - 8) = 2.0 + 0.5 = 2.5
+        // z12: 2.0 + 0.25 * (12 - 8) = 2.0 + 1.0 = 3.0
+        return {
+          z10: getLineWidth(10, stops),
+          z12: getLineWidth(12, stops),
+        };
+      });
+
+      expect(result.z10).toBeCloseTo(2.5, 5);
+      expect(result.z12).toBeCloseTo(3.0, 5);
+    });
+
+    test('clamps extrapolated values to minimum 0.5', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        // Decreasing slope that would go negative
+        const stops = { 5: 1.0, 10: 0.5 };
+        // slope = (0.5 - 1.0) / (10 - 5) = -0.1
+        // z0: 1.0 + (-0.1) * (0 - 5) = 1.0 + 0.5 = 1.5 (extrapolates up going backwards)
+        // z15: 0.5 + (-0.1) * (15 - 10) = 0.5 - 0.5 = 0.0 -> clamped to 0.5
+        return {
+          z0: getLineWidth(0, stops),
+          z15: getLineWidth(15, stops),
+        };
+      });
+
+      expect(result.z0).toBeCloseTo(1.5, 5);
+      expect(result.z15).toBe(0.5); // clamped to minimum
+    });
+
+    test('handles multiple stops correctly', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        const stops = { 1: 0.5, 4: 1.0, 8: 2.0, 12: 4.0 };
+        return {
+          z1: getLineWidth(1, stops),
+          z2: getLineWidth(2, stops),   // between 1 and 4
+          z6: getLineWidth(6, stops),   // between 4 and 8
+          z10: getLineWidth(10, stops), // between 8 and 12
+          z14: getLineWidth(14, stops), // extrapolate above 12
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      // z2: between z1(0.5) and z4(1.0), t = (2-1)/(4-1) = 1/3
+      // 0.5 + (1/3) * (1.0 - 0.5) = 0.5 + 0.167 = 0.667
+      expect(result.z2).toBeCloseTo(0.667, 2);
+      // z6: between z4(1.0) and z8(2.0), t = (6-4)/(8-4) = 0.5
+      expect(result.z6).toBe(1.5);
+      // z10: between z8(2.0) and z12(4.0), t = (10-8)/(12-8) = 0.5
+      expect(result.z10).toBe(3.0);
+      // z14: extrapolate from z8-z12 slope = (4-2)/(12-8) = 0.5
+      // 4.0 + 0.5 * (14 - 12) = 5.0
+      expect(result.z14).toBe(5.0);
+    });
+
+    test('handles unsorted stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const getLineWidth = window.getLineWidth;
+        // Stops provided in non-sorted order
+        const stops = { 10: 2.5, 1: 0.5, 5: 1.0 };
+        return {
+          z1: getLineWidth(1, stops),
+          z3: getLineWidth(3, stops),
+          z5: getLineWidth(5, stops),
+          z10: getLineWidth(10, stops),
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      expect(result.z5).toBe(1.0);
+      expect(result.z10).toBe(2.5);
+      // z3: between z1(0.5) and z5(1.0), t = (3-1)/(5-1) = 0.5
+      expect(result.z3).toBe(0.75);
+    });
+  });
+
   test.describe('getCorrections', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/tests/fixtures/tilefixer-test.html');
@@ -232,9 +429,9 @@ test.describe('TileFixer Package', () => {
       await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
     });
 
-    test('draws single addition line on blank white tile', async ({ page }) => {
+    test('draws single addition line on blank white tile', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createBlankTile, createSimpleLineCorrections, analyzePixels } = window.testHelpers;
+        const { createBlankTile, createSimpleLineCorrections, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
@@ -251,8 +448,18 @@ test.describe('TileFixer Package', () => {
         const fixedTile = await corrector.fixTile(corrections, blankTile, layerConfig, 10, tileSize);
         
         // Analyze the pixels
-        return await analyzePixels(fixedTile, tileSize);
+        const analysis = await analyzePixels(fixedTile, tileSize);
+        
+        return {
+          ...analysis,
+          inputBase64: arrayBufferToBase64(blankTile),
+          outputBase64: arrayBufferToBase64(fixedTile),
+        };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // Should have some colored pixels (the line)
       expect(result.coloredPixels).toBeGreaterThan(0);
@@ -263,9 +470,9 @@ test.describe('TileFixer Package', () => {
       expect(result.maxX - result.minX).toBeGreaterThan(200);
     });
 
-    test('draws multiple addition lines on blank white tile', async ({ page }) => {
+    test('draws multiple addition lines on blank white tile', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createBlankTile, createSimpleLineCorrections, analyzePixels } = window.testHelpers;
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
@@ -294,8 +501,17 @@ test.describe('TileFixer Package', () => {
         
         const fixedTile = await corrector.fixTile(corrections, blankTile, layerConfig, 10, tileSize);
         
-        return await analyzePixels(fixedTile, tileSize);
+        const analysis = await analyzePixels(fixedTile, tileSize);
+        return {
+          ...analysis,
+          inputBase64: arrayBufferToBase64(blankTile),
+          outputBase64: arrayBufferToBase64(fixedTile),
+        };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // Should have colored pixels from both lines
       expect(result.coloredPixels).toBeGreaterThan(0);
@@ -304,9 +520,9 @@ test.describe('TileFixer Package', () => {
       expect(result.maxY - result.minY).toBeGreaterThan(200);
     });
 
-    test('respects alpha in lineStyles for semi-transparent lines', async ({ page }) => {
+    test('respects alpha in lineStyles for semi-transparent lines', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createBlankTile, getPixelColor } = window.testHelpers;
+        const { createBlankTile, getPixelColor, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
 
         const tileSize = 256;
@@ -352,8 +568,19 @@ test.describe('TileFixer Package', () => {
         const semiTransparentTile = await corrector.fixTile(corrections, blankTile, semiTransparentConfig, 6, tileSize);
         const semiTransparentCenter = await getPixelColor(semiTransparentTile, tileSize, 128, 128);
 
-        return { opaqueCenter, semiTransparentCenter };
+        return { 
+          opaqueCenter, 
+          semiTransparentCenter,
+          inputBase64: arrayBufferToBase64(blankTile),
+          opaqueBase64: arrayBufferToBase64(opaqueTile),
+          semiTransparentBase64: arrayBufferToBase64(semiTransparentTile),
+        };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-opaque.png', result.opaqueBase64);
+      await saveDebugImage(testInfo.title, '3-semi-transparent.png', result.semiTransparentBase64);
 
       // Opaque line should be near black
       expect(result.opaqueCenter.r).toBeLessThan(50);
@@ -368,9 +595,9 @@ test.describe('TileFixer Package', () => {
       expect(result.semiTransparentCenter.b).toBeGreaterThan(100);
     });
 
-    test('respects lineStyles startZoom and endZoom with plain object config', async ({ page }) => {
+    test('respects lineStyles startZoom and endZoom with plain object config', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createBlankTile, getPixelColor } = window.testHelpers;
+        const { createBlankTile, getPixelColor, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
 
         const tileSize = 256;
@@ -491,9 +718,9 @@ test.describe('TileFixer Package', () => {
       await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
     });
 
-    test('median blur removes existing line', async ({ page }) => {
+    test('median blur removes existing line', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createTileWithLine, createSimpleLineCorrections, analyzePixels, comparePixelCounts } = window.testHelpers;
+        const { createTileWithLine, createSimpleLineCorrections, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
@@ -524,13 +751,85 @@ test.describe('TileFixer Package', () => {
           before: beforeAnalysis,
           after: afterAnalysis,
           reduction: beforeAnalysis.coloredPixels - afterAnalysis.coloredPixels,
+          inputBase64: arrayBufferToBase64(tileWithLine),
+          outputBase64: arrayBufferToBase64(fixedTile),
         };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // Before should have colored (black) pixels
       expect(result.before.coloredPixels).toBeGreaterThan(0);
       // After should have significantly fewer colored pixels (line blurred away)
       expect(result.reduction).toBeGreaterThan(result.before.coloredPixels * 0.5);
+    });
+
+    test('median blur removes curved serpentine line', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createTileWithLine, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        const tileSize = 256;
+        
+        // Create a serpentine/wavy curve in pixel space
+        // Sine wave pattern: y = 128 + 80*sin(x * 4π / 256)
+        const pixelPoints = [];
+        for (let x = 0; x <= 256; x += 4) {
+          const y = 128 + 80 * Math.sin(x * 4 * Math.PI / 256);
+          pixelPoints.push({ x, y });
+        }
+        
+        const tileWithCurve = await createTileWithLine(tileSize, 'white', 'black', pixelPoints);
+        
+        // Analyze before deletion
+        const beforeAnalysis = await analyzePixels(tileWithCurve, tileSize);
+        
+        // Create matching curve in vector tile space (0-4096)
+        // Scale: pixel * 16 = vector coordinate
+        const vectorPoints = [];
+        for (let x = 0; x <= 4096; x += 64) {
+          const y = 2048 + 1280 * Math.sin(x * 4 * Math.PI / 4096);
+          vectorPoints.push({ x, y });
+        }
+        
+        const corrections = {
+          'to-del-osm': [
+            {
+              geometry: [vectorPoints],
+              extent: 4096,
+              type: 2,
+              properties: {},
+            },
+          ],
+        };
+        
+        const fixedTile = await corrector.fixTile(corrections, tileWithCurve, layerConfig, 10, tileSize);
+        
+        // Analyze after deletion
+        const afterAnalysis = await analyzePixels(fixedTile, tileSize);
+        
+        return {
+          before: beforeAnalysis,
+          after: afterAnalysis,
+          reduction: beforeAnalysis.coloredPixels - afterAnalysis.coloredPixels,
+          reductionPercent: ((beforeAnalysis.coloredPixels - afterAnalysis.coloredPixels) / beforeAnalysis.coloredPixels) * 100,
+          inputBase64: arrayBufferToBase64(tileWithCurve),
+          outputBase64: arrayBufferToBase64(fixedTile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
+
+      // Before should have colored (black) pixels from the serpentine curve
+      expect(result.before.coloredPixels).toBeGreaterThan(500);
+      // After should have significantly fewer colored pixels (curve blurred away)
+      // Curved lines are harder to fully remove, so expect at least 40% reduction
+      expect(result.reductionPercent).toBeGreaterThan(40);
     });
   });
 
@@ -540,25 +839,26 @@ test.describe('TileFixer Package', () => {
       await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
     });
 
-    test('deletion happens before addition - non-intersecting', async ({ page }) => {
+    test('deletion happens before addition - non-intersecting', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createTileWithLine, analyzePixels } = window.testHelpers;
+        const { createTileWithLine, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
         const tileSize = 256;
-        // Create a tile with a black horizontal line
+        // Create a tile with a black horizontal line at y=64 (top quarter)
         const tileWithLine = await createTileWithLine(tileSize, 'white', 'black', [
           { x: 0, y: 64 },
           { x: 256, y: 64 },
         ]);
         
-        // Delete the horizontal line and add a vertical line
+        // Delete the horizontal line at y=64 and add a horizontal line at y=192 (bottom quarter)
+        // These lines are parallel and don't intersect
         const corrections = {
           'to-del-osm': [
             {
               geometry: [[
-                { x: 0, y: 1024 },
+                { x: 0, y: 1024 },      // y=1024/4096*256 = 64
                 { x: 4096, y: 1024 },
               ]],
               extent: 4096,
@@ -567,8 +867,8 @@ test.describe('TileFixer Package', () => {
           'to-add-osm': [
             {
               geometry: [[
-                { x: 2048, y: 0 },
-                { x: 2048, y: 4096 },
+                { x: 0, y: 3072 },      // y=3072/4096*256 = 192
+                { x: 4096, y: 3072 },
               ]],
               extent: 4096,
             },
@@ -577,18 +877,28 @@ test.describe('TileFixer Package', () => {
         
         const fixedTile = await corrector.fixTile(corrections, tileWithLine, layerConfig, 10, tileSize);
         
-        return await analyzePixels(fixedTile, tileSize);
+        const analysis = await analyzePixels(fixedTile, tileSize);
+        return {
+          ...analysis,
+          inputBase64: arrayBufferToBase64(tileWithLine),
+          outputBase64: arrayBufferToBase64(fixedTile),
+        };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // Should have colored pixels from the addition line
       expect(result.coloredPixels).toBeGreaterThan(0);
-      // Should span vertically (from the addition)
-      expect(result.maxY - result.minY).toBeGreaterThan(200);
+      // Addition line should be around y=192, not spanning full height
+      expect(result.minY).toBeGreaterThan(180);
+      expect(result.maxY).toBeLessThan(210);
     });
 
-    test('deletion happens before addition - intersecting lines', async ({ page }) => {
+    test('deletion happens before addition - intersecting lines', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createTileWithLine, getPixelColor } = window.testHelpers;
+        const { createTileWithLine, getPixelColor, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
@@ -640,8 +950,14 @@ test.describe('TileFixer Package', () => {
           verticalBottom,
           horizontalLeft,
           horizontalRight,
+          inputBase64: arrayBufferToBase64(tileWithLine),
+          outputBase64: arrayBufferToBase64(fixedTile),
         };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // At intersection: should show addition color (deletion happened first)
       expect(result.intersection.isColored).toBe(true);
@@ -656,9 +972,9 @@ test.describe('TileFixer Package', () => {
       expect(result.horizontalRight.r).toBeGreaterThan(200);
     });
 
-    test('multiple intersecting additions and deletions', async ({ page }) => {
+    test('multiple intersecting additions and deletions', async ({ page }, testInfo) => {
       const result = await page.evaluate(async () => {
-        const { createTileWithMultipleLines, getPixelColor } = window.testHelpers;
+        const { createTileWithMultipleLines, getPixelColor, arrayBufferToBase64 } = window.testHelpers;
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
         
@@ -704,8 +1020,14 @@ test.describe('TileFixer Package', () => {
           onAddedLine,
           onDeletedLine,
           onRemainingLine,
+          inputBase64: arrayBufferToBase64(tileWithLines),
+          outputBase64: arrayBufferToBase64(fixedTile),
         };
       });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-output.png', result.outputBase64);
 
       // Center and added line should be colored
       expect(result.center.isColored).toBe(true);

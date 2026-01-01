@@ -1,6 +1,19 @@
 import { PMTiles } from 'pmtiles';
 
 /**
+ * Minimum line width used when extrapolating below the lowest zoom stop.
+ */
+export const MIN_LINE_WIDTH: number;
+
+/**
+ * Interpolate or extrapolate line width from a zoom-to-width map.
+ * @param zoom - Zoom level
+ * @param lineWidthStops - Map of zoom level to line width (at least 2 entries)
+ * @returns Interpolated/extrapolated line width (minimum 0.5)
+ */
+export function getLineWidth(zoom: number, lineWidthStops: Record<number, number>): number;
+
+/**
  * A parsed vector tile feature.
  */
 export interface Feature {
@@ -45,41 +58,16 @@ export interface LayerConfig {
  * Options for BoundaryCorrector constructor.
  */
 export interface BoundaryCorrectorOptions {
-  /** Maximum number of tiles to cache (default: 512) */
+  /** Maximum number of tiles to cache (default: 64) */
   cacheSize?: number;
+  /** Maximum zoom level in PMTiles (auto-detected if not provided) */
+  maxDataZoom?: number;
 }
 
 /**
- * Simple LRU cache for parsed tile data.
- */
-export declare class TileCache {
-  constructor(maxSize?: number);
-  get(z: number, x: number, y: number): CorrectionResult | undefined;
-  set(z: number, x: number, y: number, value: CorrectionResult): void;
-  has(z: number, x: number, y: number): boolean;
-  clear(): void;
-  readonly size: number;
-}
-
-/**
- * Boundary corrector that creates a PMTiles source for fetching correction data.
+ * Boundary corrector that fetches correction data and applies it to raster tiles.
  */
 export declare class BoundaryCorrector {
-  /**
-   * The URL to the PMTiles file.
-   */
-  pmtilesUrl: string;
-
-  /**
-   * The PMTiles source instance.
-   */
-  pmtiles: PMTiles;
-
-  /**
-   * The tile cache.
-   */
-  cache: TileCache;
-
   /**
    * Create a new BoundaryCorrector.
    * @param pmtilesUrl - URL to the PMTiles file
@@ -91,11 +79,6 @@ export declare class BoundaryCorrector {
    * Get the PMTiles source object.
    */
   getSource(): PMTiles;
-
-  /**
-   * Get the tile cache.
-   */
-  getCache(): TileCache;
 
   /**
    * Clear the tile cache.

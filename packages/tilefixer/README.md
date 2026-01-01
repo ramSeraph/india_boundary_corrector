@@ -55,7 +55,6 @@ new BoundaryCorrector(pmtilesUrl, options?)
 | `getCorrections(z, x, y)` | `Promise<Object>` | Get correction features for a tile. Supports overzoom beyond zoom 14. |
 | `fixTile(corrections, rasterTile, layerConfig, zoom, tileSize?)` | `Promise<ArrayBuffer>` | Apply corrections to a raster tile and return corrected PNG. |
 | `getSource()` | `PMTiles` | Get the underlying PMTiles source object |
-| `getCache()` | `TileCache` | Get the tile cache instance |
 | `clearCache()` | `void` | Clear the tile cache |
 
 ## How It Works
