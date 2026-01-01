@@ -91,8 +91,8 @@ export class LayerConfig {
     // Line width stops: map of zoom level to line width (at least 2 entries)
     lineWidthStops = { 1: 0.5, 10: 2.5 },
     // Line styles array - each element describes a line to draw
-    // { color: string, widthFraction: number, dashArray?: number[] }
-    // Lines are drawn in array order
+    // { color: string, widthFraction?: number, dashArray?: number[], startZoom?: number, endZoom?: number }
+    // Lines are drawn in array order. startZoom defaults to layerConfig startZoom, endZoom defaults to Infinity
     lineStyles = [{ color: 'green', widthFraction: 1.0 }],
     // Factor to multiply line width for deletion blur (default 1.5)
     // Higher values leave gaps where wiped lines meet existing lines
@@ -121,11 +121,24 @@ export class LayerConfig {
     // Line width stops
     this.lineWidthStops = lineWidthStops;
     
-    // Line styles
-    this.lineStyles = lineStyles;
+    // Line styles - normalize startZoom/endZoom defaults
+    this.lineStyles = lineStyles.map(style => ({
+      ...style,
+      startZoom: style.startZoom ?? startZoom,
+      endZoom: style.endZoom ?? Infinity,
+    }));
     
     // Deletion width factor
     this.delWidthFactor = delWidthFactor;
+  }
+
+  /**
+   * Get line styles active at a given zoom level
+   * @param {number} z - Zoom level
+   * @returns {Array<{color: string, widthFraction?: number, dashArray?: number[]}>}
+   */
+  getLineStylesForZoom(z) {
+    return this.lineStyles.filter(style => z >= style.startZoom && z <= style.endZoom);
   }
 
   /**

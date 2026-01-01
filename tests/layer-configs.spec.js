@@ -264,6 +264,51 @@ test.describe('Layer Configs Package', () => {
       });
       expect(matches).toBe(true);
     });
+
+    test('lineStyles get startZoom and endZoom defaults', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          startZoom: 2,
+          lineStyles: [
+            { color: 'red' },
+            { color: 'blue', startZoom: 5 },
+            { color: 'green', endZoom: 8 },
+            { color: 'yellow', startZoom: 3, endZoom: 6 },
+          ],
+        });
+        return config.lineStyles;
+      });
+      expect(result[0]).toEqual({ color: 'red', startZoom: 2, endZoom: Infinity });
+      expect(result[1]).toEqual({ color: 'blue', startZoom: 5, endZoom: Infinity });
+      expect(result[2]).toEqual({ color: 'green', startZoom: 2, endZoom: 8 });
+      expect(result[3]).toEqual({ color: 'yellow', startZoom: 3, endZoom: 6 });
+    });
+
+    test('getLineStylesForZoom returns active styles', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          startZoom: 1,
+          lineStyles: [
+            { color: 'red' },                         // z1+
+            { color: 'blue', startZoom: 5 },          // z5+
+            { color: 'green', endZoom: 4 },           // z1-4
+            { color: 'yellow', startZoom: 3, endZoom: 6 }, // z3-6
+          ],
+        });
+        return {
+          z1: config.getLineStylesForZoom(1).map(s => s.color),
+          z3: config.getLineStylesForZoom(3).map(s => s.color),
+          z5: config.getLineStylesForZoom(5).map(s => s.color),
+          z7: config.getLineStylesForZoom(7).map(s => s.color),
+        };
+      });
+      expect(result.z1).toEqual(['red', 'green']);
+      expect(result.z3).toEqual(['red', 'green', 'yellow']);
+      expect(result.z5).toEqual(['red', 'blue', 'yellow']);
+      expect(result.z7).toEqual(['red', 'blue']);
+    });
   });
 
   test.describe('extractCoords', () => {

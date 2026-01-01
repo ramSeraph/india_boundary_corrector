@@ -247,7 +247,6 @@ export class BoundaryCorrector {
       startZoom = 0,
       zoomThreshold,
       lineWidthStops,
-      lineStyles,
       delWidthFactor,
     } = layerConfig;
 
@@ -255,6 +254,11 @@ export class BoundaryCorrector {
     if (zoom < startZoom) {
       return rasterTile;
     }
+
+    // Get line styles active at this zoom level
+    const activeLineStyles = layerConfig.getLineStylesForZoom
+      ? layerConfig.getLineStylesForZoom(zoom)
+      : layerConfig.lineStyles || [];
 
     // Determine which data source to use based on zoom
     const useOsm = zoom >= zoomThreshold;
@@ -280,10 +284,10 @@ export class BoundaryCorrector {
       applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize);
     }
 
-    // Draw addition lines using lineStyles (in order)
+    // Draw addition lines using active lineStyles (in order)
     const addFeatures = corrections[addLayerName] || [];
-    if (addFeatures.length > 0 && lineStyles && lineStyles.length > 0) {
-      for (const style of lineStyles) {
+    if (addFeatures.length > 0 && activeLineStyles.length > 0) {
+      for (const style of activeLineStyles) {
         const { color, widthFraction = 1.0, dashArray } = style;
         const lineWidth = baseLineWidth * widthFraction;
         drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray);

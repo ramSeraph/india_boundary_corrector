@@ -8,6 +8,10 @@ export interface LineStyle {
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
   dashArray?: number[];
+  /** Minimum zoom level for this style (default: layerConfig.startZoom) */
+  startZoom?: number;
+  /** Maximum zoom level for this style (default: Infinity) */
+  endZoom?: number;
 }
 
 /**
@@ -43,6 +47,12 @@ export class LayerConfig {
   readonly delWidthFactor: number;
 
   constructor(options: LayerConfigOptions);
+
+  /**
+   * Get line styles active at a given zoom level
+   * @param z - Zoom level
+   */
+  getLineStylesForZoom(z: number): LineStyle[];
 
   /**
    * Check if this config matches the given URLs (works with both template URLs and actual tile URLs)
