@@ -122,6 +122,8 @@ const map = L.map('map').setView([20.5937, 78.9629], 4);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 ```
 
+> **Note**: The service worker approach intercepts all matching tile requests globally. Unlike the library-specific integrations, you cannot selectively disable corrections for specific tile layers.
+
 ## Supported Tile Providers
 
 Built-in configurations for:
