@@ -114,6 +114,26 @@ All standard `L.TileLayer` options are supported, plus:
 | `layerConfig` | LayerConfig \| string | Layer config object or config ID |
 | `extraLayerConfigs` | LayerConfig[] | Additional configs for auto-detection |
 
+## Events
+
+### `correctionerror`
+
+Fired when the corrections data fails to load (e.g., PMTiles fetch failure). The tile will still display using the original uncorrected image.
+
+```javascript
+layer.on('correctionerror', (e) => {
+  console.warn('Corrections unavailable:', e.error);
+  console.log('Tile coords:', e.coords); // { z, x, y }
+  console.log('Tile URL:', e.tileUrl);
+});
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `error` | Error | The error that occurred |
+| `coords` | object | Tile coordinates `{ z, x, y }` |
+| `tileUrl` | string | URL of the tile being loaded |
+
 ## Global Auto-extension
 
 If Leaflet is available as a global `L` object, the extension is applied automatically on import:

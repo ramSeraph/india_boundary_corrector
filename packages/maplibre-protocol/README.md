@@ -172,6 +172,28 @@ new CorrectionProtocol(options?)
 | `unregister(maplibregl)` | `this` | Unregister protocol |
 | `getRegistry()` | `LayerConfigRegistry` | Get the layer config registry |
 | `getTileFixer()` | `TileFixer` | Get the TileFixer instance |
+| `on(event, listener)` | `this` | Add an event listener |
+| `off(event, listener)` | `this` | Remove an event listener |
+
+#### Events
+
+##### `correctionerror`
+
+Fired when the corrections data fails to load (e.g., PMTiles fetch failure). The tile will still display using the original uncorrected image.
+
+```javascript
+protocol.on('correctionerror', (e) => {
+  console.warn('Corrections unavailable:', e.error);
+  console.log('Tile coords:', e.coords); // { z, x, y }
+  console.log('Tile URL:', e.tileUrl);
+});
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `error` | Error | The error that occurred |
+| `coords` | object | Tile coordinates `{ z, x, y }` |
+| `tileUrl` | string | URL of the tile being loaded |
 
 ## License
 
