@@ -60,6 +60,11 @@
 
     // Override fetch to handle mock URLs
     window.fetch = function(url, ...args) {
+      // Intercept broken PMTiles URL
+      if (typeof url === 'string' && url.includes('broken.pmtiles')) {
+        return Promise.reject(new Error('PMTiles fetch failed: network error'));
+      }
+      
       if (typeof url === 'string' && url.startsWith('mock://')) {
         const parts = url.split('/');
         const scenario = parts[2];

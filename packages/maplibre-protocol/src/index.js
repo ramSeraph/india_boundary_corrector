@@ -68,13 +68,13 @@ function parseCorrectionsUrl(url) {
  * @param {number} tileSize - Tile size in pixels
  * @param {Object} [options] - Fetch options
  * @param {AbortSignal} [options.signal] - Abort signal
- * @returns {Promise<{data: ArrayBuffer}>}
+ * @returns {Promise<{data: ArrayBuffer, correctionsFailed: boolean, correctionsError: Error|null}>}
  */
 async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
-  const { data } = await tileFixer.fetchAndFixTile(
+  const { data, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
     tileUrl, z, x, y, layerConfig, { tileSize, signal: options.signal }
   );
-  return { data };
+  return { data, correctionsFailed, correctionsError };
 }
 
 /**
@@ -100,8 +100,45 @@ export class CorrectionProtocol {
     this._tileSize = options.tileSize ?? 256;
     this._tileFixer = new TileFixer(this._pmtilesUrl);
     this._registry = layerConfigs.createMergedRegistry();
+    /** @type {Map<string, Set<Function>>} */
+    this._listeners = new Map();
     
     this._loadFn = this._createLoadFunction();
+  }
+
+  /**
+   * Add a listener for an event.
+   * @param {'correctionerror'} event - Event name
+   * @param {Function} listener - Callback function receiving event data
+   * @returns {this}
+   */
+  on(event, listener) {
+    if (!this._listeners.has(event)) {
+      this._listeners.set(event, new Set());
+    }
+    this._listeners.get(event).add(listener);
+    return this;
+  }
+
+  /**
+   * Remove an event listener.
+   * @param {'correctionerror'} event - Event name
+   * @param {Function} listener - Callback to remove
+   * @returns {this}
+   */
+  off(event, listener) {
+    this._listeners.get(event)?.delete(listener);
+    return this;
+  }
+
+  /**
+   * Emit an event to all listeners.
+   * @param {string} event - Event name
+   * @param {Object} data - Event data
+   * @private
+   */
+  _emit(event, data) {
+    this._listeners.get(event)?.forEach(fn => fn(data));
   }
 
   /**
@@ -176,16 +213,30 @@ export class CorrectionProtocol {
         layerConfig = self._registry.detectFromTileUrls([tileUrl]);
       }
       
-      return fetchAndFixTile(
-        tileUrl,
-        z, 
-        x,
-        y,
-        self._tileFixer,
-        layerConfig,
-        self._tileSize,
-        { signal: abortController?.signal }
-      );
+      try {
+        const result = await fetchAndFixTile(
+          tileUrl,
+          z, 
+          x,
+          y,
+          self._tileFixer,
+          layerConfig,
+          self._tileSize,
+          { signal: abortController?.signal }
+        );
+        
+        if (result.correctionsFailed) {
+          console.warn('[CorrectionProtocol] Corrections fetch failed:', result.correctionsError);
+          self._emit('correctionerror', { error: result.correctionsError, coords: { z, x, y }, tileUrl });
+        }
+        
+        return { data: result.data };
+      } catch (err) {
+        console.warn('[CorrectionProtocol] Error applying corrections, falling back to original:', err);
+        self._emit('correctionerror', { error: err, coords: { z, x, y }, tileUrl });
+        const response = await fetch(tileUrl, { signal: abortController?.signal });
+        return { data: await response.arrayBuffer() };
+      }
     };
   }
 }

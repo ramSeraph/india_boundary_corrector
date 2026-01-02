@@ -18,14 +18,14 @@ export { getPmtilesUrl } from '@india-boundary-corrector/data';
  * @param {TileFixer} tileFixer - TileFixer instance
  * @param {Object} layerConfig - Layer configuration
  * @param {number} tileSize - Tile size in pixels
- * @returns {Promise<{blob: Blob, wasFixed: boolean}>}
+ * @returns {Promise<{blob: Blob, wasFixed: boolean, correctionsFailed: boolean, correctionsError: Error|null}>}
  */
 async function fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize) {
-  const { data, wasFixed } = await tileFixer.fetchAndFixTile(
+  const { data, wasFixed, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
     src, z, x, y, layerConfig, { tileSize, mode: 'cors' }
   );
   const blob = new Blob([data], { type: wasFixed ? 'image/png' : undefined });
-  return { blob, wasFixed };
+  return { blob, wasFixed, correctionsFailed, correctionsError };
 }
 
 /**
@@ -33,9 +33,10 @@ async function fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize) {
  * @param {TileFixer} tileFixer - The TileFixer instance
  * @param {Object} layerConfig - The layer configuration
  * @param {number} tileSize - Tile size in pixels
+ * @param {IndiaBoundaryCorrectedTileLayer} layer - The layer instance for event dispatching
  * @returns {Function} Custom tile load function
  */
-function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
+function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer) {
   return async function(imageTile, src) {
     const tileCoord = imageTile.getTileCoord();
     const z = tileCoord[0];
@@ -43,7 +44,12 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
     const y = tileCoord[2];
 
     try {
-      const { blob } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
+      const { blob, correctionsFailed, correctionsError } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
+
+      if (correctionsFailed) {
+        console.warn('[IndiaBoundaryCorrectedTileLayer] Corrections fetch failed:', correctionsError);
+        layer.dispatchEvent({ type: 'correctionerror', error: correctionsError, coords: { z, x, y }, tileUrl: src });
+      }
 
       const image = imageTile.getImage();
       
@@ -70,6 +76,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize) {
       }
     } catch (err) {
       console.warn('[IndiaBoundaryCorrectedTileLayer] Error applying corrections, falling back to original:', err);
+      layer.dispatchEvent({ type: 'correctionerror', error: err, coords: { z, x, y }, tileUrl: src });
       // Fall back to original tile
       const image = imageTile.getImage();
       if (typeof image.src !== 'undefined') {
@@ -125,15 +132,12 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
     // Create TileFixer
     const tileFixer = new TileFixer(pmtilesUrl ?? getPmtilesUrl());
 
-    // Create XYZ source with custom tile load function
+    // Create XYZ source (tileLoadFunction set after super() to access 'this')
     const source = new XYZ({
       url,
       tileSize,
       crossOrigin: 'anonymous',
       ...sourceOptions,
-      ...(resolvedConfig ? {
-        tileLoadFunction: createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize)
-      } : {})
     });
 
     super({
@@ -144,6 +148,11 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
     this._tileFixer = tileFixer;
     this._layerConfig = resolvedConfig;
     this._registry = registry;
+
+    // Set tileLoadFunction after super() so we can pass 'this' for event dispatching
+    if (resolvedConfig) {
+      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize, this));
+    }
 
     if (!resolvedConfig) {
       console.warn('[IndiaBoundaryCorrectedTileLayer] Could not detect layer config from URL. Corrections will not be applied.');

@@ -55,15 +55,65 @@ export function getLineWidth(zoom, lineWidthStops) {
 }
 
 /**
- * Get median of an array of numbers.
- * @param {number[]} arr
+ * Calculate the bounding box of features in pixel coordinates.
+ * @param {Array} features - Array of features with geometry
+ * @param {number} tileSize - Size of the tile in pixels
+ * @param {number} padding - Padding to add around the bounding box
+ * @returns {{minX: number, minY: number, maxX: number, maxY: number}}
+ */
+function getFeaturesBoundingBox(features, tileSize, padding = 0) {
+  let minX = Infinity, minY = Infinity;
+  let maxX = -Infinity, maxY = -Infinity;
+  
+  for (const feature of features) {
+    const scale = tileSize / feature.extent;
+    for (const ring of feature.geometry) {
+      for (const point of ring) {
+        const px = point.x * scale;
+        const py = point.y * scale;
+        if (px < minX) minX = px;
+        if (py < minY) minY = py;
+        if (px > maxX) maxX = px;
+        if (py > maxY) maxY = py;
+      }
+    }
+  }
+  
+  // Apply padding and clamp to tile bounds
+  return {
+    minX: Math.max(0, Math.floor(minX - padding)),
+    minY: Math.max(0, Math.floor(minY - padding)),
+    maxX: Math.min(tileSize, Math.ceil(maxX + padding)),
+    maxY: Math.min(tileSize, Math.ceil(maxY + padding))
+  };
+}
+
+/**
+ * Compute median of 8-bit values using histogram bucket sort (O(N) vs O(N log N)).
+ * @param {Uint16Array} histogram - Pre-allocated 256-element histogram to reuse
+ * @param {number[]} values - Array of 8-bit values (0-255)
  * @returns {number}
  */
-function median(arr) {
-  if (arr.length === 0) return 0;
-  const sorted = arr.slice().sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+function medianFromHistogram(histogram, values) {
+  const count = values.length;
+  if (count === 0) return 0;
+  
+  // Clear and populate histogram
+  histogram.fill(0);
+  for (let i = 0; i < count; i++) {
+    histogram[values[i]]++;
+  }
+  
+  // Find median by walking histogram
+  const medianPos = count >> 1; // Math.floor(count / 2)
+  let cumulative = 0;
+  for (let v = 0; v < 256; v++) {
+    cumulative += histogram[v];
+    if (cumulative > medianPos) {
+      return v;
+    }
+  }
+  return 0;
 }
 
 /**
@@ -72,8 +122,9 @@ function median(arr) {
  * @param {Array} features - Array of deletion features
  * @param {number} lineWidth - Width of the blur path
  * @param {number} tileSize - Size of the tile in pixels
+ * @param {OffscreenCanvas} [maskCanvas] - Optional reusable mask canvas
  */
-function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
+function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize, maskCanvas) {
   if (features.length === 0) return;
 
   // Get the image data
@@ -82,8 +133,10 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
   const width = tileSize;
   const height = tileSize;
 
-  // Create a mask canvas to mark pixels that need blurring
-  const maskCanvas = new OffscreenCanvas(tileSize, tileSize);
+  // Use provided canvas or create new one
+  if (!maskCanvas || maskCanvas.width !== tileSize || maskCanvas.height !== tileSize) {
+    maskCanvas = new OffscreenCanvas(tileSize, tileSize);
+  }
   const maskCtx = maskCanvas.getContext('2d');
   maskCtx.fillStyle = 'black';
   maskCtx.fillRect(0, 0, tileSize, tileSize);
@@ -115,17 +168,27 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
   // Create output buffer
   const output = new Uint8ClampedArray(data);
   
-  // Apply median filter to masked pixels
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  // Calculate bounding box of features to limit iteration
+  const bbox = getFeaturesBoundingBox(features, tileSize, radius);
+  
+  // Pre-allocate reusable arrays for histogram median calculation
+  const histogram = new Uint16Array(256);
+  const rValues = [];
+  const gValues = [];
+  const bValues = [];
+  
+  // Apply median filter to masked pixels within bounding box
+  for (let y = bbox.minY; y < bbox.maxY; y++) {
+    for (let x = bbox.minX; x < bbox.maxX; x++) {
       const maskIdx = (y * width + x) * 4;
       
       // Only process pixels on the deletion path (white in mask)
       if (maskData[maskIdx] < 128) continue;
       
-      const rValues = [];
-      const gValues = [];
-      const bValues = [];
+      // Clear arrays for reuse
+      rValues.length = 0;
+      gValues.length = 0;
+      bValues.length = 0;
       
       // Collect neighbor pixels (excluding masked pixels)
       for (let dy = -radius; dy <= radius; dy++) {
@@ -149,9 +212,9 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize) {
       // Apply median if we have enough samples
       if (rValues.length >= 3) {
         const idx = maskIdx;
-        output[idx] = median(rValues);
-        output[idx + 1] = median(gValues);
-        output[idx + 2] = median(bValues);
+        output[idx] = medianFromHistogram(histogram, rValues);
+        output[idx + 1] = medianFromHistogram(histogram, gValues);
+        output[idx + 2] = medianFromHistogram(histogram, bValues);
         // Keep alpha unchanged
       }
     }
@@ -217,6 +280,8 @@ export class BoundaryCorrector {
    */
   constructor(pmtilesUrl, options = {}) {
     this.correctionsSource = new CorrectionsSource(pmtilesUrl, options);
+    /** @type {OffscreenCanvas|null} Reusable scratch canvas for mask operations */
+    this._maskCanvas = null;
   }
 
   /**
@@ -308,7 +373,11 @@ export class BoundaryCorrector {
     // Apply median blur along deletion paths to erase incorrect boundaries
     const delFeatures = corrections[delLayerName] || [];
     if (delFeatures.length > 0) {
-      applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize);
+      // Get or create reusable mask canvas
+      if (!this._maskCanvas || this._maskCanvas.width !== tileSize) {
+        this._maskCanvas = new OffscreenCanvas(tileSize, tileSize);
+      }
+      applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize, this._maskCanvas);
     }
 
     // Draw addition lines using active lineStyles (in order)
@@ -361,23 +430,32 @@ export class BoundaryCorrector {
       this.getCorrections(z, x, y)
     ]);
 
+    // Check if aborted before proceeding with CPU-intensive work
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
     // Handle fetch failure
     if (tileResult.status === 'rejected') {
       throw tileResult.reason;
     }
 
     const tileData = tileResult.value;
+    
+    // Check if corrections fetch failed
+    const correctionsFailed = correctionsResult.status === 'rejected';
+    const correctionsError = correctionsFailed ? correctionsResult.reason : null;
     const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
 
     // Check if there are any corrections to apply
     const hasCorrections = Object.values(corrections).some(arr => arr && arr.length > 0);
 
     if (!hasCorrections) {
-      return { data: tileData, wasFixed: false };
+      return { data: tileData, wasFixed: false, correctionsFailed, correctionsError };
     }
 
     // Apply corrections
     const fixedData = await this.fixTile(corrections, tileData, layerConfig, z, tileSize);
-    return { data: fixedData, wasFixed: true };
+    return { data: fixedData, wasFixed: true, correctionsFailed: false, correctionsError: null };
   }
 }

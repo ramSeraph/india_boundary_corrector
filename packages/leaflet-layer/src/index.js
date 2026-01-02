@@ -51,15 +51,15 @@ function extendLeaflet(L) {
      * @param {number} x - Tile X coordinate
      * @param {number} y - Tile Y coordinate
      * @param {number} tileSize - Tile size in pixels
-     * @returns {Promise<{blob: Blob, wasFixed: boolean, error?: Error}>}
+     * @returns {Promise<{blob: Blob, wasFixed: boolean, correctionsFailed: boolean, correctionsError: Error|null}>}
      * @private
      */
     _fetchAndFixTile: async function (tileUrl, z, x, y, tileSize) {
-      const { data, wasFixed } = await this._tileFixer.fetchAndFixTile(
+      const { data, wasFixed, correctionsFailed, correctionsError } = await this._tileFixer.fetchAndFixTile(
         tileUrl, z, x, y, this._layerConfig, { tileSize }
       );
       const blob = new Blob([data], { type: wasFixed ? 'image/png' : undefined });
-      return { blob, wasFixed };
+      return { blob, wasFixed, correctionsFailed, correctionsError };
     },
 
     createTile: function (coords, done) {
@@ -89,7 +89,11 @@ function extendLeaflet(L) {
       const tileSize = this.options.tileSize || 256;
 
       this._fetchAndFixTile(tileUrl, z, x, y, tileSize)
-        .then(({ blob, wasFixed }) => {
+        .then(({ blob, wasFixed, correctionsFailed, correctionsError }) => {
+          if (correctionsFailed) {
+            console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);
+            this.fire('correctionerror', { error: correctionsError, coords: { z, x, y }, tileUrl });
+          }
           tile.src = URL.createObjectURL(blob);
           tile.onload = () => {
             URL.revokeObjectURL(tile.src);
@@ -102,6 +106,7 @@ function extendLeaflet(L) {
         })
         .catch((err) => {
           console.warn('[L.TileLayer.IndiaBoundaryCorrected] Error applying corrections, falling back to original:', err);
+          this.fire('correctionerror', { error: err, coords: { z, x, y }, tileUrl });
           tile.onload = () => done(null, tile);
           tile.onerror = (e) => done(e, tile);
           tile.src = tileUrl;

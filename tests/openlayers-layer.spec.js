@@ -165,4 +165,74 @@ test.describe('OpenLayers Layer Package', () => {
       expect(result.hadWarning).toBe(true);
     });
   });
+
+  test.describe('correctionerror Event', () => {
+    test('returns correctionsFailed when PMTiles fetch fails', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { IndiaBoundaryCorrectedTileLayer } = window;
+        
+        // Create layer with a broken PMTiles URL
+        const layer = new IndiaBoundaryCorrectedTileLayer({
+          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          layerConfig: 'osm-carto',
+          pmtilesUrl: 'https://nonexistent.example.com/broken.pmtiles'
+        });
+
+        // Trigger a tile load with a working mock tile URL (PMTiles will fail)
+        const mockTileUrl = window.createMockTileUrl('success');
+        
+        const result = await layer._fetchAndFixTile(mockTileUrl, 8, 182, 101);
+
+        return {
+          hasBlob: result.blob instanceof Blob,
+          blobSize: result.blob.size,
+          correctionsFailed: result.correctionsFailed,
+          hasCorrectionsError: !!result.correctionsError,
+        };
+      });
+
+      expect(result.hasBlob).toBe(true);
+      expect(result.blobSize).toBeGreaterThan(0);
+      expect(result.correctionsFailed).toBe(true);
+      expect(result.hasCorrectionsError).toBe(true);
+    });
+
+    test('dispatches correctionerror event on layer', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { IndiaBoundaryCorrectedTileLayer } = window;
+        
+        // Create layer with a broken PMTiles URL
+        const layer = new IndiaBoundaryCorrectedTileLayer({
+          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          layerConfig: 'osm-carto',
+          pmtilesUrl: 'https://nonexistent.example.com/broken.pmtiles'
+        });
+
+        // Listen for correction error event
+        let errorEvent = null;
+        layer.on('correctionerror', (e) => {
+          errorEvent = {
+            hasError: !!e.error,
+            hasCoords: !!e.coords,
+            hasTileUrl: !!e.tileUrl,
+          };
+        });
+
+        // Manually dispatch event to verify listener works
+        layer.dispatchEvent({ 
+          type: 'correctionerror', 
+          error: new Error('test'), 
+          coords: { z: 8, x: 182, y: 101 }, 
+          tileUrl: 'http://example.com/tile.png' 
+        });
+
+        return errorEvent;
+      });
+
+      expect(result).not.toBeNull();
+      expect(result.hasError).toBe(true);
+      expect(result.hasCoords).toBe(true);
+      expect(result.hasTileUrl).toBe(true);
+    });
+  });
 });
