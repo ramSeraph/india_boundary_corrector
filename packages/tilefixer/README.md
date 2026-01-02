@@ -46,7 +46,7 @@ new BoundaryCorrector(pmtilesUrl, options?)
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `pmtilesUrl` | string | URL to the PMTiles file |
-| `options.cacheSize` | number | Maximum tiles to cache (default: 512) |
+| `options.cacheSize` | number | Maximum tiles to cache (default: 64) |
 
 #### Methods
 
@@ -54,8 +54,26 @@ new BoundaryCorrector(pmtilesUrl, options?)
 |--------|---------|-------------|
 | `getCorrections(z, x, y)` | `Promise<Object>` | Get correction features for a tile. Supports overzoom beyond zoom 14. |
 | `fixTile(corrections, rasterTile, layerConfig, zoom, tileSize?)` | `Promise<ArrayBuffer>` | Apply corrections to a raster tile and return corrected PNG. |
+| `fetchAndFixTile(tileUrl, z, x, y, layerConfig, options?)` | `Promise<Object>` | Fetch a tile, apply corrections, and return result. See below. |
 | `getSource()` | `PMTiles` | Get the underlying PMTiles source object |
 | `clearCache()` | `void` | Clear the tile cache |
+
+#### `fetchAndFixTile` Options and Return Value
+
+```javascript
+const result = await corrector.fetchAndFixTile(tileUrl, z, x, y, layerConfig, {
+  tileSize: 256,        // Tile size in pixels (default: 256)
+  signal: abortSignal,  // AbortSignal for cancellation
+  mode: 'cors',         // Fetch mode
+});
+
+// result: {
+//   data: ArrayBuffer,           // The tile image data
+//   wasFixed: boolean,           // Whether corrections were applied
+//   correctionsFailed: boolean,  // Whether corrections fetch failed
+//   correctionsError: Error|null // The error if corrections failed
+// }
+```
 
 ## How It Works
 
