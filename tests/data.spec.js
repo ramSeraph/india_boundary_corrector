@@ -1,6 +1,19 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * Tests for the @india-boundary-corrector/data package.
+ * 
+ * This package provides:
+ * - The PMTiles file URL containing boundary correction vectors
+ * - Layer name constants for accessing correction data
+ * - Version information about the bundled data
+ */
 test.describe('Data Package', () => {
+  /**
+   * Tests for the `layers` constant export.
+   * The layers object maps friendly names to actual layer names in the PMTiles file.
+   * These layer names are used by tilefixer to extract the correct features.
+   */
   test.describe('layers constant', () => {
     test('exports correct layer names', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
@@ -8,6 +21,7 @@ test.describe('Data Package', () => {
 
       const layers = await page.evaluate(() => window.dataPackage.layers);
 
+      // Four layers: add/delete for OSM data (high zoom) and Natural Earth data (low zoom)
       expect(layers).toEqual({
         toAddOsm: 'to-add-osm',
         toDelOsm: 'to-del-osm',
@@ -17,6 +31,11 @@ test.describe('Data Package', () => {
     });
   });
 
+  /**
+   * Tests for getPmtilesUrl().
+   * This function returns the URL to the bundled PMTiles file.
+   * By default, it derives the URL from the module's location (import.meta.url).
+   */
   test.describe('getPmtilesUrl', () => {
     test('returns URL derived from import.meta.url by default', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
@@ -39,10 +58,17 @@ test.describe('Data Package', () => {
         return { url1, url2, same: url1 === url2 };
       });
 
+      // URL should be computed once and cached
       expect(urls.same).toBe(true);
     });
   });
 
+  /**
+   * Tests for setPmtilesUrl().
+   * Allows users to override the default PMTiles URL, useful for:
+   * - Self-hosting the PMTiles file on a CDN
+   * - Using a different version of the data
+   */
   test.describe('setPmtilesUrl', () => {
     test('allows manual override of the URL', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
@@ -59,6 +85,11 @@ test.describe('Data Package', () => {
     });
   });
 
+  /**
+   * Tests for getDataVersion().
+   * Returns version information about the bundled boundary data.
+   * Useful for cache busting and debugging data freshness.
+   */
   test.describe('getDataVersion', () => {
     test('returns a version string', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
@@ -76,7 +107,9 @@ test.describe('Data Package', () => {
 
       const version = await page.evaluate(() => window.dataPackage.getDataVersion());
 
-      // Expected format: osm_YYYYMMDD_HHMMSS_ne_X.X.X
+      // Format: osm_YYYYMMDD_HHMMSS_ne_X.X.X
+      // - osm timestamp indicates when OSM data was extracted
+      // - ne version indicates Natural Earth data version used
       expect(version).toMatch(/osm_\d{8}_\d{6}_ne_\d+\.\d+\.\d+/);
     });
   });

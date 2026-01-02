@@ -109,11 +109,8 @@ function extendLeaflet(L) {
           };
         })
         .catch((err) => {
-          console.warn('[L.TileLayer.IndiaBoundaryCorrected] Error applying corrections, falling back to original:', err);
-          this.fire('correctionerror', { error: err, coords: { z, x, y }, tileUrl });
-          tile.onload = () => done(null, tile);
-          tile.onerror = (e) => done(e, tile);
-          tile.src = tileUrl;
+          console.warn('[L.TileLayer.IndiaBoundaryCorrected] Tile fetch failed:', err);
+          done(err, tile);
         });
 
       return tile;

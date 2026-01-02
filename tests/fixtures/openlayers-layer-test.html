@@ -19,7 +19,7 @@
     }
   </script>
   <script type="module">
-    import { IndiaBoundaryCorrectedTileLayer, fetchAndFixTile } from '@india-boundary-corrector/openlayers-layer';
+    import { IndiaBoundaryCorrectedTileLayer, fetchAndFixTile, LayerConfig } from '@india-boundary-corrector/openlayers-layer';
     import { layerConfigs } from '@india-boundary-corrector/layer-configs';
     import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
@@ -119,6 +119,7 @@
       layerConfig,
     };
     window.IndiaBoundaryCorrectedTileLayer = IndiaBoundaryCorrectedTileLayer;
+    window.LayerConfig = LayerConfig;
     window.openlayersLayerLoaded = true;
   </script>
 </body>

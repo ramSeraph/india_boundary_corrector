@@ -17,7 +17,7 @@
     }
   </script>
   <script type="module">
-    import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
+    import { extendLeaflet, layerConfigs, LayerConfig } from '@india-boundary-corrector/leaflet-layer';
     
     // Extend Leaflet with the corrected tile layer
     extendLeaflet(L);
@@ -27,6 +27,9 @@
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       { layerConfig: 'osm-carto' }
     );
+
+    // Expose package exports for testing
+    window.leafletLayerPackage = { layerConfigs, LayerConfig };
 
     // Mock fetch for testing different scenarios
     const originalFetch = window.fetch;

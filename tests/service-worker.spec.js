@@ -622,4 +622,128 @@ test.describe('Service Worker Package', () => {
       expect(result.hasOurSw).toBe(false);
     });
   });
+
+  test.describe('Integration - Tile Interception', () => {
+    test('intercepts and corrects matching tile requests', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Fetch a tile that matches osm-carto config (tile with corrections)
+        const response = await fetch('https://tile.openstreetmap.org/8/182/101.png');
+        
+        return {
+          ok: response.ok,
+          hasCorrectionHeader: response.headers.has('X-Boundary-Corrected'),
+          correctionHeader: response.headers.get('X-Boundary-Corrected'),
+          contentType: response.headers.get('Content-Type'),
+        };
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.hasCorrectionHeader).toBe(true);
+      expect(result.correctionHeader).toBe('true'); // Tile 8/182/101 has corrections
+      expect(result.contentType).toBe('image/png');
+    });
+
+    test('returns uncorrected tiles for areas without corrections', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Fetch a tile that matches osm-carto but has no corrections (far from India)
+        const response = await fetch('https://tile.openstreetmap.org/8/0/0.png');
+        
+        return {
+          ok: response.ok,
+          hasCorrectionHeader: response.headers.has('X-Boundary-Corrected'),
+          correctionHeader: response.headers.get('X-Boundary-Corrected'),
+        };
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.hasCorrectionHeader).toBe(true);
+      expect(result.correctionHeader).toBe('false'); // No corrections for this tile
+    });
+
+    test('does not intercept requests when disabled', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Disable corrections
+        await sw.setEnabled(false);
+        
+        // Fetch a tile - should not be intercepted
+        const response = await fetch('https://tile.openstreetmap.org/8/182/101.png');
+        
+        return {
+          ok: response.ok,
+          hasCorrectionHeader: response.headers.has('X-Boundary-Corrected'),
+        };
+      });
+
+      expect(result.ok).toBe(true);
+      // When disabled, SW doesn't intercept so no custom header
+      expect(result.hasCorrectionHeader).toBe(false);
+    });
+
+    test('does not intercept non-matching tile URLs', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Fetch a local URL that doesn't match any tile config pattern
+        // Using a local file that exists to avoid network errors
+        const response = await fetch('/tests/fixtures/service-worker-test.html');
+        
+        return {
+          hasCorrectionHeader: response.headers.has('X-Boundary-Corrected'),
+        };
+      });
+
+      // Non-matching requests are not intercepted, so no custom header
+      expect(result.hasCorrectionHeader).toBe(false);
+    });
+
+    test('intercepts tiles matching custom added config', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        // Add custom config for CartoDB dark tiles
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'custom-carto',
+          zoomThreshold: 5,
+          tileUrlTemplates: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+        }));
+        
+        // Fetch a tile matching the custom config
+        const response = await fetch('https://a.basemaps.cartocdn.com/dark_all/8/182/101.png');
+        
+        return {
+          ok: response.ok,
+          hasCorrectionHeader: response.headers.has('X-Boundary-Corrected'),
+        };
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.hasCorrectionHeader).toBe(true);
+    });
+  });
 });

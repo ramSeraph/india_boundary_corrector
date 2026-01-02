@@ -263,6 +263,87 @@ test.describe('Layer Configs Package', () => {
       expect(ids).toContain('cartodb-dark');
       expect(ids).toContain('osm-carto');
     });
+
+    test('createMergedRegistry includes original configs', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const merged = window.layerConfigsPackage.layerConfigs.createMergedRegistry();
+        return {
+          hasCartodb: !!merged.get('cartodb-dark'),
+          hasOsm: !!merged.get('osm-carto'),
+          ids: merged.getAvailableIds(),
+        };
+      });
+      expect(result.hasCartodb).toBe(true);
+      expect(result.hasOsm).toBe(true);
+      expect(result.ids).toContain('cartodb-dark');
+      expect(result.ids).toContain('osm-carto');
+    });
+
+    test('createMergedRegistry includes extra configs', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const customConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'custom-merged',
+          tileUrlTemplates: 'https://custom.example.com/{z}/{x}/{y}.png',
+        });
+        const merged = window.layerConfigsPackage.layerConfigs.createMergedRegistry([customConfig]);
+        return {
+          hasCustom: !!merged.get('custom-merged'),
+          hasCartodb: !!merged.get('cartodb-dark'),
+          ids: merged.getAvailableIds(),
+        };
+      });
+      expect(result.hasCustom).toBe(true);
+      expect(result.hasCartodb).toBe(true);
+      expect(result.ids).toContain('custom-merged');
+      expect(result.ids).toContain('cartodb-dark');
+    });
+
+    test('createMergedRegistry does not modify original registry', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const customConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'custom-should-not-appear',
+          tileUrlTemplates: 'https://custom2.example.com/{z}/{x}/{y}.png',
+        });
+        const original = window.layerConfigsPackage.layerConfigs;
+        const merged = original.createMergedRegistry([customConfig]);
+        return {
+          originalHasCustom: !!original.get('custom-should-not-appear'),
+          mergedHasCustom: !!merged.get('custom-should-not-appear'),
+        };
+      });
+      expect(result.originalHasCustom).toBe(false);
+      expect(result.mergedHasCustom).toBe(true);
+    });
+
+    test('createMergedRegistry detects from extra configs', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const customConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'custom-detect',
+          tileUrlTemplates: 'https://detect.example.com/{z}/{x}/{y}.png',
+        });
+        const merged = window.layerConfigsPackage.layerConfigs.createMergedRegistry([customConfig]);
+        const detected = merged.detectFromTemplates('https://detect.example.com/{z}/{x}/{y}.png');
+        return detected?.id;
+      });
+      expect(result).toBe('custom-detect');
+    });
+
+    test('createMergedRegistry with null/undefined extra configs', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const mergedNull = window.layerConfigsPackage.layerConfigs.createMergedRegistry(null);
+        const mergedUndefined = window.layerConfigsPackage.layerConfigs.createMergedRegistry(undefined);
+        const mergedEmpty = window.layerConfigsPackage.layerConfigs.createMergedRegistry([]);
+        return {
+          nullIds: mergedNull.getAvailableIds(),
+          undefinedIds: mergedUndefined.getAvailableIds(),
+          emptyIds: mergedEmpty.getAvailableIds(),
+        };
+      });
+      // All should have the original configs
+      expect(result.nullIds).toContain('cartodb-dark');
+      expect(result.undefinedIds).toContain('cartodb-dark');
+      expect(result.emptyIds).toContain('cartodb-dark');
+    });
   });
 
   test.describe('LayerConfig class', () => {
@@ -605,6 +686,7 @@ test.describe('Layer Configs Package', () => {
             { color: 'blue', widthFraction: 0.5, dashArray: [10, 5] },
           ],
           delWidthFactor: 2.0,
+          lineExtensionFactor: 0.75,
         });
 
         const json = original.toJSON();
@@ -619,6 +701,7 @@ test.describe('Layer Configs Package', () => {
             lineWidthStops: original.lineWidthStops,
             lineStyles: original.lineStyles,
             delWidthFactor: original.delWidthFactor,
+            lineExtensionFactor: original.lineExtensionFactor,
           },
           restored: {
             id: restored.id,
@@ -628,6 +711,7 @@ test.describe('Layer Configs Package', () => {
             lineWidthStops: restored.lineWidthStops,
             lineStyles: restored.lineStyles,
             delWidthFactor: restored.delWidthFactor,
+            lineExtensionFactor: restored.lineExtensionFactor,
           },
           // Verify restored config still works
           matchesUrl: restored.matchTileUrl('https://example.com/5/10/15.png'),

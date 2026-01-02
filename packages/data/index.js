@@ -21,12 +21,11 @@ export const layers = {
 /**
  * Detect the PMTiles URL from various sources:
  * 1. import.meta.url (for ESM bundlers - most reliable)
- * 2. Script tag with data-pmtiles-url attribute (explicit override)
- * 3. Fallback to unpkg CDN with pinned version
+ * 2. Fallback to unpkg CDN with pinned version
  * 
  * Note: When this package is bundled into another bundle, import.meta.url
  * won't work and we fall back to the CDN URL. Users can override with
- * setPmtilesUrl() or data-pmtiles-url attribute for self-hosted scenarios.
+ * setPmtilesUrl() for self-hosted scenarios.
  */
 function detectPmtilesUrl() {
   // Try import.meta.url first (works in ESM environments)
@@ -37,14 +36,6 @@ function detectPmtilesUrl() {
     }
   } catch {
     // import.meta not available (UMD/CJS/bundled)
-  }
-
-  // In browser, check for explicit data attribute override
-  if (typeof document !== 'undefined') {
-    const scriptWithAttr = document.querySelector('script[data-pmtiles-url]');
-    if (scriptWithAttr) {
-      return scriptWithAttr.getAttribute('data-pmtiles-url');
-    }
   }
 
   // Fallback to CDN with pinned version
@@ -61,11 +52,10 @@ let cachedPmtilesUrl = null;
  * Detection priority:
  * 1. Manually set URL via setPmtilesUrl()
  * 2. import.meta.url (ESM environments)
- * 3. data-pmtiles-url script attribute
- * 4. unpkg CDN fallback (pinned to current version)
+ * 3. unpkg CDN fallback (pinned to current version)
  * 
  * For self-hosted deployments or custom bundling scenarios,
- * use setPmtilesUrl() or add a script tag with data-pmtiles-url attribute.
+ * use setPmtilesUrl().
  * 
  * @returns {string} URL to the PMTiles file
  */

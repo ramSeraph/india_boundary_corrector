@@ -140,6 +140,33 @@ test.describe('OpenLayers Layer Package', () => {
       expect(result.configId).toBe('osm-carto');
     });
 
+    test('uses LayerConfig object directly', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { IndiaBoundaryCorrectedTileLayer, LayerConfig } = window;
+        
+        const customConfig = new LayerConfig({
+          id: 'custom-direct',
+          tileUrlTemplates: 'https://custom.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'purple' }],
+        });
+        
+        const layer = new IndiaBoundaryCorrectedTileLayer({
+          url: 'https://custom.example.com/{z}/{x}/{y}.png',
+          layerConfig: customConfig
+        });
+        
+        return {
+          hasLayerConfig: !!layer.getLayerConfig(),
+          configId: layer.getLayerConfig()?.id,
+          lineColor: layer.getLayerConfig()?.lineStyles[0]?.color,
+        };
+      });
+
+      expect(result.hasLayerConfig).toBe(true);
+      expect(result.configId).toBe('custom-direct');
+      expect(result.lineColor).toBe('purple');
+    });
+
     test('warns when layer config cannot be detected', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { IndiaBoundaryCorrectedTileLayer } = window;

@@ -142,6 +142,34 @@ test.describe('Leaflet Layer Package', () => {
       expect(result.configId).toBe('osm-carto');
     });
 
+    test('uses LayerConfig object directly', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const L = window.L;
+        const { LayerConfig } = window.leafletLayerPackage;
+        
+        const customConfig = new LayerConfig({
+          id: 'custom-direct',
+          tileUrlTemplates: 'https://custom.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'purple' }],
+        });
+        
+        const layer = L.tileLayer.indiaBoundaryCorrected(
+          'https://custom.example.com/{z}/{x}/{y}.png',
+          { layerConfig: customConfig }
+        );
+        
+        return {
+          hasLayerConfig: !!layer._layerConfig,
+          configId: layer._layerConfig?.id,
+          lineColor: layer._layerConfig?.lineStyles[0]?.color,
+        };
+      });
+
+      expect(result.hasLayerConfig).toBe(true);
+      expect(result.configId).toBe('custom-direct');
+      expect(result.lineColor).toBe('purple');
+    });
+
     test('warns when layer config cannot be detected', async ({ page }) => {
       const result = await page.evaluate(() => {
         const L = window.L;

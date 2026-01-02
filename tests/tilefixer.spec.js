@@ -423,6 +423,68 @@ test.describe('TileFixer Package', () => {
     });
   });
 
+  test.describe('clearCache', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('clearCache removes cached tiles', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        
+        // Fetch a tile to populate cache
+        const z = 4, x = 11, y = 6;
+        await corrector.getCorrections(z, x, y);
+        
+        // Get cache size before clear (access internal state)
+        const cacheSizeBefore = corrector.correctionsSource.cache.size;
+        
+        // Clear cache
+        corrector.clearCache();
+        
+        // Get cache size after clear
+        const cacheSizeAfter = corrector.correctionsSource.cache.size;
+        
+        return {
+          cacheSizeBefore,
+          cacheSizeAfter,
+        };
+      });
+
+      // Cache should have had at least one entry before
+      expect(result.cacheSizeBefore).toBeGreaterThan(0);
+      // Cache should be empty after clear
+      expect(result.cacheSizeAfter).toBe(0);
+    });
+
+    test('getCorrections still works after clearCache', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        
+        const z = 4, x = 11, y = 6;
+        
+        // Fetch tile, clear cache, fetch again
+        const firstResult = await corrector.getCorrections(z, x, y);
+        corrector.clearCache();
+        const secondResult = await corrector.getCorrections(z, x, y);
+        
+        return {
+          firstHasData: Object.keys(firstResult).length > 0,
+          secondHasData: Object.keys(secondResult).length > 0,
+          firstLayers: Object.keys(firstResult),
+          secondLayers: Object.keys(secondResult),
+        };
+      });
+
+      // Both fetches should succeed
+      expect(result.firstHasData).toBe(true);
+      expect(result.secondHasData).toBe(true);
+      // Both should return same layers
+      expect(result.firstLayers).toEqual(result.secondLayers);
+    });
+  });
+
   test.describe('fixTile - Line Drawing', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/tests/fixtures/tilefixer-test.html');
@@ -709,6 +771,513 @@ test.describe('TileFixer Package', () => {
 
       // z6 should NOT have colored pixel (line NOT drawn, beyond endZoom)
       expect(result.z6Center.isColored).toBe(false);
+    });
+  });
+
+  test.describe('fixTile - Line Extension', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('extends line ending inside tile (not at edge) when lineExtensionFactor > 0', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, getPixelColor, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Line that starts at edge (x=0) but ends inside the tile (x=2048 = middle)
+        // Without extension, the line would end at pixel x=128
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },     // Start at left edge
+                { x: 2048, y: 2048 },  // End in middle of tile
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-del-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 1024 },
+                { x: 4096, y: 1024 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Config with extension enabled (default 0.5)
+        const configWithExtension = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineExtensionFactor: 0.5,
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        // Config with extension disabled
+        const configNoExtension = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineExtensionFactor: 0,
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        const tileWithExtension = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
+        const tileNoExtension = await corrector.fixTile(corrections, blankTile, configNoExtension, 6, tileSize);
+
+        // Check pixels beyond the original end point (x=128)
+        // With extension, there should be colored pixels at x=135
+        // Without extension, x=135 should be white
+        const extendedPixel = await getPixelColor(tileWithExtension, tileSize, 135, 128);
+        const noExtendedPixel = await getPixelColor(tileNoExtension, tileSize, 135, 128);
+
+        return {
+          extendedPixel,
+          noExtendedPixel,
+          withExtensionBase64: arrayBufferToBase64(tileWithExtension),
+          noExtensionBase64: arrayBufferToBase64(tileNoExtension),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-with-extension.png', result.withExtensionBase64);
+      await saveDebugImage(testInfo.title, '2-no-extension.png', result.noExtensionBase64);
+
+      // With extension, the pixel beyond original endpoint should be colored
+      expect(result.extendedPixel.isColored).toBe(true);
+      // Without extension, the pixel beyond original endpoint should NOT be colored
+      expect(result.noExtendedPixel.isColored).toBe(false);
+    });
+
+    test('does not extend line ending at tile edge', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Line that spans full tile width (starts and ends at edges)
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },     // Start at left edge
+                { x: 4096, y: 2048 },  // End at right edge
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-del-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 1024 },
+                { x: 4096, y: 1024 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        const configWithExtension = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineExtensionFactor: 0.5,
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        const tile = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
+        const analysis = await analyzePixels(tile, tileSize);
+
+        return {
+          minX: analysis.minX,
+          maxX: analysis.maxX,
+          outputBase64: arrayBufferToBase64(tile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-output.png', result.outputBase64);
+
+      // Line should not extend beyond tile boundaries
+      // minX should be close to 0, maxX close to 255
+      expect(result.minX).toBeLessThanOrEqual(5);
+      expect(result.maxX).toBeGreaterThanOrEqual(250);
+    });
+
+    test('extension length scales with deletion line width', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Line ending in middle of tile
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 2048, y: 2048 },  // End in middle
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-del-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 1024 },
+                { x: 4096, y: 1024 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Thin deletion line
+        const thinConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 2, 10: 2, 14: 2 },
+          delWidthFactor: 2,  // delLineWidth = 2 * 2 = 4
+          lineExtensionFactor: 0.5,  // extension = 4 * 0.5 = 2 pixels
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        // Thick deletion line
+        const thickConfig = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 8, 10: 8, 14: 8 },
+          delWidthFactor: 2,  // delLineWidth = 8 * 2 = 16
+          lineExtensionFactor: 0.5,  // extension = 16 * 0.5 = 8 pixels
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        const thinTile = await corrector.fixTile(corrections, blankTile, thinConfig, 6, tileSize);
+        const thickTile = await corrector.fixTile(corrections, blankTile, thickConfig, 6, tileSize);
+
+        const thinAnalysis = await analyzePixels(thinTile, tileSize);
+        const thickAnalysis = await analyzePixels(thickTile, tileSize);
+
+        return {
+          thinMaxX: thinAnalysis.maxX,
+          thickMaxX: thickAnalysis.maxX,
+          thinBase64: arrayBufferToBase64(thinTile),
+          thickBase64: arrayBufferToBase64(thickTile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-thin.png', result.thinBase64);
+      await saveDebugImage(testInfo.title, '2-thick.png', result.thickBase64);
+
+      // Thick config should extend further than thin config
+      expect(result.thickMaxX).toBeGreaterThan(result.thinMaxX);
+    });
+
+    test('no extension when no deletion features exist', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Only addition, no deletion
+        const corrections = {
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 2048, y: 2048 },  // End in middle
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        const config = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineExtensionFactor: 0.5,
+          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+        };
+
+        const tile = await corrector.fixTile(corrections, blankTile, config, 6, tileSize);
+        const analysis = await analyzePixels(tile, tileSize);
+
+        return {
+          maxX: analysis.maxX,
+          outputBase64: arrayBufferToBase64(tile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-output.png', result.outputBase64);
+
+      // Without deletion features, extension should not happen
+      // Line ends at x=128 (middle), with line width ~4, maxX should be around 130
+      expect(result.maxX).toBeLessThan(135);
+    });
+  });
+
+  test.describe('fixTile - startZoom and zoomThreshold', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/tests/fixtures/tilefixer-test.html');
+      await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
+    });
+
+    test('returns original tile unchanged when zoom < startZoom', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        const corrections = {
+          'to-add-ne': [
+            {
+              geometry: [[
+                { x: 0, y: 2048 },
+                { x: 4096, y: 2048 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Config with startZoom = 3
+        const config = {
+          startZoom: 3,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+        };
+
+        // Test at z2 (below startZoom) - should NOT draw
+        const z2Tile = await corrector.fixTile(corrections, blankTile, config, 2, tileSize);
+        const z2Analysis = await analyzePixels(z2Tile, tileSize);
+
+        // Test at z3 (at startZoom) - should draw
+        const z3Tile = await corrector.fixTile(corrections, blankTile, config, 3, tileSize);
+        const z3Analysis = await analyzePixels(z3Tile, tileSize);
+
+        // Test at z4 (above startZoom) - should draw
+        const z4Tile = await corrector.fixTile(corrections, blankTile, config, 4, tileSize);
+        const z4Analysis = await analyzePixels(z4Tile, tileSize);
+
+        return {
+          z2Colored: z2Analysis.coloredPixels,
+          z3Colored: z3Analysis.coloredPixels,
+          z4Colored: z4Analysis.coloredPixels,
+          z2Base64: arrayBufferToBase64(z2Tile),
+          z3Base64: arrayBufferToBase64(z3Tile),
+          z4Base64: arrayBufferToBase64(z4Tile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-z2-below-startZoom.png', result.z2Base64);
+      await saveDebugImage(testInfo.title, '2-z3-at-startZoom.png', result.z3Base64);
+      await saveDebugImage(testInfo.title, '3-z4-above-startZoom.png', result.z4Base64);
+
+      // z2 should have NO colored pixels (below startZoom)
+      expect(result.z2Colored).toBe(0);
+      // z3 should have colored pixels (at startZoom)
+      expect(result.z3Colored).toBeGreaterThan(0);
+      // z4 should have colored pixels (above startZoom)
+      expect(result.z4Colored).toBeGreaterThan(0);
+    });
+
+    test('uses NE layers below zoomThreshold and OSM layers at/above', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createBlankTile, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        const blankTile = await createBlankTile(tileSize, 'white');
+
+        // Corrections with different data in NE vs OSM layers
+        // NE layer: horizontal line at y=64 (top quarter)
+        // OSM layer: horizontal line at y=192 (bottom quarter)
+        const corrections = {
+          'to-add-ne': [
+            {
+              geometry: [[
+                { x: 0, y: 1024 },  // y = 1024/4096 * 256 = 64
+                { x: 4096, y: 1024 },
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-add-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 3072 },  // y = 3072/4096 * 256 = 192
+                { x: 4096, y: 3072 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        // Config with zoomThreshold = 5
+        const config = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+        };
+
+        // Test at z4 (below zoomThreshold) - should use NE layer (line at y=64)
+        const z4Tile = await corrector.fixTile(corrections, blankTile, config, 4, tileSize);
+        const z4Analysis = await analyzePixels(z4Tile, tileSize);
+
+        // Test at z5 (at zoomThreshold) - should use OSM layer (line at y=192)
+        const z5Tile = await corrector.fixTile(corrections, blankTile, config, 5, tileSize);
+        const z5Analysis = await analyzePixels(z5Tile, tileSize);
+
+        // Test at z6 (above zoomThreshold) - should use OSM layer (line at y=192)
+        const z6Tile = await corrector.fixTile(corrections, blankTile, config, 6, tileSize);
+        const z6Analysis = await analyzePixels(z6Tile, tileSize);
+
+        return {
+          z4MinY: z4Analysis.minY,
+          z4MaxY: z4Analysis.maxY,
+          z5MinY: z5Analysis.minY,
+          z5MaxY: z5Analysis.maxY,
+          z6MinY: z6Analysis.minY,
+          z6MaxY: z6Analysis.maxY,
+          z4Base64: arrayBufferToBase64(z4Tile),
+          z5Base64: arrayBufferToBase64(z5Tile),
+          z6Base64: arrayBufferToBase64(z6Tile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-z4-NE-layer.png', result.z4Base64);
+      await saveDebugImage(testInfo.title, '2-z5-OSM-layer.png', result.z5Base64);
+      await saveDebugImage(testInfo.title, '3-z6-OSM-layer.png', result.z6Base64);
+
+      // z4 should have line near y=64 (NE layer)
+      expect(result.z4MinY).toBeGreaterThanOrEqual(58);
+      expect(result.z4MaxY).toBeLessThanOrEqual(72);
+
+      // z5 should have line near y=192 (OSM layer)
+      expect(result.z5MinY).toBeGreaterThanOrEqual(186);
+      expect(result.z5MaxY).toBeLessThanOrEqual(200);
+
+      // z6 should have line near y=192 (OSM layer)
+      expect(result.z6MinY).toBeGreaterThanOrEqual(186);
+      expect(result.z6MaxY).toBeLessThanOrEqual(200);
+    });
+
+    test('deletion also respects zoomThreshold for layer selection', async ({ page }, testInfo) => {
+      const result = await page.evaluate(async () => {
+        const { createTileWithLine, analyzePixels, arrayBufferToBase64 } = window.testHelpers;
+        const corrector = window.corrector;
+
+        const tileSize = 256;
+        
+        // Create tile with TWO black lines - one at y=64, one at y=192
+        const canvas = new OffscreenCanvas(tileSize, tileSize);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, tileSize, tileSize);
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, 64);
+        ctx.lineTo(256, 64);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 192);
+        ctx.lineTo(256, 192);
+        ctx.stroke();
+        const blob = await canvas.convertToBlob({ type: 'image/png' });
+        const tileWithLines = await blob.arrayBuffer();
+
+        // Deletion corrections: NE deletes at y=64, OSM deletes at y=192
+        const corrections = {
+          'to-del-ne': [
+            {
+              geometry: [[
+                { x: 0, y: 1024 },  // y = 64
+                { x: 4096, y: 1024 },
+              ]],
+              extent: 4096,
+            },
+          ],
+          'to-del-osm': [
+            {
+              geometry: [[
+                { x: 0, y: 3072 },  // y = 192
+                { x: 4096, y: 3072 },
+              ]],
+              extent: 4096,
+            },
+          ],
+        };
+
+        const config = {
+          startZoom: 1,
+          zoomThreshold: 5,
+          lineWidthStops: { 0: 4, 10: 4, 14: 4 },
+          delWidthFactor: 3,
+          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+        };
+
+        // At z4 (below threshold), should delete NE layer (y=64 line removed)
+        const z4Tile = await corrector.fixTile(corrections, tileWithLines, config, 4, tileSize);
+        const z4Analysis = await analyzePixels(z4Tile, tileSize);
+
+        // At z6 (above threshold), should delete OSM layer (y=192 line removed)
+        const z6Tile = await corrector.fixTile(corrections, tileWithLines, config, 6, tileSize);
+        const z6Analysis = await analyzePixels(z6Tile, tileSize);
+
+        return {
+          // At z4: line at y=64 should be blurred, line at y=192 should remain
+          z4HasLineAt64: z4Analysis.minY <= 70,
+          z4HasLineAt192: z4Analysis.maxY >= 186,
+          // At z6: line at y=192 should be blurred, line at y=64 should remain
+          z6HasLineAt64: z6Analysis.minY <= 70,
+          z6HasLineAt192: z6Analysis.maxY >= 186,
+          inputBase64: arrayBufferToBase64(tileWithLines),
+          z4Base64: arrayBufferToBase64(z4Tile),
+          z6Base64: arrayBufferToBase64(z6Tile),
+        };
+      });
+
+      // Save debug images
+      await saveDebugImage(testInfo.title, '1-input-two-lines.png', result.inputBase64);
+      await saveDebugImage(testInfo.title, '2-z4-NE-deletion.png', result.z4Base64);
+      await saveDebugImage(testInfo.title, '3-z6-OSM-deletion.png', result.z6Base64);
+
+      // At z4: NE deletion should blur y=64, but y=192 line remains
+      expect(result.z4HasLineAt64).toBe(false);  // y=64 line blurred away
+      expect(result.z4HasLineAt192).toBe(true);  // y=192 line remains
+
+      // At z6: OSM deletion should blur y=192, but y=64 line remains
+      expect(result.z6HasLineAt64).toBe(true);   // y=64 line remains
+      expect(result.z6HasLineAt192).toBe(false); // y=192 line blurred away
     });
   });
 

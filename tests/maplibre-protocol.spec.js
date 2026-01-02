@@ -43,6 +43,51 @@ test.describe('MapLibre Protocol Package', () => {
       expect(result.x).toBe(182);
       expect(result.y).toBe(101);
     });
+
+    test('returns undefined coords for URL without valid z/x/y pattern', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://https://example.com/invalid/path.png');
+      });
+
+      expect(result.z).toBeUndefined();
+      expect(result.x).toBeUndefined();
+      expect(result.y).toBeUndefined();
+      expect(result.tileUrl).toBe('https://example.com/invalid/path.png');
+    });
+  });
+
+  test.describe('Invalid URL Handling', () => {
+    test('falls back to original tile when coords cannot be parsed', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { CorrectionProtocol } = window;
+        const protocol = new CorrectionProtocol();
+        
+        // Capture console warnings
+        const warnings = [];
+        const originalWarn = console.warn;
+        console.warn = (...args) => warnings.push(args.join(' '));
+        
+        const loadFn = protocol._loadFn;
+        
+        // URL without valid z/x/y pattern - use mock URL so fallback fetch works
+        const mockUrl = window.createMockTileUrl('success');
+        const response = await loadFn({ url: `ibc://${mockUrl.replace(/\/\d+\/\d+\/\d+\.png$/, '/invalid/path.png')}` });
+        
+        console.warn = originalWarn;
+        
+        return {
+          hasData: response.data instanceof ArrayBuffer,
+          dataSize: response.data.byteLength,
+          hadWarning: warnings.some(w => w.includes('Could not parse tile coordinates')),
+        };
+      });
+
+      // Should fallback to fetching original tile
+      expect(result.hasData).toBe(true);
+      expect(result.dataSize).toBeGreaterThan(0);
+      expect(result.hadWarning).toBe(true);
+    });
   });
 
   test.describe('fetchAndFixTile - Wrapper Behavior', () => {
@@ -134,6 +179,31 @@ test.describe('MapLibre Protocol Package', () => {
       });
 
       expect(result.hasCustomConfig).toBe(true);
+    });
+
+    test('auto-detects layer config from tile URL when no configId provided', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { CorrectionProtocol, parseCorrectionsUrl } = window.testContext;
+        const { CorrectionProtocol: CP } = window;
+        const protocol = new CP();
+        
+        // Parse URL without configId - should auto-detect from tile URL
+        const parsed = parseCorrectionsUrl('ibc://https://tile.openstreetmap.org/8/182/101.png');
+        
+        // Verify no configId in URL
+        const hasNoConfigId = parsed.configId === null;
+        
+        // The registry should be able to detect from the tile URL
+        const detectedConfig = protocol.getRegistry().detectFromTileUrls([parsed.tileUrl]);
+        
+        return {
+          hasNoConfigId,
+          detectedConfigId: detectedConfig?.id,
+        };
+      });
+
+      expect(result.hasNoConfigId).toBe(true);
+      expect(result.detectedConfigId).toBe('osm-carto');
     });
   });
 
