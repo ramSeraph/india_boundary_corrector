@@ -225,6 +225,74 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize, maskCanvas
 }
 
 /**
+ * Check if a point is at the edge of the tile extent (within tolerance).
+ * @param {number} coord - Coordinate value in extent units
+ * @param {number} extent - Tile extent
+ * @param {number} tolerance - Edge tolerance as fraction of extent (default 0.01)
+ * @returns {boolean}
+ */
+function isAtExtentEdge(coord, extent, tolerance = 0.01) {
+  const tol = extent * tolerance;
+  return coord <= tol || coord >= extent - tol;
+}
+
+/**
+ * Extend features that end inside the tile (not at edges) by a given length.
+ * @param {Array} features - Array of features with geometry
+ * @param {number} extensionLength - Extension length in extent units
+ * @returns {Array} New array of features with extended geometry
+ */
+function extendFeaturesEnds(features, extensionLength) {
+  return features.map(feature => {
+    const extent = feature.extent;
+    const newGeometry = feature.geometry.map(ring => {
+      if (ring.length < 2) return ring;
+      
+      const newRing = [...ring];
+      
+      // Check and extend start point
+      const start = ring[0];
+      const second = ring[1];
+      if (!isAtExtentEdge(start.x, extent) && !isAtExtentEdge(start.y, extent)) {
+        const dx = start.x - second.x;
+        const dy = start.y - second.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          const ux = dx / len;
+          const uy = dy / len;
+          newRing[0] = {
+            x: start.x + ux * extensionLength,
+            y: start.y + uy * extensionLength,
+          };
+        }
+      }
+      
+      // Check and extend end point
+      const lastIdx = ring.length - 1;
+      const end = ring[lastIdx];
+      const prev = ring[lastIdx - 1];
+      if (!isAtExtentEdge(end.x, extent) && !isAtExtentEdge(end.y, extent)) {
+        const dx = end.x - prev.x;
+        const dy = end.y - prev.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          const ux = dx / len;
+          const uy = dy / len;
+          newRing[lastIdx] = {
+            x: end.x + ux * extensionLength,
+            y: end.y + uy * extensionLength,
+          };
+        }
+      }
+      
+      return newRing;
+    });
+    
+    return { ...feature, geometry: newGeometry };
+  });
+}
+
+/**
  * Draw features on a canvas context.
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Array} features - Array of features to draw
@@ -381,8 +449,17 @@ export class BoundaryCorrector {
     }
 
     // Draw addition lines using active lineStyles (in order)
-    const addFeatures = corrections[addLayerName] || [];
+    let addFeatures = corrections[addLayerName] || [];
     if (addFeatures.length > 0 && activeLineStyles.length > 0) {
+      // Extend add lines if factor > 0 (to cover where deleted lines meet the boundary)
+      const extensionFactor = layerConfig.lineExtensionFactor ?? 0.5;
+      if (extensionFactor > 0 && delFeatures.length > 0) {
+        // Extension length in extent units
+        const extent = addFeatures[0]?.extent || 4096;
+        const extensionLength = (delLineWidth * extensionFactor / tileSize) * extent;
+        addFeatures = extendFeaturesEnds(addFeatures, extensionLength);
+      }
+      
       for (const style of activeLineStyles) {
         const { color, widthFraction = 1.0, dashArray, alpha = 1.0 } = style;
         const lineWidth = baseLineWidth * widthFraction;

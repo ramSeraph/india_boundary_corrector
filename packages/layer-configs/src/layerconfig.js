@@ -98,6 +98,10 @@ export class LayerConfig {
     // Higher values leave gaps where wiped lines meet existing lines
     // Lower values mean wiped lines show through
     delWidthFactor = 1.5,
+    // Factor to extend add lines by (multiplied by deletion line width)
+    // Helps cover gaps where deleted lines meet the new boundary
+    // Set to 0 to disable extension
+    lineExtensionFactor = 0.5,
   }) {
     if (!id || typeof id !== 'string') {
       throw new Error('LayerConfig requires a non-empty string id');
@@ -164,6 +168,9 @@ export class LayerConfig {
     
     // Deletion width factor
     this.delWidthFactor = delWidthFactor;
+    
+    // Line extension factor
+    this.lineExtensionFactor = lineExtensionFactor;
   }
 
   /**
@@ -245,6 +252,7 @@ export class LayerConfig {
       lineWidthStops: this.lineWidthStops,
       lineStyles: this.lineStyles,
       delWidthFactor: this.delWidthFactor,
+      lineExtensionFactor: this.lineExtensionFactor,
     };
   }
 

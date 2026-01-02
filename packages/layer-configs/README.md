@@ -67,6 +67,7 @@ layerConfigs.remove('my-custom-style');
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
 | `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
+| `lineExtensionFactor` | number | 0.5 | Factor to extend add lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
 
 ### URL Template Placeholders
 
