@@ -88,6 +88,10 @@ function extendLeaflet(L) {
       const y = coords.y;
       const tileSize = this.options.tileSize || 256;
 
+      // TODO: Pass AbortSignal to _fetchAndFixTile to cancel in-flight requests when tiles
+      // go off-screen. This would require creating an AbortController per tile and hooking
+      // into Leaflet's _removeTile/_abortLoading. Deferred due to complexity - will revisit
+      // if performance becomes an issue during rapid panning.
       this._fetchAndFixTile(tileUrl, z, x, y, tileSize)
         .then(({ blob, wasFixed, correctionsFailed, correctionsError }) => {
           if (correctionsFailed) {

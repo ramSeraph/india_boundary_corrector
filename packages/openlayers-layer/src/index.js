@@ -43,6 +43,10 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer
     const x = tileCoord[1];
     const y = tileCoord[2];
 
+    // TODO: Pass AbortSignal to fetchAndFixTile to cancel in-flight requests when tiles
+    // go off-screen. OpenLayers' tileLoadFunction doesn't provide an AbortController,
+    // so this would require custom tracking. Deferred due to complexity - will revisit
+    // if performance becomes an issue during rapid panning.
     try {
       const { blob, correctionsFailed, correctionsError } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
 
