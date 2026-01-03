@@ -1,5 +1,7 @@
 # @india-boundary-corrector/maplibre-protocol
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/maplibre-protocol)](https://www.npmjs.com/package/@india-boundary-corrector/maplibre-protocol)
+
 MapLibre GL custom protocol for India boundary corrections.
 
 ## Installation

@@ -1,5 +1,7 @@
 # @india-boundary-corrector/layer-configs
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/layer-configs)](https://www.npmjs.com/package/@india-boundary-corrector/layer-configs)
+
 Pre-built layer configurations for India boundary corrector packages.
 
 ## Available Configs

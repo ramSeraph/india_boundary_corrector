@@ -1,5 +1,7 @@
 # @india-boundary-corrector/tilefixer
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/tilefixer)](https://www.npmjs.com/package/@india-boundary-corrector/tilefixer)
+
 Core library for fetching and applying India boundary corrections to raster map tiles.
 
 ## Installation

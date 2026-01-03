@@ -1,5 +1,7 @@
 # @india-boundary-corrector/data
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/data)](https://www.npmjs.com/package/@india-boundary-corrector/data)
+
 PMTiles data package for India boundary corrections.
 
 ## Layers

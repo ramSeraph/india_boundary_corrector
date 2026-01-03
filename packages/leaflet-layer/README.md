@@ -1,5 +1,7 @@
 # @india-boundary-corrector/leaflet-layer
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/leaflet-layer)](https://www.npmjs.com/package/@india-boundary-corrector/leaflet-layer)
+
 Leaflet TileLayer extension that automatically applies India boundary corrections.
 
 ## Installation
@@ -133,21 +135,6 @@ layer.on('correctionerror', (e) => {
 | `error` | Error | The error that occurred |
 | `coords` | object | Tile coordinates `{ z, x, y }` |
 | `tileUrl` | string | URL of the tile being loaded |
-
-## Global Auto-extension
-
-If Leaflet is available as a global `L` object, the extension is applied automatically on import:
-
-```html
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script type="module">
-  import '@india-boundary-corrector/leaflet-layer';
-  
-  // L.TileLayer.IndiaBoundaryCorrected is now available
-  const map = L.map('map').setView([20.5937, 78.9629], 5);
-  L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-</script>
-```
 
 ## License
 

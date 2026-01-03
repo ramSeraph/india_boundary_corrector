@@ -1,5 +1,7 @@
 # @india-boundary-corrector/openlayers-layer
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/openlayers-layer)](https://www.npmjs.com/package/@india-boundary-corrector/openlayers-layer)
+
 OpenLayers TileLayer extension that automatically applies India boundary corrections.
 
 ## Installation

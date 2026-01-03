@@ -1,5 +1,7 @@
 # @india-boundary-corrector/service-worker
 
+[![npm version](https://img.shields.io/npm/v/@india-boundary-corrector/service-worker)](https://www.npmjs.com/package/@india-boundary-corrector/service-worker)
+
 Service worker that intercepts map tile requests and applies India boundary corrections automatically.
 
 ## Installation
