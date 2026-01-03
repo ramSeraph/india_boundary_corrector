@@ -189,7 +189,6 @@ import {
   CorrectionServiceWorker,
   registerCorrectionServiceWorker,
   MessageTypes,
-  getWorkerImportSnippet,
 } from '@india-boundary-corrector/service-worker';
 
 // Test MessageTypes
@@ -227,6 +226,3 @@ const swPromise: Promise<CorrectionServiceWorker> = registerCorrectionServiceWor
   scope: './',
   pmtilesUrl: 'https://example.com/tiles.pmtiles',
 });
-
-// Test getWorkerImportSnippet
-const snippet: string = getWorkerImportSnippet('https://example.com/worker.global.js');

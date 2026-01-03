@@ -87,8 +87,3 @@ export declare function registerCorrectionServiceWorker(
   workerUrl: string,
   options?: CorrectionServiceWorkerOptions
 ): Promise<CorrectionServiceWorker>;
-
-/**
- * Get the importScripts snippet for a service worker file.
- */
-export declare function getWorkerImportSnippet(workerGlobalUrl: string): string;

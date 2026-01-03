@@ -241,15 +241,3 @@ export async function registerCorrectionServiceWorker(workerUrl, options = {}) {
   return sw;
 }
 
-/**
- * Get the importScripts snippet for a service worker file.
- * This can be used to create a minimal sw.js file.
- * @param {string} workerGlobalUrl - URL to the worker.global.js file
- * @returns {string} JavaScript code to put in sw.js
- * @example
- * // Create sw.js with:
- * // importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/worker.global.js');
- */
-export function getWorkerImportSnippet(workerGlobalUrl) {
-  return `importScripts('${workerGlobalUrl}');`;
-}

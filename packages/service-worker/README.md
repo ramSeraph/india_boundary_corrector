@@ -17,8 +17,10 @@ npm install @india-boundary-corrector/service-worker
 Create `sw.js` in your public directory:
 
 ```javascript
-importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/worker.global.js');
+importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/worker.global.js');
 ```
+
+> **Note:** We use jsDelivr instead of unpkg because `importScripts()` does not follow HTTP redirects, and unpkg uses redirects for bare package URLs.
 
 Or if bundling:
 
@@ -83,8 +85,10 @@ For projects without a module bundler, you can use the CDN builds directly.
 Create `sw.js` in your public directory. This file **must** be hosted on your own domain (service workers cannot be loaded from a CDN):
 
 ```javascript
-importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/worker.global.js');
+importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/worker.global.js');
 ```
+
+> **Note:** We use jsDelivr instead of unpkg because `importScripts()` does not follow HTTP redirects, and unpkg uses redirects for bare package URLs.
 
 ### 2. Include the Script and Register
 

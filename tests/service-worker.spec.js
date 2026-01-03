@@ -58,13 +58,11 @@ test.describe('Service Worker Package', () => {
       const result = await page.evaluate(() => {
         return {
           hasRegisterFunction: typeof window.registerCorrectionServiceWorker === 'function',
-          hasImportSnippet: typeof window.getWorkerImportSnippet === 'function',
           hasLayerConfig: typeof window.LayerConfig === 'function',
         };
       });
 
       expect(result.hasRegisterFunction).toBe(true);
-      expect(result.hasImportSnippet).toBe(true);
       expect(result.hasLayerConfig).toBe(true);
     });
   });
@@ -173,44 +171,6 @@ test.describe('Service Worker Package', () => {
   });
 
   test.describe('Helper Functions', () => {
-    test('getWorkerImportSnippet generates correct code', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { getWorkerImportSnippet } = window;
-        const snippet = getWorkerImportSnippet('https://example.com/worker.global.js');
-        
-        return {
-          snippet,
-          isString: typeof snippet === 'string',
-          hasImportScripts: snippet.includes('importScripts'),
-          hasUrl: snippet.includes('https://example.com/worker.global.js'),
-        };
-      });
-
-      expect(result.isString).toBe(true);
-      expect(result.hasImportScripts).toBe(true);
-      expect(result.hasUrl).toBe(true);
-      expect(result.snippet).toBe("importScripts('https://example.com/worker.global.js');");
-    });
-
-    test('getWorkerImportSnippet handles different URLs', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { getWorkerImportSnippet } = window;
-        
-        const snippet1 = getWorkerImportSnippet('/local/worker.js');
-        const snippet2 = getWorkerImportSnippet('https://cdn.example.com/v1.0.0/worker.js');
-        
-        return {
-          snippet1,
-          snippet2,
-          bothValid: snippet1.includes('importScripts') && snippet2.includes('importScripts'),
-        };
-      });
-
-      expect(result.snippet1).toBe("importScripts('/local/worker.js');");
-      expect(result.snippet2).toBe("importScripts('https://cdn.example.com/v1.0.0/worker.js');");
-      expect(result.bothValid).toBe(true);
-    });
-
     test('registerCorrectionServiceWorker is a function', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { registerCorrectionServiceWorker } = window;
