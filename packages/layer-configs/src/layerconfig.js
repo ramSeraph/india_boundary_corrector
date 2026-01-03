@@ -56,12 +56,12 @@ function templateToTemplateRegex(template) {
     .replace(/^https:\/\//, 'https?://')
     .replace(/^http:\/\//, 'https?://')
     // Handle {a-c} or {1-4} (OpenLayers style subdomain)
-    .replace(/\{([a-z0-9])-([a-z0-9])\}/gi, (_, start, end) => `(\\{${start}-${end}\\}|[a-z0-9]+)`)
+    .replace(/\{([a-z0-9])-([a-z0-9])\}/gi, (_, start, end) => `(\\{${start}-${end}\\}|\\{s\\}|[a-z0-9]+)`)
     .replace(/\{(z|x|y|s|r)\}/gi, (_, name) => {
       const lowerName = name.toLowerCase();
       if (lowerName === 's') {
-        // Match {s} placeholder or actual subdomain
-        return '(\\{s\\}|[a-z0-9]+)';
+        // Match {s} placeholder, {a-c} style placeholder, or actual subdomain
+        return '(\\{s\\}|\\{[a-z0-9]-[a-z0-9]\\}|[a-z0-9]+)';
       }
       if (lowerName === 'r') {
         // Match {r} placeholder or actual retina or empty
@@ -105,6 +105,9 @@ export class LayerConfig {
   }) {
     if (!id || typeof id !== 'string') {
       throw new Error('LayerConfig requires a non-empty string id');
+    }
+    if (id.includes('/')) {
+      throw new Error(`LayerConfig id cannot contain slashes: "${id}"`);
     }
 
     this.id = id;

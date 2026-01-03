@@ -19,7 +19,7 @@
       const { 
         CorrectionProtocol, 
         parseCorrectionsUrl, 
-        fetchAndFixTile, 
+        fetchAndFixTile,
         LayerConfig 
       } = await import('@india-boundary-corrector/maplibre-protocol');
       const { BoundaryCorrector: TileFixer } = await import('@india-boundary-corrector/tilefixer');
@@ -134,7 +134,7 @@
     // Expose for testing
     window.testProtocol = testProtocol;
     window.testContext = {
-      parseCorrectionsUrl,
+      parseCorrectionsUrl: (url) => parseCorrectionsUrl(url, testProtocol.getRegistry()),
       fetchAndFixTile,
       tileFixer,
       layerConfig,

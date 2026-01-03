@@ -7,7 +7,7 @@ test.describe('MapLibre Protocol Package', () => {
   });
 
   test.describe('parseCorrectionsUrl', () => {
-    test('parses URL without config ID', async ({ page }) => {
+    test('parses registered URL without config ID', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { parseCorrectionsUrl } = window.testContext;
         return parseCorrectionsUrl('ibc://https://tile.openstreetmap.org/8/182/101.png');
@@ -20,40 +20,131 @@ test.describe('MapLibre Protocol Package', () => {
       expect(result.y).toBe(101);
     });
 
-    test('parses URL with config ID', async ({ page }) => {
+    test('parses registered URL with retina suffix (@2x) without config ID', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { parseCorrectionsUrl } = window.testContext;
-        return parseCorrectionsUrl('ibc://osm-carto@https://tile.openstreetmap.org/8/182/101.png');
+        return parseCorrectionsUrl('ibc://https://b.basemaps.cartocdn.com/dark_all/4/12/5@2x.png');
       });
 
-      expect(result.configId).toBe('osm-carto');
-      expect(result.tileUrl).toBe('https://tile.openstreetmap.org/8/182/101.png');
-      expect(result.z).toBe(8);
-      expect(result.x).toBe(182);
-      expect(result.y).toBe(101);
+      expect(result.configId).toBeNull();
+      expect(result.tileUrl).toBe('https://b.basemaps.cartocdn.com/dark_all/4/12/5@2x.png');
+      expect(result.z).toBe(4);
+      expect(result.x).toBe(12);
+      expect(result.y).toBe(5);
     });
 
-    test('parses URL with path segments before tile coords', async ({ page }) => {
+    test('returns undefined coords for unregistered URL without config ID', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { parseCorrectionsUrl } = window.testContext;
-        return parseCorrectionsUrl('ibc://https://example.com/tiles/osm/8/182/101.png');
+        // No config ID, URL doesn't match any registered pattern
+        // Should NOT use generic parsing - unregistered URLs don't get corrections
+        return parseCorrectionsUrl('ibc://https://example.com/tiles/8/182/101.png');
       });
 
-      expect(result.z).toBe(8);
-      expect(result.x).toBe(182);
-      expect(result.y).toBe(101);
-    });
-
-    test('returns undefined coords for URL without valid z/x/y pattern', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { parseCorrectionsUrl } = window.testContext;
-        return parseCorrectionsUrl('ibc://https://example.com/invalid/path.png');
-      });
-
+      expect(result.configId).toBeNull();
+      expect(result.tileUrl).toBe('https://example.com/tiles/8/182/101.png');
       expect(result.z).toBeUndefined();
       expect(result.x).toBeUndefined();
       expect(result.y).toBeUndefined();
+    });
+
+    test('parses URL with config ID - standard tile URL', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://custom-tiles.example.com/8/182/101.png');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.tileUrl).toBe('https://custom-tiles.example.com/8/182/101.png');
+      expect(result.z).toBe(8);
+      expect(result.x).toBe(182);
+      expect(result.y).toBe(101);
+    });
+
+    test('parses URL with config ID - retina suffix @2x', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto-dark@https://custom-tiles.example.com/4/12/5@2x.png');
+      });
+
+      expect(result.configId).toBe('osm-carto-dark');
+      expect(result.tileUrl).toBe('https://custom-tiles.example.com/4/12/5@2x.png');
+      expect(result.z).toBe(4);
+      expect(result.x).toBe(12);
+      expect(result.y).toBe(5);
+    });
+
+    test('parses URL with config ID - retina suffix @3x', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://example.com/10/500/300@3x.png');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.z).toBe(10);
+      expect(result.x).toBe(500);
+      expect(result.y).toBe(300);
+    });
+
+    test('parses URL with config ID - path segments before coords', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://example.com/api/v1/tiles/osm/8/182/101.png');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.z).toBe(8);
+      expect(result.x).toBe(182);
+      expect(result.y).toBe(101);
+    });
+
+    test('parses URL with config ID - .jpg extension', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://example.com/5/10/15.jpg');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.z).toBe(5);
+      expect(result.x).toBe(10);
+      expect(result.y).toBe(15);
+    });
+
+    test('parses URL with config ID - .webp extension', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://example.com/tiles/6/20/25.webp');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.z).toBe(6);
+      expect(result.x).toBe(20);
+      expect(result.y).toBe(25);
+    });
+
+    test('returns undefined coords with config ID - invalid z/x/y pattern', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@https://example.com/invalid/path.png');
+      });
+
+      expect(result.configId).toBe('osm-carto');
       expect(result.tileUrl).toBe('https://example.com/invalid/path.png');
+      expect(result.z).toBeUndefined();
+      expect(result.x).toBeUndefined();
+      expect(result.y).toBeUndefined();
+    });
+
+    test('returns undefined coords with config ID - invalid URL', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const { parseCorrectionsUrl } = window.testContext;
+        return parseCorrectionsUrl('ibc://osm-carto@not-a-valid-url');
+      });
+
+      expect(result.configId).toBe('osm-carto');
+      expect(result.z).toBeUndefined();
+      expect(result.x).toBeUndefined();
+      expect(result.y).toBeUndefined();
     });
   });
 
@@ -84,6 +175,37 @@ test.describe('MapLibre Protocol Package', () => {
       });
 
       // Should fallback to fetching original tile
+      expect(result.hasData).toBe(true);
+      expect(result.dataSize).toBeGreaterThan(0);
+      expect(result.hadWarning).toBe(true);
+    });
+
+    test('falls back to original tile for unregistered tile URL', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { CorrectionProtocol } = window;
+        const protocol = new CorrectionProtocol();
+        
+        // Capture console warnings
+        const warnings = [];
+        const originalWarn = console.warn;
+        console.warn = (...args) => warnings.push(args.join(' '));
+        
+        const loadFn = protocol._loadFn;
+        
+        // Valid z/x/y pattern but unregistered domain - use mock URL
+        const mockUrl = window.createMockTileUrl('success');
+        const response = await loadFn({ url: `ibc://${mockUrl}` });
+        
+        console.warn = originalWarn;
+        
+        return {
+          hasData: response.data instanceof ArrayBuffer,
+          dataSize: response.data.byteLength,
+          hadWarning: warnings.some(w => w.includes('Could not parse tile coordinates')),
+        };
+      });
+
+      // Should fallback to fetching original tile (unregistered URL can't be parsed)
       expect(result.hasData).toBe(true);
       expect(result.dataSize).toBeGreaterThan(0);
       expect(result.hadWarning).toBe(true);

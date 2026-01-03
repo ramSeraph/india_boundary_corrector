@@ -421,6 +421,18 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('non-empty string id');
     });
 
+    test('throws error when id contains slashes', async ({ page }) => {
+      const error = await page.evaluate(() => {
+        try {
+          new window.layerConfigsPackage.LayerConfig({ id: 'my/custom/config' });
+          return null;
+        } catch (e) {
+          return e.message;
+        }
+      });
+      expect(error).toContain('cannot contain slashes');
+    });
+
     test('throws error when lineWidthStops is not an object', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
@@ -584,6 +596,61 @@ test.describe('Layer Configs Package', () => {
         }
       });
       expect(error).toContain('color must be a non-empty string');
+    });
+
+    test('matchTemplate: {s} placeholder matches {a-c} style template', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test-s-placeholder',
+          tileUrlTemplates: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png');
+      });
+      expect(matches).toBe(true);
+    });
+
+    test('matchTemplate: {a-c} placeholder matches {s} style template', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test-ac-placeholder',
+          tileUrlTemplates: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
+      });
+      expect(matches).toBe(true);
+    });
+
+    test('matchTemplate: {s} placeholder matches actual subdomain', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test-s-actual',
+          tileUrlTemplates: 'https://{s}.tile.example.com/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://a.tile.example.com/{z}/{x}/{y}.png');
+      });
+      expect(matches).toBe(true);
+    });
+
+    test('matchTemplate: {a-c} placeholder matches actual subdomain', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test-ac-actual',
+          tileUrlTemplates: 'https://{a-c}.tile.example.com/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://b.tile.example.com/{z}/{x}/{y}.png');
+      });
+      expect(matches).toBe(true);
+    });
+
+    test('matchTemplate: {1-4} numeric placeholder matches {s} style template', async ({ page }) => {
+      const matches = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test-14-placeholder',
+          tileUrlTemplates: 'https://tile{1-4}.example.com/{z}/{x}/{y}.png',
+        });
+        return config.matchTemplate('https://tile{s}.example.com/{z}/{x}/{y}.png');
+      });
+      expect(matches).toBe(true);
     });
 
     test('matchTemplate returns false when no tileUrlTemplates', async ({ page }) => {

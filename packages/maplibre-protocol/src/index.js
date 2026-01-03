@@ -9,6 +9,39 @@ export { getPmtilesUrl } from '@india-boundary-corrector/data';
 const PROTOCOL_PREFIX = 'ibc';
 
 /**
+ * Extract tile coordinates from a URL using generic z/x/y pattern matching.
+ * Handles standard tile URL patterns including retina suffixes (@2x, @3x, etc.).
+ * 
+ * @param {string} url - The tile URL to parse
+ * @returns {{ z: number, x: number, y: number } | null} Parsed coordinates or null if not found
+ */
+function extractTileCoordsFromUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
+    
+    // Find z/x/y pattern - typically last 3 numeric segments
+    for (let i = pathParts.length - 1; i >= 2; i--) {
+      // Remove extension and retina suffix (e.g., "5@2x.png" -> "5")
+      const yPart = pathParts[i].replace(/(@\d+x)?\.[^.]+$/, '');
+      const xPart = pathParts[i - 1];
+      const zPart = pathParts[i - 2];
+      
+      if (/^\d+$/.test(zPart) && /^\d+$/.test(xPart) && /^\d+$/.test(yPart)) {
+        return {
+          z: parseInt(zPart, 10),
+          x: parseInt(xPart, 10),
+          y: parseInt(yPart, 10)
+        };
+      }
+    }
+  } catch {
+    // Invalid URL
+  }
+  return null;
+}
+
+/**
  * Parse an ibc:// URL.
  * Format: ibc://[configId@]originalUrl
  * Examples:
@@ -16,9 +49,10 @@ const PROTOCOL_PREFIX = 'ibc';
  *   ibc://osm-carto@https://tile.openstreetmap.org/{z}/{x}/{y}.png
  * 
  * @param {string} url - The full URL with ibc:// prefix
- * @returns {{ configId: string|null, tileUrl: string, z: number, x: number, y: number }}
+ * @param {import('@india-boundary-corrector/layer-configs').LayerConfigRegistry} registry - Registry to use for parsing
+ * @returns {{ configId: string|null, tileUrl: string, z: number|undefined, x: number|undefined, y: number|undefined }}
  */
-function parseCorrectionsUrl(url) {
+function parseCorrectionsUrl(url, registry) {
   // Remove protocol prefix
   const withoutProtocol = url.replace(`${PROTOCOL_PREFIX}://`, '');
   
@@ -27,33 +61,31 @@ function parseCorrectionsUrl(url) {
   let tileUrl = withoutProtocol;
   
   const atIndex = withoutProtocol.indexOf('@');
-  if (atIndex > 0 && atIndex < withoutProtocol.indexOf('/')) {
+  const slashIndex = withoutProtocol.indexOf('/');
+  // Config ID exists if @ comes before first / (or if there's no /)
+  if (atIndex > 0 && (slashIndex === -1 || atIndex < slashIndex)) {
     // Has configId prefix
     configId = withoutProtocol.substring(0, atIndex);
     tileUrl = withoutProtocol.substring(atIndex + 1);
   }
   
-  // Extract z, x, y from the URL (assuming standard {z}/{x}/{y} pattern in the path)
-  // The URL has already been templated by MapLibre, so we need to parse actual numbers
-  const urlObj = new URL(tileUrl);
-  const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-  
-  // Find z/x/y pattern - typically last 3 numeric segments
-  let z, x, y;
-  for (let i = pathParts.length - 1; i >= 2; i--) {
-    const yPart = pathParts[i].replace(/\.[^.]+$/, ''); // Remove extension
-    const xPart = pathParts[i - 1];
-    const zPart = pathParts[i - 2];
-    
-    if (/^\d+$/.test(zPart) && /^\d+$/.test(xPart) && /^\d+$/.test(yPart)) {
-      z = parseInt(zPart, 10);
-      x = parseInt(xPart, 10);
-      y = parseInt(yPart, 10);
-      break;
-    }
+  // If configId is explicit, use generic parsing (URL may not match config's patterns)
+  // Otherwise, use registry detection only (unregistered URLs won't get corrections)
+  let coords = null;
+  if (configId) {
+    coords = extractTileCoordsFromUrl(tileUrl);
+  } else {
+    const parsed = registry.parseTileUrl(tileUrl);
+    coords = parsed?.coords ?? null;
   }
   
-  return { configId, tileUrl, z, x, y };
+  return { 
+    configId, 
+    tileUrl, 
+    z: coords?.z, 
+    x: coords?.x, 
+    y: coords?.y 
+  };
 }
 
 /**
@@ -196,7 +228,7 @@ export class CorrectionProtocol {
     const self = this;
     
     return async (params, abortController) => {
-      const { configId, tileUrl, z, x, y } = parseCorrectionsUrl(params.url);
+      const { configId, tileUrl, z, x, y } = parseCorrectionsUrl(params.url, self._registry);
       
       // Validate parsed coordinates
       if (z === undefined || x === undefined || y === undefined) {
