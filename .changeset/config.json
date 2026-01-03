@@ -6,9 +6,11 @@
     [
       "@india-boundary-corrector/data",
       "@india-boundary-corrector/layer-configs",
-      "@india-boundary-corrector/maplibre",
-      "@india-boundary-corrector/leaflet",
-      "@india-boundary-corrector/openlayers"
+      "@india-boundary-corrector/tilefixer",
+      "@india-boundary-corrector/maplibre-protocol",
+      "@india-boundary-corrector/leaflet-layer",
+      "@india-boundary-corrector/openlayers-layer",
+      "@india-boundary-corrector/service-worker"
     ]
   ],
   "linked": [],
