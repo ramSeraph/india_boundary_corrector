@@ -37,19 +37,30 @@
     .status.success { background: #d4edda; color: #155724; }
     .status.error { background: #f8d7da; color: #721c24; }
   </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "maplibre-gl": "https://esm.sh/maplibre-gl@5.0.1",
-      "pmtiles": "https://esm.sh/pmtiles@4.0.0",
-      "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
-      "pbf": "https://esm.sh/pbf@4.0.1",
-      "@india-boundary-corrector/data": "../../packages/data/index.js",
-      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
-      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/dist/index.js",
-      "@india-boundary-corrector/maplibre-protocol": "../../packages/maplibre-protocol/dist/index.js"
+  <script>
+    // Importmaps are only needed for local development.
+    // For production, import directly from esm.sh (no importmap needed).
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    if (!isProd) {
+      const importmap = document.createElement('script');
+      importmap.type = 'importmap';
+      importmap.textContent = JSON.stringify({
+        imports: {
+          "maplibre-gl": "https://esm.sh/maplibre-gl@5.0.1",
+          "pmtiles": "https://esm.sh/pmtiles@4.0.0",
+          "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
+          "pbf": "https://esm.sh/pbf@4.0.1",
+          "@india-boundary-corrector/data": "../../packages/data/index.js",
+          "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
+          "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/dist/index.js",
+          "@india-boundary-corrector/maplibre-protocol": "../../packages/maplibre-protocol/dist/index.js"
+        }
+      });
+      document.currentScript.after(importmap);
     }
-  }
   </script>
 </head>
 <body>
@@ -62,9 +73,24 @@
   <div id="map"></div>
 
   <script type="module">
-    import maplibregl from 'maplibre-gl';
-    import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
-    import { LayerConfig } from '@india-boundary-corrector/layer-configs';
+    // For production, you can simply use:
+    // import maplibregl from 'https://esm.sh/maplibre-gl@5.0.1';
+    // import { registerCorrectionProtocol } from 'https://esm.sh/@india-boundary-corrector/maplibre-protocol';
+    // import { LayerConfig } from 'https://esm.sh/@india-boundary-corrector/layer-configs';
+    
+    const isProd = window.isProd;
+    
+    const maplibreModule = isProd ? 'https://esm.sh/maplibre-gl@5.0.1' : 'maplibre-gl';
+    const ibcModule = isProd 
+      ? 'https://esm.sh/@india-boundary-corrector/maplibre-protocol'
+      : '@india-boundary-corrector/maplibre-protocol';
+    const configsModule = isProd
+      ? 'https://esm.sh/@india-boundary-corrector/layer-configs'
+      : '@india-boundary-corrector/layer-configs';
+    
+    const { default: maplibregl } = await import(maplibreModule);
+    const { registerCorrectionProtocol } = await import(ibcModule);
+    const { LayerConfig } = await import(configsModule);
 
     const statusEl = document.getElementById('status');
 
@@ -119,7 +145,7 @@
           source: 'basemap',
         });
 
-        statusEl.textContent = '✓ Using custom config: osm-de';
+        statusEl.textContent = '✓ Using custom config: osm-de' + (isProd ? ' (prod)' : ' (dev)');
         statusEl.className = 'status success';
       });
 

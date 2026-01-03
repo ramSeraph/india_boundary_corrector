@@ -6,11 +6,24 @@
   <title>Service Worker (IIFE) Example - India Boundary Corrector</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Load the IIFE bundle - no module bundler needed! -->
-  <!-- Option 1: Load from CDN (recommended for production) -->
-  <!-- <script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script> -->
-  <!-- Option 2: Load from local path (for development) -->
-  <script src="../../packages/service-worker/dist/index.global.js"></script>
+  <script>
+    // For production, you can simply use:
+    // <script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"><\/script>
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    const script = document.createElement('script');
+    script.src = isProd 
+      ? 'https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js'
+      : '../../packages/service-worker/dist/index.global.js';
+    window.ibcScriptLoaded = new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = reject;
+    });
+    document.head.appendChild(script);
+  </script>
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -67,78 +80,83 @@
   <div id="map"></div>
 
   <script>
-    const statusEl = document.getElementById('status');
-    const basemapSelect = document.getElementById('basemap');
+    // Wait for the dynamically loaded script.
+    // For static script tags, use window.addEventListener('load', ...) instead.
+    window.ibcScriptLoaded.then(function() {
+      const statusEl = document.getElementById('status');
+      const basemapSelect = document.getElementById('basemap');
 
-    const BASEMAPS = {
-      'osm-carto': {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      },
-      'cartodb-dark': {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
-      },
-    };
+      const BASEMAPS = {
+        'osm-carto': {
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        },
+        'cartodb-dark': {
+          url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
+        },
+      };
 
-    let map;
-    let currentLayer;
+      let map;
+      let currentLayer;
 
-    function updateStatus(message, type = '') {
-      statusEl.textContent = message;
-      statusEl.className = `status ${type}`;
-    }
-
-    function switchBasemap(basemapId) {
-      const basemap = BASEMAPS[basemapId];
-      if (!basemap) return;
-
-      if (currentLayer) {
-        map.removeLayer(currentLayer);
+      function updateStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
       }
 
-      currentLayer = L.tileLayer(basemap.url, {
-        attribution: basemap.attribution,
-        maxZoom: 19,
-      });
+      function switchBasemap(basemapId) {
+        const basemap = BASEMAPS[basemapId];
+        if (!basemap) return;
 
-      currentLayer.addTo(map);
-    }
-
-    async function init() {
-      try {
-        // The IIFE bundle exposes IndiaBoundaryCorrector global
-        const { registerCorrectionServiceWorker } = IndiaBoundaryCorrector;
-
-        updateStatus('Registering service worker...');
-
-        // Register the service worker
-        // For local development, we use sw.js which imports the worker bundle.
-        // For production with CDN, you can use the worker.global.js URL directly.
-        // pmtilesUrl is only needed when loading from local path.
-        const sw = await registerCorrectionServiceWorker('./sw.js', {
-          pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
-        });
-
-        if (!sw.isControlling()) {
-          updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
-          return;
+        if (currentLayer) {
+          map.removeLayer(currentLayer);
         }
 
-        updateStatus('✓ Service worker active', 'success');
+        currentLayer = L.tileLayer(basemap.url, {
+          attribution: basemap.attribution,
+          maxZoom: 19,
+        });
 
-        map = L.map('map').setView([20.5937, 78.9629], 4);
-        switchBasemap('osm-carto');
-
-        basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));
-
-      } catch (error) {
-        updateStatus('✗ Error: ' + error.message, 'error');
-        console.error('Error:', error);
+        currentLayer.addTo(map);
       }
-    }
 
-    init();
+      async function init() {
+        try {
+          // The IIFE bundle exposes IndiaBoundaryCorrector global
+          const { registerCorrectionServiceWorker } = IndiaBoundaryCorrector;
+
+          updateStatus('Registering service worker...');
+
+          // Register the service worker
+          const swOptions = {};
+          if (!window.isProd) {
+            swOptions.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
+          }
+          
+          const swPath = window.isProd ? './sw-prod.js' : './sw.js';
+          const sw = await registerCorrectionServiceWorker(swPath, swOptions);
+
+          if (!sw.isControlling()) {
+            updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
+            return;
+          }
+
+          updateStatus('✓ Service worker active' + (window.isProd ? ' (prod)' : ' (dev)'), 'success');
+
+          map = L.map('map').setView([20.5937, 78.9629], 4);
+          switchBasemap('osm-carto');
+
+          basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));
+
+        } catch (error) {
+          updateStatus('✗ Error: ' + error.message, 'error');
+          console.error('Error:', error);
+        }
+      }
+
+      init();
+    });
   </script>
 </body>
 </html>

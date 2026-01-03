@@ -6,11 +6,24 @@
   <title>Script Tag Example - India Boundary Corrector (Leaflet)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Load the IIFE bundle - no module bundler needed! -->
-  <!-- Option 1: Load from CDN (recommended for production) -->
-  <!-- <script src="https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js"></script> -->
-  <!-- Option 2: Load from local path (for development) -->
-  <script src="../../packages/leaflet-layer/dist/index.global.js"></script>
+  <script>
+    // For production, you can simply use:
+    // <script src="https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js"><\/script>
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    const script = document.createElement('script');
+    script.src = isProd 
+      ? 'https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js'
+      : '../../packages/leaflet-layer/dist/index.global.js';
+    window.ibcScriptLoaded = new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = reject;
+    });
+    document.head.appendChild(script);
+  </script>
   <style>
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -54,47 +67,55 @@
   <div id="map"></div>
 
   <script>
-    const statusEl = document.getElementById('status');
+    // Wait for the dynamically loaded script.
+    // For static script tags, use window.addEventListener('load', ...) instead.
+    window.ibcScriptLoaded.then(function() {
+      const statusEl = document.getElementById('status');
 
-    try {
-      // The IIFE bundle exposes IndiaBoundaryCorrector global
-      const { extendLeaflet } = IndiaBoundaryCorrector;
+      try {
+        // The IIFE bundle exposes IndiaBoundaryCorrector global
+        const { extendLeaflet } = IndiaBoundaryCorrector;
 
-      // Extend Leaflet with the corrected tile layer
-      extendLeaflet(L);
+        // Extend Leaflet with the corrected tile layer
+        extendLeaflet(L);
 
-      statusEl.textContent = '✓ Plugin loaded, initializing map...';
+        statusEl.textContent = '✓ Plugin loaded, initializing map...';
 
-      // Create the map
-      const map = L.map('map').setView([20.5937, 78.9629], 4);
+        // Create the map
+        const map = L.map('map').setView([20.5937, 78.9629], 4);
 
-      // Use L.tileLayer.indiaBoundaryCorrected() - auto-detects config from URL
-      const layer = L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        // pmtilesUrl is only needed when loading from local path.
-        // When using the CDN bundle, the PMTiles data is included automatically.
-        pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
-      });
+        // Use L.tileLayer.indiaBoundaryCorrected() - auto-detects config from URL
+        const options = {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
+        };
+        
+        // pmtilesUrl is only needed when loading from local path (dev mode)
+        if (!window.isProd) {
+          options.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
+        }
+        
+        const layer = L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options);
 
-      layer.addTo(map);
+        layer.addTo(map);
 
-      const layerConfig = layer.getLayerConfig();
-      if (layerConfig) {
-        statusEl.textContent = '✓ Using config: ' + layerConfig.id;
-        statusEl.className = 'status success';
-      } else {
-        statusEl.textContent = '⚠ No config detected';
-        statusEl.className = 'status';
+        const layerConfig = layer.getLayerConfig();
+        if (layerConfig) {
+          statusEl.textContent = '✓ Using config: ' + layerConfig.id + (window.isProd ? ' (prod)' : ' (dev)');
+          statusEl.className = 'status success';
+        } else {
+          statusEl.textContent = '⚠ No config detected';
+          statusEl.className = 'status';
+        }
+
+        console.log('Layer config:', layerConfig);
+
+      } catch (error) {
+        statusEl.textContent = '✗ Error: ' + error.message;
+        statusEl.className = 'status error';
+        console.error('Error:', error);
       }
-
-      console.log('Layer config:', layerConfig);
-
-    } catch (error) {
-      statusEl.textContent = '✗ Error: ' + error.message;
-      statusEl.className = 'status error';
-      console.error('Error:', error);
-    }
+    });
   </script>
 </body>
 </html>

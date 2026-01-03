@@ -8,9 +8,12 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
     h1 { color: #333; }
     ul { list-style: none; padding: 0; }
-    li { margin: 15px 0; }
-    a { color: #007bff; text-decoration: none; font-size: 18px; }
-    a:hover { text-decoration: underline; }
+    li { margin: 15px 0; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+    li:last-child { border-bottom: none; }
+    .example-name { font-size: 18px; font-weight: 500; color: #333; }
+    .links { margin-top: 5px; }
+    .links a { color: #007bff; text-decoration: none; font-size: 14px; margin-right: 15px; }
+    .links a:hover { text-decoration: underline; }
     .description { color: #666; font-size: 14px; margin-top: 5px; }
   </style>
 </head>
@@ -18,19 +21,35 @@
   <h1>OpenLayers Examples</h1>
   <ul>
     <li>
-      <a href="script-tag.html">Script Tag (IIFE)</a>
+      <div class="example-name">Script Tag (IIFE)</div>
+      <div class="links">
+        <a href="script-tag.html">dev</a>
+        <a href="script-tag.html?prod=yes">prod</a>
+      </div>
       <div class="description">Simplest setup using a &lt;script&gt; tag. No bundler required!</div>
     </li>
     <li>
-      <a href="tile-layer.html">Corrected TileLayer (ES Modules)</a>
+      <div class="example-name">Corrected TileLayer (ES Modules)</div>
+      <div class="links">
+        <a href="tile-layer.html">dev</a>
+        <a href="tile-layer.html?prod=yes">prod</a>
+      </div>
       <div class="description">Uses IndiaBoundaryCorrectedTileLayer with ES module imports.</div>
     </li>
     <li>
-      <a href="service-worker.html">Service Worker</a>
+      <div class="example-name">Service Worker</div>
+      <div class="links">
+        <a href="service-worker.html">dev</a>
+        <a href="service-worker.html?prod=yes">prod</a>
+      </div>
       <div class="description">Uses a Service Worker to automatically intercept and correct tile requests.</div>
     </li>
     <li>
-      <a href="custom-layerconfig.html">Custom LayerConfig</a>
+      <div class="example-name">Custom LayerConfig</div>
+      <div class="links">
+        <a href="custom-layerconfig.html">dev</a>
+        <a href="custom-layerconfig.html?prod=yes">prod</a>
+      </div>
       <div class="description">Shows how to create a custom LayerConfig for OSM DE (tile.openstreetmap.de) tiles.</div>
     </li>
   </ul>

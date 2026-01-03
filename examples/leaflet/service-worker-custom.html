@@ -39,6 +39,26 @@
     .status.error { background: #f8d7da; color: #721c24; }
     .status.warning { background: #fff3cd; color: #856404; }
   </style>
+  <script>
+    // Importmaps are only needed for local development.
+    // For production, import directly from esm.sh (no importmap needed).
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    if (!isProd) {
+      const importmap = document.createElement('script');
+      importmap.type = 'importmap';
+      importmap.textContent = JSON.stringify({
+        imports: {
+          "@india-boundary-corrector/data": "../../packages/data/index.js",
+          "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
+          "@india-boundary-corrector/service-worker": "../../packages/service-worker/dist/index.js"
+        }
+      });
+      document.currentScript.after(importmap);
+    }
+  </script>
 </head>
 <body>
   <div class="info">
@@ -49,16 +69,16 @@
   </div>
   <div id="map"></div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "@india-boundary-corrector/data": "../../packages/data/index.js",
-      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js"
-    }
-  }
-  </script>
   <script type="module">
-    import { registerCorrectionServiceWorker, LayerConfig } from '../../packages/service-worker/dist/index.js';
+    // For production, you can simply use:
+    // import { registerCorrectionServiceWorker, LayerConfig } from 'https://esm.sh/@india-boundary-corrector/service-worker';
+    
+    const isProd = window.isProd;
+    const moduleUrl = isProd
+      ? 'https://esm.sh/@india-boundary-corrector/service-worker'
+      : '@india-boundary-corrector/service-worker';
+    
+    const { registerCorrectionServiceWorker, LayerConfig } = await import(moduleUrl);
 
     const statusEl = document.getElementById('status');
 
@@ -71,9 +91,12 @@
       try {
         updateStatus('Registering service worker...');
 
-        const sw = await registerCorrectionServiceWorker('./sw.js', {
-          pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
-        });
+        const swOptions = {};
+        if (!isProd) {
+          swOptions.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
+        }
+
+        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js', swOptions);
 
         if (!sw.isControlling()) {
           updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
@@ -101,7 +124,7 @@
         // Register the custom config with the service worker
         await sw.addLayerConfig(osmDE);
 
-        updateStatus('✓ Service worker active with custom OSM DE config', 'success');
+        updateStatus('✓ Service worker active with custom OSM DE config' + (isProd ? ' (prod)' : ' (dev)'), 'success');
 
         // Create the map with OSM DE tiles
         const map = L.map('map').setView([20.5937, 78.9629], 4);

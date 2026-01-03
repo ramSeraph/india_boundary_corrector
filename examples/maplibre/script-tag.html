@@ -6,11 +6,24 @@
   <title>Script Tag Example - India Boundary Corrector (MapLibre)</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
-  <!-- Load the IIFE bundle - no module bundler needed! -->
-  <!-- Option 1: Load from CDN (recommended for production) -->
-  <!-- <script src="https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"></script> -->
-  <!-- Option 2: Load from local path (for development) -->
-  <script src="../../packages/maplibre-protocol/dist/index.global.js"></script>
+  <script>
+    // For production, you can simply use:
+    // <script src="https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"><\/script>
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    const script = document.createElement('script');
+    script.src = isProd 
+      ? 'https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js'
+      : '../../packages/maplibre-protocol/dist/index.global.js';
+    window.ibcScriptLoaded = new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = reject;
+    });
+    document.head.appendChild(script);
+  </script>
   <style>
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -54,58 +67,63 @@
   <div id="map"></div>
 
   <script>
-    const statusEl = document.getElementById('status');
+    // Wait for the dynamically loaded script.
+    // For static script tags, use window.addEventListener('load', ...) instead.
+    window.ibcScriptLoaded.then(function() {
+      const statusEl = document.getElementById('status');
 
-    try {
-      // The IIFE bundle exposes IndiaBoundaryCorrector global
-      const { registerCorrectionProtocol } = IndiaBoundaryCorrector;
+      try {
+        // The IIFE bundle exposes IndiaBoundaryCorrector global
+        const { registerCorrectionProtocol } = IndiaBoundaryCorrector;
 
-      // Register the corrections protocol with MapLibre
-      // pmtilesUrl is only needed when loading from local path.
-      // When using the CDN bundle, the PMTiles data is included automatically.
-      registerCorrectionProtocol(maplibregl, {
-        pmtilesUrl: '../../packages/data/india_boundary_corrections.pmtiles',
-      });
+        // Register the corrections protocol with MapLibre
+        const options = {};
+        if (!window.isProd) {
+          options.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
+        }
+        
+        registerCorrectionProtocol(maplibregl, options);
 
-      statusEl.textContent = '✓ Protocol registered, initializing map...';
+        statusEl.textContent = '✓ Protocol registered, initializing map...';
 
-      // Create the map
-      const map = new maplibregl.Map({
-        container: 'map',
-        style: {
-          version: 8,
-          sources: {},
-          layers: []
-        },
-        center: [78.9629, 20.5937],
-        zoom: 4,
-      });
-
-      map.on('load', () => {
-        // Add raster tiles using ibc:// protocol
-        // Auto-detects config from URL pattern
-        map.addSource('basemap', {
-          type: 'raster',
-          tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '© OpenStreetMap contributors',
+        // Create the map
+        const map = new maplibregl.Map({
+          container: 'map',
+          style: {
+            version: 8,
+            sources: {},
+            layers: []
+          },
+          center: [78.9629, 20.5937],
+          zoom: 4,
         });
 
-        map.addLayer({
-          id: 'basemap-layer',
-          type: 'raster',
-          source: 'basemap',
+        map.on('load', () => {
+          // Add raster tiles using ibc:// protocol
+          // Auto-detects config from URL pattern
+          map.addSource('basemap', {
+            type: 'raster',
+            tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors',
+          });
+
+          map.addLayer({
+            id: 'basemap-layer',
+            type: 'raster',
+            source: 'basemap',
+          });
+
+          statusEl.textContent = '✓ Map loaded with corrections' + (window.isProd ? ' (prod)' : ' (dev)');
+          statusEl.className = 'status success';
         });
 
-        statusEl.textContent = '✓ Map loaded with corrections';
-        statusEl.className = 'status success';
-      });
-
-    } catch (error) {
-      statusEl.textContent = '✗ Error: ' + error.message;
-      statusEl.className = 'status error';
-      console.error('Error:', error);
-    }
+      } catch (error) {
+        statusEl.textContent = '✗ Error: ' + error.message;
+        statusEl.className = 'status error';
+        console.error('Error:', error);
+      }
+    });
   </script>
 </body>
 </html>

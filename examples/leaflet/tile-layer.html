@@ -40,18 +40,28 @@
     .status.success { background: #d4edda; color: #155724; }
     .status.error { background: #f8d7da; color: #721c24; }
   </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "pmtiles": "https://esm.sh/pmtiles@4.0.0",
-      "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
-      "pbf": "https://esm.sh/pbf@4.0.1",
-      "@india-boundary-corrector/data": "../../packages/data/index.js",
-      "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
-      "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/dist/index.js",
-      "@india-boundary-corrector/leaflet-layer": "../../packages/leaflet-layer/dist/index.js"
+  <script>
+    // Importmaps are only needed for local development.
+    // For production, import directly from esm.sh (no importmap needed).
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    
+    if (!isProd) {
+      const importmap = document.createElement('script');
+      importmap.type = 'importmap';
+      importmap.textContent = JSON.stringify({
+        imports: {
+          "pmtiles": "https://esm.sh/pmtiles@4.0.0",
+          "@mapbox/vector-tile": "https://esm.sh/@mapbox/vector-tile@2.0.3",
+          "pbf": "https://esm.sh/pbf@4.0.1",
+          "@india-boundary-corrector/data": "../../packages/data/index.js",
+          "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
+          "@india-boundary-corrector/tilefixer": "../../packages/tilefixer/dist/index.js",
+          "@india-boundary-corrector/leaflet-layer": "../../packages/leaflet-layer/dist/index.js"
+        }
+      });
+      document.currentScript.after(importmap);
     }
-  }
   </script>
 </head>
 <body>
@@ -73,7 +83,17 @@
   <div id="map"></div>
 
   <script type="module">
-    import { extendLeaflet, layerConfigs } from '@india-boundary-corrector/leaflet-layer';
+    // For production, you can simply use:
+    // import { extendLeaflet, layerConfigs } from 'https://esm.sh/@india-boundary-corrector/leaflet-layer';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    
+    const moduleUrl = isProd 
+      ? 'https://esm.sh/@india-boundary-corrector/leaflet-layer'
+      : '@india-boundary-corrector/leaflet-layer';
+    
+    const { extendLeaflet, layerConfigs } = await import(moduleUrl);
 
     const statusEl = document.getElementById('status');
     const basemapSelect = document.getElementById('basemap');
@@ -135,7 +155,7 @@
       }
       const layerConfig = layer.getLayerConfig?.();
       if (layerConfig) {
-        statusEl.textContent = `✓ Using config: ${layerConfig.id}`;
+        statusEl.textContent = `✓ Using config: ${layerConfig.id}` + (isProd ? ' (prod)' : ' (dev)');
         statusEl.className = 'status success';
       } else {
         statusEl.textContent = '⚠ No config detected (corrections disabled)';
