@@ -62,6 +62,12 @@
     <select id="basemap"></select>
     <label for="opacity">Opacity: <span id="opacity-value">100%</span></label>
     <input type="range" id="opacity" min="0" max="100" value="100" style="width: 100%;">
+    <div style="margin: 10px 0;">
+      <label>
+        <input type="checkbox" id="corrections-toggle" checked>
+        Enable boundary corrections
+      </label>
+    </div>
     <div id="status" class="status">Loading...</div>
   </div>
   <div id="map"></div>
@@ -73,6 +79,36 @@
     const basemapSelect = document.getElementById('basemap');
     const opacitySlider = document.getElementById('opacity');
     const opacityValue = document.getElementById('opacity-value');
+    const correctionsToggle = document.getElementById('corrections-toggle');
+
+    let correctionsEnabled = true;
+
+    // Parse URL hash for state: #zoom/lat/lng/basemap
+    function parseUrlHash() {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return null;
+      const parts = hash.split('/');
+      if (parts.length >= 3) {
+        const zoom = parseFloat(parts[0]);
+        const lat = parseFloat(parts[1]);
+        const lng = parseFloat(parts[2]);
+        const basemap = parts[3] || null;
+        if (!isNaN(zoom) && !isNaN(lat) && !isNaN(lng)) {
+          return { zoom, lat, lng, basemap };
+        }
+      }
+      return null;
+    }
+
+    // Update URL hash with current state
+    function updateUrlHash() {
+      if (!map) return;
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      const basemap = basemapSelect.value;
+      const hash = `${zoom}/${center.lat.toFixed(4)}/${center.lng.toFixed(4)}/${basemap}`;
+      history.replaceState(null, '', '#' + hash);
+    }
 
     // Build basemaps from registered configs
     const BASEMAPS = {};
@@ -92,7 +128,12 @@
     let currentLayer;
 
     function updateStatus(layer) {
-      const layerConfig = layer.getLayerConfig();
+      if (!correctionsEnabled) {
+        statusEl.textContent = '○ Corrections disabled';
+        statusEl.className = 'status';
+        return;
+      }
+      const layerConfig = layer.getLayerConfig?.();
       if (layerConfig) {
         statusEl.textContent = `✓ Using config: ${layerConfig.id}`;
         statusEl.className = 'status success';
@@ -118,10 +159,15 @@
         options.subdomains = basemap.subdomains;
       }
 
-      currentLayer = L.tileLayer.indiaBoundaryCorrected(basemap.url, options);
+      if (correctionsEnabled) {
+        currentLayer = L.tileLayer.indiaBoundaryCorrected(basemap.url, options);
+      } else {
+        currentLayer = L.tileLayer(basemap.url, options);
+      }
 
       currentLayer.addTo(map);
       updateStatus(currentLayer);
+      updateUrlHash();
     }
 
     try {
@@ -138,12 +184,23 @@
 
       statusEl.textContent = '✓ Plugin loaded, initializing map...';
 
-      // Create the map
-      map = L.map('map').setView([22.5, 78.9], 4);
+      // Parse URL hash for initial state
+      const urlState = parseUrlHash();
+      const initialView = urlState ? [urlState.lat, urlState.lng] : [22.5, 78.9];
+      const initialZoom = urlState ? urlState.zoom : 4;
+      const initialBasemap = urlState?.basemap && BASEMAPS[urlState.basemap] 
+        ? urlState.basemap 
+        : layerConfigs.getAvailableIds()[0];
 
-      // Add initial layer (first config in list)
-      const firstConfigId = layerConfigs.getAvailableIds()[0];
-      switchBasemap(firstConfigId);
+      // Create the map
+      map = L.map('map').setView(initialView, initialZoom);
+
+      // Update URL hash on map move
+      map.on('moveend', updateUrlHash);
+
+      // Set initial basemap selection
+      basemapSelect.value = initialBasemap;
+      switchBasemap(initialBasemap);
 
       // Handle basemap change
       basemapSelect.addEventListener('change', (e) => {
@@ -156,6 +213,16 @@
         opacityValue.textContent = `${e.target.value}%`;
         if (currentLayer) {
           currentLayer.setOpacity(opacity);
+        }
+      });
+
+      // Handle corrections toggle
+      correctionsToggle.addEventListener('change', (e) => {
+        correctionsEnabled = e.target.checked;
+        switchBasemap(basemapSelect.value);
+        // Restore opacity after layer switch
+        if (currentLayer) {
+          currentLayer.setOpacity(opacitySlider.value / 100);
         }
       });
 
