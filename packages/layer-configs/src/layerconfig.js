@@ -89,6 +89,7 @@ export class LayerConfig {
     // Tile URL templates for matching (e.g., "https://{s}.tile.example.com/{z}/{x}/{y}.png")
     tileUrlTemplates = [],
     // Line width stops: map of zoom level to line width (at least 2 entries)
+    // Note: interpolated/extrapolated line width is capped at a minimum of 0.5
     lineWidthStops = { 1: 0.5, 10: 2.5 },
     // Line styles array - each element describes a line to draw
     // { color: string, widthFraction?: number, dashArray?: number[], startZoom?: number, endZoom?: number }

@@ -70,7 +70,7 @@ layerConfigs.remove('my-custom-style');
 | `startZoom` | number | 0 | Minimum zoom level to start rendering corrections |
 | `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
-| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
+| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map. Interpolated/extrapolated values are capped at a minimum of 0.5. |
 | `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
 | `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
 | `lineExtensionFactor` | number | 0.5 | Factor to extend add lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
