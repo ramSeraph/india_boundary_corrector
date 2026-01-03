@@ -6,11 +6,15 @@ Pre-built layer configurations for India boundary corrector packages.
 
 ## Available Configs
 
-- `cartodb-dark` - CartoDB dark tiles
-- `cartodb-light` - CartoDB light/voyager tiles
-- `open-topo` - OpenTopoMap tiles
-- `osm-carto` - OpenStreetMap standard tiles
-- `osm-hot` - Humanitarian OpenStreetMap tiles
+| Config ID | Description | Example |
+|-----------|-------------|---------|
+| `cartodb-dark` | CartoDB dark tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-dark) |
+| `cartodb-light` | CartoDB light/voyager tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-light) |
+| `open-topo` | OpenTopoMap tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/open-topo) |
+| `osm-carto` | OpenStreetMap standard tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/osm-carto) |
+| `osm-hot` | Humanitarian OpenStreetMap tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/osm-hot) |
+
+Use the [Config Editor](https://ramseraph.github.io/india_boundary_corrector/) to craft custom configs for new basemaps.
 
 ## Usage
 
