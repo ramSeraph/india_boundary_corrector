@@ -47,5 +47,6 @@
   "bugs": {
     "url": "https://github.com/ramSeraph/india_boundary_corrector/issues"
   },
-  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme"
+  "homepage": "https://github.com/ramSeraph/india_boundary_corrector#readme",
+  "changelog": "https://github.com/ramSeraph/india_boundary_corrector/blob/main/packages/tilefixer/CHANGELOG.md"
 }
