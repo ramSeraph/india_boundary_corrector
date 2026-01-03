@@ -4,6 +4,8 @@
 
 OpenLayers TileLayer extension that automatically applies India boundary corrections.
 
+[Try it on JSFiddle](https://jsfiddle.net/waoepz78/)
+
 ## Installation
 
 ```bash
