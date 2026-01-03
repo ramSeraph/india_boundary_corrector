@@ -86,6 +86,45 @@ test.describe('Data Package', () => {
   });
 
   /**
+   * Tests for shouldUseCdnFallback().
+   * Checks if a hostname should fall back to unpkg CDN.
+   * Some CDNs like esm.sh only serve JS modules, not static files.
+   */
+  test.describe('shouldUseCdnFallback', () => {
+    test('returns true for esm.sh hostname', async ({ page }) => {
+      await page.goto('/tests/fixtures/data-test.html');
+      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
+
+      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('esm.sh'));
+      expect(result).toBe(true);
+    });
+
+    test('returns false for unpkg.com hostname', async ({ page }) => {
+      await page.goto('/tests/fixtures/data-test.html');
+      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
+
+      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('unpkg.com'));
+      expect(result).toBe(false);
+    });
+
+    test('returns false for localhost', async ({ page }) => {
+      await page.goto('/tests/fixtures/data-test.html');
+      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
+
+      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('localhost'));
+      expect(result).toBe(false);
+    });
+
+    test('returns false for custom domains', async ({ page }) => {
+      await page.goto('/tests/fixtures/data-test.html');
+      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
+
+      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('my-cdn.example.com'));
+      expect(result).toBe(false);
+    });
+  });
+
+  /**
    * Tests for getDataVersion().
    * Returns version information about the bundled boundary data.
    * Useful for cache busting and debugging data freshness.

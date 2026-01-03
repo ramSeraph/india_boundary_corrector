@@ -12,14 +12,15 @@
     }
   </script>
   <script type="module">
-    import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion } from '@india-boundary-corrector/data';
+    import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion, shouldUseCdnFallback } from '@india-boundary-corrector/data';
     
     // Expose for testing
     window.dataPackage = {
       layers,
       getPmtilesUrl,
       setPmtilesUrl,
-      getDataVersion
+      getDataVersion,
+      shouldUseCdnFallback
     };
     
     window.dataPackageLoaded = true;

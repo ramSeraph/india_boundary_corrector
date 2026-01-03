@@ -19,6 +19,17 @@ export const layers = {
 };
 
 /**
+ * Check if a URL hostname should use CDN fallback.
+ * Some CDNs like esm.sh don't host static files, so we need to fall back to unpkg.
+ * @param {string} hostname - The hostname to check
+ * @returns {boolean} True if CDN fallback should be used
+ */
+export function shouldUseCdnFallback(hostname) {
+  // esm.sh doesn't host static files, only transforms JS modules
+  return hostname === 'esm.sh';
+}
+
+/**
  * Detect the PMTiles URL from various sources:
  * 1. import.meta.url (for ESM bundlers - most reliable)
  * 2. Fallback to unpkg CDN with pinned version
@@ -32,6 +43,10 @@ function detectPmtilesUrl() {
   try {
     if (typeof import.meta !== 'undefined' && import.meta.url) {
       const moduleUrl = new URL('.', import.meta.url);
+      // Some CDNs don't host static files, fall back to unpkg
+      if (shouldUseCdnFallback(moduleUrl.hostname)) {
+        return DEFAULT_CDN_URL;
+      }
       return new URL(PMTILES_FILENAME, moduleUrl).href;
     }
   } catch {
