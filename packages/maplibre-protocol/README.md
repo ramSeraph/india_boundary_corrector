@@ -4,7 +4,7 @@
 
 MapLibre GL custom protocol for India boundary corrections.
 
-[Try it on JSFiddle](https://jsfiddle.net/2ym91L65/)
+[Try it on JSFiddle](https://jsfiddle.net/2ym91L65/3/)
 
 ## Installation
 
@@ -38,15 +38,16 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
         osm: {
           type: 'raster',
           tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256
+          tileSize: 256,
+          attribution: '© OpenStreetMap contributors'
         }
       },
       layers: [
         { id: 'osm', type: 'raster', source: 'osm' }
       ]
     },
-    center: [78.9629, 20.5937],
-    zoom: 5
+    center: [75.3412, 33.2778],
+    zoom: 4
   });
 </script>
 ```
@@ -69,15 +70,16 @@ const map = new maplibregl.Map({
       osm: {
         type: 'raster',
         tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
       }
     },
     layers: [
       { id: 'osm', type: 'raster', source: 'osm' }
     ]
   },
-  center: [78.9629, 20.5937],
-  zoom: 5
+  center: [75.3412, 33.2778],
+  zoom: 4
 });
 ```
 
@@ -128,7 +130,9 @@ const map = new maplibregl.Map({
     layers: [
       { id: 'osmde', type: 'raster', source: 'osmde' }
     ]
-  }
+  },
+  center: [75.3412, 33.2778],
+  zoom: 4
 });
 ```
 

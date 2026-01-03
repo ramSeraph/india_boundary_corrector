@@ -32,11 +32,14 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
     target: 'map',
     layers: [
       new IndiaBoundaryCorrectedTileLayer({
-        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        sourceOptions: {
+          attributions: '© OpenStreetMap contributors'
+        }
       })
     ],
     view: new ol.View({
-      center: ol.proj.fromLonLat([78.9629, 20.5937]),
+      center: ol.proj.fromLonLat([75.3412, 33.2778]),
       zoom: 5
     })
   });
@@ -54,11 +57,14 @@ const map = new Map({
   target: 'map',
   layers: [
     new IndiaBoundaryCorrectedTileLayer({
-      url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      sourceOptions: {
+        attributions: '© OpenStreetMap contributors'
+      }
     })
   ],
   view: new View({
-    center: fromLonLat([78.9629, 20.5937]),
+    center: fromLonLat([75.3412, 33.2778]),
     zoom: 5
   })
 });

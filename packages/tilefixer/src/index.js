@@ -137,7 +137,7 @@ function applyMedianBlurAlongPath(ctx, features, lineWidth, tileSize, maskCanvas
   if (!maskCanvas || maskCanvas.width !== tileSize || maskCanvas.height !== tileSize) {
     maskCanvas = new OffscreenCanvas(tileSize, tileSize);
   }
-  const maskCtx = maskCanvas.getContext('2d');
+  const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
   maskCtx.fillStyle = 'black';
   maskCtx.fillRect(0, 0, tileSize, tileSize);
   
@@ -420,9 +420,12 @@ export class BoundaryCorrector {
     const addLayerName = useOsm ? 'to-add-osm' : 'to-add-ne';
     const delLayerName = useOsm ? 'to-del-osm' : 'to-del-ne';
 
-    // Create OffscreenCanvas
-    const canvas = new OffscreenCanvas(tileSize, tileSize);
-    const ctx = canvas.getContext('2d');
+    // Get or create reusable main canvas
+    if (!this._canvas || this._canvas.width !== tileSize) {
+      this._canvas = new OffscreenCanvas(tileSize, tileSize);
+    }
+    const canvas = this._canvas;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     // Draw original raster tile
     const blob = new Blob([rasterTile]);

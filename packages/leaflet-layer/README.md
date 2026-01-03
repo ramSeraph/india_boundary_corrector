@@ -30,7 +30,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
   IndiaBoundaryCorrector.extendLeaflet(L);
 
   // Create map
-  const map = L.map('map').setView([20.5937, 78.9629], 5);
+  const map = L.map('map').setView([33.2778, 75.3412], 5);
 
   // Use corrected tile layer - config auto-detected from URL
   L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -49,7 +49,7 @@ import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
 extendLeaflet(L);
 
 // Create map
-const map = L.map('map').setView([20.5937, 78.9629], 5);
+const map = L.map('map').setView([33.2778, 75.3412], 5);
 
 // Use corrected tile layer - config auto-detected from URL
 L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -65,12 +65,12 @@ import { extendLeaflet, layerConfigs } from '@india-boundary-corrector/leaflet-l
 
 extendLeaflet(L);
 
-const map = L.map('map').setView([20.5937, 78.9629], 5);
+const map = L.map('map').setView([33.2778, 75.3412], 5);
 
 // Use a specific config by ID
 L.tileLayer.indiaBoundaryCorrected('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
   layerConfig: 'cartodb-dark',
-  attribution: '© CartoDB © OpenStreetMap contributors'
+  attribution: '© CARTO © OpenStreetMap contributors'
 }).addTo(map);
 ```
 
@@ -82,7 +82,7 @@ import { extendLeaflet, LayerConfig } from '@india-boundary-corrector/leaflet-la
 
 extendLeaflet(L);
 
-const map = L.map('map').setView([20.5937, 78.9629], 5);
+const map = L.map('map').setView([33.2778, 75.3412], 5);
 
 // Create custom config
 const osmDeConfig = new LayerConfig({

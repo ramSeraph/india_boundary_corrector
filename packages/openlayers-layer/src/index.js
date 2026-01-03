@@ -51,6 +51,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer
       const { blob, correctionsFailed, correctionsError } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
 
       if (correctionsFailed) {
+        // TODO: If abort is implemented, check for AbortError here and skip emitting correctionerror
         console.warn('[IndiaBoundaryCorrectedTileLayer] Corrections fetch failed:', correctionsError);
         layer.dispatchEvent({ type: 'correctionerror', error: correctionsError, coords: { z, x, y }, tileUrl: src });
       }
@@ -79,8 +80,8 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer
         image.src = blobUrl;
       }
     } catch (err) {
-      console.warn('[IndiaBoundaryCorrectedTileLayer] Error applying corrections, falling back to original:', err);
-      layer.dispatchEvent({ type: 'correctionerror', error: err, coords: { z, x, y }, tileUrl: src });
+      // Don't emit correctionerror for tile fetch/processing errors - only for PMTiles failures (handled above)
+      console.warn('[IndiaBoundaryCorrectedTileLayer] Tile fetch failed:', err);
       // Fall back to original tile
       const image = imageTile.getImage();
       if (typeof image.src !== 'undefined') {

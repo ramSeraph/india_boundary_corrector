@@ -94,6 +94,7 @@ function extendLeaflet(L) {
       // if performance becomes an issue during rapid panning.
       this._fetchAndFixTile(tileUrl, z, x, y, tileSize)
         .then(({ blob, wasFixed, correctionsFailed, correctionsError }) => {
+          // TODO: If abort is implemented, check for AbortError here and skip emitting correctionerror
           if (correctionsFailed) {
             console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);
             this.fire('correctionerror', { error: correctionsError, coords: { z, x, y }, tileUrl });

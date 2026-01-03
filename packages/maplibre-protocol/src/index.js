@@ -225,17 +225,20 @@ export class CorrectionProtocol {
           { signal: abortController?.signal }
         );
         
-        if (result.correctionsFailed) {
+        if (result.correctionsFailed && result.correctionsError?.name !== 'AbortError') {
           console.warn('[CorrectionProtocol] Corrections fetch failed:', result.correctionsError);
           self._emit('correctionerror', { error: result.correctionsError, coords: { z, x, y }, tileUrl });
         }
         
         return { data: result.data };
       } catch (err) {
-        console.warn('[CorrectionProtocol] Error applying corrections, falling back to original:', err);
-        self._emit('correctionerror', { error: err, coords: { z, x, y }, tileUrl });
-        const response = await fetch(tileUrl, { signal: abortController?.signal });
-        return { data: await response.arrayBuffer() };
+        // Don't catch AbortError - let it propagate
+        if (err.name === 'AbortError') {
+          throw err;
+        }
+        // Re-throw other errors (tile fetch failures, processing errors)
+        // correctionerror is only for PMTiles/correction failures (handled via correctionsFailed)
+        throw err;
       }
     };
   }
