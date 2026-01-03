@@ -1,5 +1,14 @@
 # @india-boundary-corrector/leaflet-layer
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @india-boundary-corrector/layer-configs@0.0.3
+  - @india-boundary-corrector/data@0.0.3
+  - @india-boundary-corrector/tilefixer@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes

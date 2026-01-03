@@ -1,5 +1,20 @@
 # @india-boundary-corrector/layer-configs
 
+## 0.0.3
+
+### Patch Changes
+
+- ### maplibre-protocol
+
+  - Fix handling of retina tile URLs (@2x, @3x suffixes) in maplibre-protocol
+  - Add `extractTileCoordsFromUrl` for generic z/x/y parsing with retina suffix support
+  - Update `parseCorrectionsUrl` to use generic parsing when config ID is explicit
+  - Fix config ID detection to handle URLs without slashes
+
+  ### layer-configs
+
+  - Add validation to reject LayerConfig IDs containing slashes
+
 ## 0.0.2
 
 ### Patch Changes
