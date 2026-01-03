@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/openlayers-layer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "OpenLayers TileLayer with India boundary corrections",
   "type": "module",
   "main": "dist/index.cjs",
@@ -29,9 +29,9 @@
     "ol": ">=7.0.0"
   },
   "dependencies": {
-    "@india-boundary-corrector/data": "^0.0.1",
-    "@india-boundary-corrector/layer-configs": "^0.0.1",
-    "@india-boundary-corrector/tilefixer": "^0.0.1"
+    "@india-boundary-corrector/data": "^0.0.2",
+    "@india-boundary-corrector/layer-configs": "^0.0.2",
+    "@india-boundary-corrector/tilefixer": "^0.0.2"
   },
   "keywords": [
     "india",
