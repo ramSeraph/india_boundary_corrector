@@ -299,7 +299,8 @@ export class CorrectionProtocol {
  *       osm: {
  *         type: 'raster',
  *         tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
- *         tileSize: 256
+ *         tileSize: 256,
+ *         attribution: '© OpenStreetMap contributors'
  *       }
  *     },
  *     layers: [{ id: 'osm', type: 'raster', source: 'osm' }]

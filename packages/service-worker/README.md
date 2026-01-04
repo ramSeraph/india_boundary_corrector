@@ -45,13 +45,18 @@ The service worker intercepts tile requests transparently:
 
 ```javascript
 // Leaflet
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
 // OpenLayers
-new TileLayer({ source: new XYZ({ url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png' }) });
+new TileLayer({ source: new XYZ({
+  url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attributions: '© OpenStreetMap contributors'
+}) });
 
 // MapLibre
-{ type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'] }
+{ type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], attribution: '© OpenStreetMap contributors' }
 ```
 
 ### With Custom Layer Config
@@ -102,7 +107,9 @@ importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-wo
     console.log('Service worker registered');
     
     // Now any matching tile requests will be automatically corrected
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
   });
 </script>
 ```

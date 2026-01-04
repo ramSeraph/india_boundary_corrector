@@ -77,7 +77,10 @@ import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openl
 
 const layer = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  layerConfig: 'cartodb-dark'
+  layerConfig: 'cartodb-dark',
+  sourceOptions: {
+    attributions: '© CARTO © OpenStreetMap contributors'
+  }
 });
 ```
 
@@ -98,13 +101,19 @@ const osmDeConfig = new LayerConfig({
 
 const layer = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
-  layerConfig: osmDeConfig
+  layerConfig: osmDeConfig,
+  sourceOptions: {
+    attributions: '© OpenStreetMap contributors'
+  }
 });
 
 // Or use extraLayerConfigs for auto-detection
 const layer2 = new IndiaBoundaryCorrectedTileLayer({
   url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
-  extraLayerConfigs: [osmDeConfig]
+  extraLayerConfigs: [osmDeConfig],
+  sourceOptions: {
+    attributions: '© OpenStreetMap contributors'
+  }
 });
 ```
 
@@ -114,7 +123,10 @@ const layer2 = new IndiaBoundaryCorrectedTileLayer({
 import { indiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
 const layer = indiaBoundaryCorrectedTileLayer({
-  url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  sourceOptions: {
+    attributions: '© OpenStreetMap contributors'
+  }
 });
 ```
 

@@ -124,7 +124,8 @@ const map = new maplibregl.Map({
         type: 'raster',
         tiles: ['ibc://https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
         // Or explicit: tiles: ['ibc://osm-de@https://tile.openstreetmap.de/{z}/{x}/{y}.png']
-        tileSize: 256
+        tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
       }
     },
     layers: [
