@@ -9,17 +9,7 @@
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
-
-// Message types
-const MessageTypes = {
-  ADD_LAYER_CONFIG: 'ADD_LAYER_CONFIG',
-  REMOVE_LAYER_CONFIG: 'REMOVE_LAYER_CONFIG',
-  SET_PMTILES_URL: 'SET_PMTILES_URL',
-  SET_ENABLED: 'SET_ENABLED',
-  CLEAR_CACHE: 'CLEAR_CACHE',
-  GET_STATUS: 'GET_STATUS',
-  RESET_CONFIG: 'RESET_CONFIG',
-};
+import { MessageTypes } from './constants.js';
 
 // State
 let registry = layerConfigs.createMergedRegistry();
