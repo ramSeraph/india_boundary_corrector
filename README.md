@@ -71,6 +71,9 @@ const map = new Map({
     new IndiaBoundaryCorrectedTileLayer({
       url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       // layerConfig: 'osm-carto', // Optional: auto-detected from URL
+      sourceOptions: {
+        attributions: '© OpenStreetMap contributors'
+      }
     }),
   ],
   view: new View({ center: [78.9629, 20.5937], zoom: 4 }),
@@ -97,6 +100,7 @@ const map = new maplibregl.Map({
         // Prefix tile URL with 'ibc://' to apply corrections
         tiles: ['ibc://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
+        attribution: '© OpenStreetMap contributors'
       },
     },
     layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
@@ -119,7 +123,9 @@ await sw.register();
 
 // Now use any map library normally - tiles are corrected automatically
 const map = L.map('map').setView([20.5937, 78.9629], 4);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 ```
 
 > **Note**: The service worker approach intercepts all matching tile requests globally. Unlike the library-specific integrations, you cannot selectively disable corrections for specific tile layers.
