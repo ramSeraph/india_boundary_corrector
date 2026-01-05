@@ -51,7 +51,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 
 ```html
 <!-- Leaflet -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="path/to/leaflet-layer/dist/index.global.js"></script>
 <script>
   IndiaBoundaryCorrector.extendLeaflet(L);
@@ -59,7 +59,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 </script>
 
 <!-- MapLibre -->
-<script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
 <script src="path/to/maplibre-protocol/dist/index.global.js"></script>
 <script>
   IndiaBoundaryCorrector.registerCorrectionProtocol(maplibregl);

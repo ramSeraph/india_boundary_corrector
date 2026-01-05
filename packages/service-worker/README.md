@@ -98,7 +98,7 @@ importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-wo
 ### 2. Include the Script and Register
 
 ```html
-<script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
 <script>
   // The library is available as IndiaBoundaryCorrector on the global window object
   const { registerCorrectionServiceWorker, LayerConfig } = IndiaBoundaryCorrector;
@@ -117,7 +117,7 @@ importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-wo
 ### With Custom Layer Config (IIFE)
 
 ```html
-<script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js"></script>
 <script>
   const { registerCorrectionServiceWorker, LayerConfig } = IndiaBoundaryCorrector;
 
@@ -144,8 +144,19 @@ Register the service worker and wait for it to take control.
 | `options.scope` | string | Service worker scope |
 | `options.pmtilesUrl` | string | PMTiles URL to use |
 | `options.controllerTimeout` | number | Timeout for SW to take control (default: 3000ms) |
+| `options.forceReinstall` | boolean | Unregister existing SW before registering (default: false) |
 
 Returns: `Promise<CorrectionServiceWorker>`
+
+#### Development Mode
+
+Use `forceReinstall: true` during development to ensure you always get a fresh service worker:
+
+```javascript
+const sw = await registerCorrectionServiceWorker('./sw.js', {
+  forceReinstall: true  // Useful when iterating on SW code
+});
+```
 
 ### `CorrectionServiceWorker`
 

@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Service Worker Custom LayerConfig Example - India Boundary Corrector</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -91,12 +91,7 @@
       try {
         updateStatus('Registering service worker...');
 
-        const swOptions = {};
-        if (!isProd) {
-          swOptions.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-        }
-
-        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js', swOptions);
+        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js');
 
         if (!sw.isControlling()) {
           updateStatus('⚠ SW registered but not controlling - please reload', 'warning');

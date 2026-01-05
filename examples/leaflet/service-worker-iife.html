@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Service Worker (IIFE) Example - India Boundary Corrector</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // For production, you can simply use:
-    // <script src="https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js"><\/script>
+    // <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js"><\/script>
     
     const urlParams = new URLSearchParams(window.location.search);
     const isProd = urlParams.get('prod') === 'yes';
@@ -16,7 +16,7 @@
     
     const script = document.createElement('script');
     script.src = isProd 
-      ? 'https://unpkg.com/@india-boundary-corrector/service-worker/dist/index.global.js'
+      ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js'
       : '../../packages/service-worker/dist/index.global.js';
     window.ibcScriptLoaded = new Promise((resolve, reject) => {
       script.onload = resolve;
@@ -129,13 +129,8 @@
           updateStatus('Registering service worker...');
 
           // Register the service worker
-          const swOptions = {};
-          if (!window.isProd) {
-            swOptions.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-          }
-          
           const swPath = window.isProd ? './sw-prod.js' : './sw.js';
-          const sw = await registerCorrectionServiceWorker(swPath, swOptions);
+          const sw = await registerCorrectionServiceWorker(swPath);
 
           if (!sw.isControlling()) {
             updateStatus('⚠ SW registered but not controlling - please reload', 'warning');

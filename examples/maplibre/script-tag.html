@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Script Tag Example - India Boundary Corrector (MapLibre)</title>
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
-  <script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
   <script>
     // For production, you can simply use:
-    // <script src="https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"><\/script>
+    // <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"><\/script>
     
     const urlParams = new URLSearchParams(window.location.search);
     const isProd = urlParams.get('prod') === 'yes';
@@ -16,7 +16,7 @@
     
     const script = document.createElement('script');
     script.src = isProd 
-      ? 'https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js'
+      ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/maplibre-protocol/dist/index.global.js'
       : '../../packages/maplibre-protocol/dist/index.global.js';
     window.ibcScriptLoaded = new Promise((resolve, reject) => {
       script.onload = resolve;
@@ -77,12 +77,7 @@
         const { registerCorrectionProtocol } = IndiaBoundaryCorrector;
 
         // Register the corrections protocol with MapLibre
-        const options = {};
-        if (!window.isProd) {
-          options.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-        }
-        
-        registerCorrectionProtocol(maplibregl, options);
+        registerCorrectionProtocol(maplibregl);
 
         statusEl.textContent = '✓ Protocol registered, initializing map...';
 

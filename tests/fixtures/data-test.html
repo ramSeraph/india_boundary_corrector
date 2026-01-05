@@ -12,7 +12,7 @@
     }
   </script>
   <script type="module">
-    import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion, shouldUseCdnFallback } from '@india-boundary-corrector/data';
+    import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion, resolvePmtilesUrl, DEFAULT_CDN_URL } from '@india-boundary-corrector/data';
     
     // Expose for testing
     window.dataPackage = {
@@ -20,7 +20,8 @@
       getPmtilesUrl,
       setPmtilesUrl,
       getDataVersion,
-      shouldUseCdnFallback
+      resolvePmtilesUrl,
+      DEFAULT_CDN_URL
     };
     
     window.dataPackageLoaded = true;

@@ -131,12 +131,7 @@
       try {
         updateStatus('Registering service worker...');
 
-        const swOptions = {};
-        if (!isProd) {
-          swOptions.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-        }
-
-        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js', swOptions);
+        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js');
 
         if (!sw.isControlling()) {
           updateStatus('⚠ SW registered but not controlling - please reload', 'warning');

@@ -1,0 +1,19 @@
+{
+  "name": "bundled-iife-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test IIFE bundling with data package",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "serve": "npx serve dist"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.9.0",
+    "rollup-plugin-copy": "^3.5.0"
+  },
+  "dependencies": {
+    "@india-boundary-corrector/data": "file:../../packages/data"
+  }
+}

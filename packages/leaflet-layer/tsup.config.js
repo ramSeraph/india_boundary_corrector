@@ -23,5 +23,6 @@ export default defineConfig([
     globalName: 'IndiaBoundaryCorrector',
     external: ['leaflet'],
     noExternal: ['@india-boundary-corrector/tilefixer', '@india-boundary-corrector/layer-configs'],
+    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles dist/',
   },
 ]);

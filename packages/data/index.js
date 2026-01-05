@@ -5,8 +5,17 @@ import { packageVersion } from './version.js';
 const PACKAGE_NAME = '@india-boundary-corrector/data';
 const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles';
 
-// Default CDN URL with pinned package version
-const DEFAULT_CDN_URL = `https://unpkg.com/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
+/**
+ * CDNs that don't serve static assets (JS module transformers only)
+ */
+const JS_ONLY_CDNS = new Set(['esm.sh', 'skypack.dev', 'cdn.skypack.dev']);
+
+// Default fallback CDN (jsDelivr has multi-CDN architecture, more reliable)
+export const DEFAULT_CDN_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
+// export const DEFAULT_CDN_URL = `https://unpkg.com/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
+
+// Capture document.currentScript.src at module load time (becomes null after script executes)
+const CURRENT_SCRIPT_URL = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || null;
 
 /**
  * Layer names in the PMTiles file
@@ -19,43 +28,58 @@ export const layers = {
 };
 
 /**
- * Check if a URL hostname should use CDN fallback.
- * Some CDNs like esm.sh don't host static files, so we need to fall back to unpkg.
- * @param {string} hostname - The hostname to check
- * @returns {boolean} True if CDN fallback should be used
- */
-export function shouldUseCdnFallback(hostname) {
-  // esm.sh doesn't host static files, only transforms JS modules
-  return hostname === 'esm.sh';
-}
-
-/**
  * Detect the PMTiles URL from various sources:
  * 1. import.meta.url (for ESM bundlers - most reliable)
- * 2. Fallback to unpkg CDN with pinned version
+ * 2. document.currentScript.src (for IIFE/script tags, captured at load time)
+ * 3. Fallback to jsDelivr CDN with pinned version
  * 
  * Note: When this package is bundled into another bundle, import.meta.url
  * won't work and we fall back to the CDN URL. Users can override with
  * setPmtilesUrl() for self-hosted scenarios.
  */
 function detectPmtilesUrl() {
+  let scriptUrl = null;
+
   // Try import.meta.url first (works in ESM environments)
   try {
     if (typeof import.meta !== 'undefined' && import.meta.url) {
-      const moduleUrl = new URL('.', import.meta.url);
-      // Some CDNs don't host static files, fall back to unpkg
-      if (shouldUseCdnFallback(moduleUrl.hostname)) {
-        return DEFAULT_CDN_URL;
-      }
-      return new URL(PMTILES_FILENAME, moduleUrl).href;
+      scriptUrl = import.meta.url;
     }
   } catch {
-    // import.meta not available (UMD/CJS/bundled)
+    // import.meta not available
+  }
+
+  // Use captured currentScript.src (for IIFE/script tags)
+  if (!scriptUrl && CURRENT_SCRIPT_URL) {
+    scriptUrl = CURRENT_SCRIPT_URL;
+  }
+
+  if (scriptUrl) {
+    const moduleUrl = new URL('.', scriptUrl);
+    // JS-only CDNs don't serve static files, fall back to default
+    if (JS_ONLY_CDNS.has(moduleUrl.hostname)) {
+      return DEFAULT_CDN_URL;
+    }
+    return new URL(PMTILES_FILENAME, moduleUrl).href;
   }
 
   // Fallback to CDN with pinned version
-  // This ensures it works even when bundled into another package
   return DEFAULT_CDN_URL;
+}
+
+/**
+ * Resolve PMTiles URL from a given script URL.
+ * Useful for testing URL resolution logic.
+ * @param {string} scriptUrl - The script URL to resolve from
+ * @returns {string} The resolved PMTiles URL
+ */
+export function resolvePmtilesUrl(scriptUrl) {
+  const moduleUrl = new URL('.', scriptUrl);
+  // JS-only CDNs don't serve static files, fall back to default
+  if (JS_ONLY_CDNS.has(moduleUrl.hostname)) {
+    return DEFAULT_CDN_URL;
+  }
+  return new URL(PMTILES_FILENAME, moduleUrl).href;
 }
 
 // Cache the detected URL
@@ -67,7 +91,7 @@ let cachedPmtilesUrl = null;
  * Detection priority:
  * 1. Manually set URL via setPmtilesUrl()
  * 2. import.meta.url (ESM environments)
- * 3. unpkg CDN fallback (pinned to current version)
+ * 3. jsDelivr CDN fallback (pinned to current version)
  * 
  * For self-hosted deployments or custom bundling scenarios,
  * use setPmtilesUrl().

@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ol@10.3.1/dist/ol.js"></script>
   <script>
     // For production, you can simply use:
-    // <script src="https://unpkg.com/@india-boundary-corrector/openlayers-layer/dist/index.global.js"><\/script>
+    // <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/openlayers-layer/dist/index.global.js"><\/script>
     
     const urlParams = new URLSearchParams(window.location.search);
     const isProd = urlParams.get('prod') === 'yes';
@@ -16,7 +16,7 @@
     
     const script = document.createElement('script');
     script.src = isProd 
-      ? 'https://unpkg.com/@india-boundary-corrector/openlayers-layer/dist/index.global.js'
+      ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/openlayers-layer/dist/index.global.js'
       : '../../packages/openlayers-layer/dist/index.global.js';
     window.ibcScriptLoaded = new Promise((resolve, reject) => {
       script.onload = resolve;
@@ -85,11 +85,6 @@
             attributions: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           },
         };
-        
-        // pmtilesUrl is only needed when loading from local path (dev mode)
-        if (!window.isProd) {
-          options.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-        }
         
         const layer = new IndiaBoundaryCorrectedTileLayer(options);
 

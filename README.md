@@ -130,7 +130,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 **sw.js** (service worker file):
 ```javascript
-importScripts('https://unpkg.com/@india-boundary-corrector/service-worker/dist/worker.global.js');
+importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/worker.global.js');
 ```
 
 > **Note**: The service worker approach intercepts all matching tile requests globally. Unlike the library-specific integrations, you cannot selectively disable corrections for specific tile layers.

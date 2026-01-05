@@ -19,9 +19,9 @@ npm install @india-boundary-corrector/maplibre-protocol maplibre-gl
 No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
-<script src="https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
-<script src="https://unpkg.com/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/maplibre-protocol/dist/index.global.js"></script>
 
 <div id="map" style="height: 400px;"></div>
 

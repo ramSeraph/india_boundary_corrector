@@ -19,12 +19,14 @@ export class CorrectionServiceWorker {
    * @param {string} [options.scope] - Service worker scope (defaults to workerUrl directory)
    * @param {string} [options.pmtilesUrl] - PMTiles URL to set after registration
    * @param {number} [options.controllerTimeout=3000] - Timeout in ms to wait for SW to take control
+   * @param {boolean} [options.forceReinstall=false] - Unregister existing SW before registering (useful for dev)
    */
   constructor(workerUrl, options = {}) {
     this._workerUrl = workerUrl;
     this._scope = options.scope;
     this._pmtilesUrl = options.pmtilesUrl;
     this._controllerTimeout = options.controllerTimeout ?? 3000;
+    this._forceReinstall = options.forceReinstall ?? false;
     this._registration = null;
   }
 
@@ -36,6 +38,14 @@ export class CorrectionServiceWorker {
   async register() {
     if (!('serviceWorker' in navigator)) {
       throw new Error('Service workers not supported');
+    }
+
+    // Unregister existing SW if forceReinstall is set
+    if (this._forceReinstall) {
+      const existingReg = await navigator.serviceWorker.getRegistration(this._scope);
+      if (existingReg) {
+        await existingReg.unregister();
+      }
     }
 
     const regOptions = this._scope ? { scope: this._scope } : undefined;
@@ -70,13 +80,25 @@ export class CorrectionServiceWorker {
    */
   async _waitForController() {
     return new Promise((resolve) => {
+      // Check if already controlling (race condition)
+      if (navigator.serviceWorker.controller) {
+        resolve();
+        return;
+      }
+
+      let timeoutId;
       const onControllerChange = () => {
+        clearTimeout(timeoutId);
         navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
         resolve();
       };
       navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
-      // Timeout fallback - SW may already be controlling after registration
-      setTimeout(resolve, this._controllerTimeout);
+      
+      // Timeout fallback - check again in case we missed the event
+      timeoutId = setTimeout(() => {
+        navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        resolve();
+      }, this._controllerTimeout);
     });
   }
 
@@ -222,6 +244,7 @@ export class CorrectionServiceWorker {
  * @param {string} [options.scope] - Service worker scope
  * @param {string} [options.pmtilesUrl] - PMTiles URL to set
  * @param {number} [options.controllerTimeout] - Timeout in ms to wait for SW control
+ * @param {boolean} [options.forceReinstall] - Unregister existing SW before registering
  * @returns {Promise<CorrectionServiceWorker>}
  */
 export async function registerCorrectionServiceWorker(workerUrl, options = {}) {

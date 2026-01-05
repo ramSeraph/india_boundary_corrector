@@ -26,6 +26,8 @@ export interface CorrectionServiceWorkerOptions {
   pmtilesUrl?: string;
   /** Timeout in ms to wait for SW to take control (default: 3000) */
   controllerTimeout?: number;
+  /** Unregister existing SW before registering (useful for dev) */
+  forceReinstall?: boolean;
 }
 
 /**

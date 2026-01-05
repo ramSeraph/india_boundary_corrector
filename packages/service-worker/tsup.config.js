@@ -30,5 +30,6 @@ export default defineConfig([
     globalName: 'IndiaBoundaryCorrector',
     platform: 'browser',
     target: 'es2020',
+    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles dist/',
   }
 ]);

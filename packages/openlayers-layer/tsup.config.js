@@ -22,5 +22,6 @@ export default defineConfig([
     globalName: 'IndiaBoundaryCorrector',
     external: ['ol', 'ol/layer/Tile', 'ol/source/XYZ'],
     noExternal: ['@india-boundary-corrector/tilefixer', '@india-boundary-corrector/layer-configs'],
+    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles dist/',
   },
 ]);

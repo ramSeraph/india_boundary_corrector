@@ -19,9 +19,9 @@ npm install @india-boundary-corrector/leaflet-layer leaflet
 No bundler required! Just include the script and use the global `IndiaBoundaryCorrector`:
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/leaflet-layer/dist/index.global.js"></script>
 
 <div id="map" style="height: 400px;"></div>
 

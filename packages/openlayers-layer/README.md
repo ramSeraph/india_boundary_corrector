@@ -21,7 +21,7 @@ No bundler required! Just include the script and use the global `IndiaBoundaryCo
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.3.1/ol.css">
 <script src="https://cdn.jsdelivr.net/npm/ol@10.3.1/dist/ol.js"></script>
-<script src="https://unpkg.com/@india-boundary-corrector/openlayers-layer/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/openlayers-layer/dist/index.global.js"></script>
 
 <div id="map" style="height: 400px;"></div>
 

@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Script Tag Example - India Boundary Corrector (Leaflet)</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // For production, you can simply use:
-    // <script src="https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js"><\/script>
+    // <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/leaflet-layer/dist/index.global.js"><\/script>
     
     const urlParams = new URLSearchParams(window.location.search);
     const isProd = urlParams.get('prod') === 'yes';
@@ -16,7 +16,7 @@
     
     const script = document.createElement('script');
     script.src = isProd 
-      ? 'https://unpkg.com/@india-boundary-corrector/leaflet-layer/dist/index.global.js'
+      ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/leaflet-layer/dist/index.global.js'
       : '../../packages/leaflet-layer/dist/index.global.js';
     window.ibcScriptLoaded = new Promise((resolve, reject) => {
       script.onload = resolve;
@@ -74,7 +74,9 @@
 
       try {
         // The IIFE bundle exposes IndiaBoundaryCorrector global
-        const { extendLeaflet } = IndiaBoundaryCorrector;
+        const { extendLeaflet, getPmtilesUrl } = IndiaBoundaryCorrector;
+        
+        console.log('PMTiles URL:', getPmtilesUrl());
 
         // Extend Leaflet with the corrected tile layer
         extendLeaflet(L);
@@ -89,11 +91,6 @@
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         };
-        
-        // pmtilesUrl is only needed when loading from local path (dev mode)
-        if (!window.isProd) {
-          options.pmtilesUrl = '../../packages/data/india_boundary_corrections.pmtiles';
-        }
         
         const layer = L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options);
 

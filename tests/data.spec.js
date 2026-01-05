@@ -86,41 +86,59 @@ test.describe('Data Package', () => {
   });
 
   /**
-   * Tests for shouldUseCdnFallback().
-   * Checks if a hostname should fall back to unpkg CDN.
-   * Some CDNs like esm.sh only serve JS modules, not static files.
+   * Tests for resolvePmtilesUrl().
+   * Resolves PMTiles URL from a given script URL.
+   * JS-only CDNs (esm.sh, skypack) should fall back to jsDelivr.
    */
-  test.describe('shouldUseCdnFallback', () => {
-    test('returns true for esm.sh hostname', async ({ page }) => {
+  test.describe('resolvePmtilesUrl', () => {
+    test('resolves relative to jsdelivr URL', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
       await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
 
-      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('esm.sh'));
-      expect(result).toBe(true);
+      const result = await page.evaluate(() => 
+        window.dataPackage.resolvePmtilesUrl('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/data@0.0.3/index.js')
+      );
+      expect(result).toBe('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/data@0.0.3/india_boundary_corrections.pmtiles');
     });
 
-    test('returns false for unpkg.com hostname', async ({ page }) => {
+    test('resolves relative to unpkg URL', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
       await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
 
-      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('unpkg.com'));
-      expect(result).toBe(false);
+      const result = await page.evaluate(() => 
+        window.dataPackage.resolvePmtilesUrl('https://unpkg.com/@india-boundary-corrector/data@0.0.3/index.js')
+      );
+      expect(result).toBe('https://unpkg.com/@india-boundary-corrector/data@0.0.3/india_boundary_corrections.pmtiles');
     });
 
-    test('returns false for localhost', async ({ page }) => {
+    test('falls back to default CDN for esm.sh', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
       await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
 
-      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('localhost'));
-      expect(result).toBe(false);
+      const result = await page.evaluate(() => 
+        window.dataPackage.resolvePmtilesUrl('https://esm.sh/@india-boundary-corrector/data@0.0.3')
+      );
+      expect(result).toBe(await page.evaluate(() => window.dataPackage.DEFAULT_CDN_URL));
     });
 
-    test('returns false for custom domains', async ({ page }) => {
+    test('falls back to default CDN for skypack.dev', async ({ page }) => {
       await page.goto('/tests/fixtures/data-test.html');
       await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
 
-      const result = await page.evaluate(() => window.dataPackage.shouldUseCdnFallback('my-cdn.example.com'));
-      expect(result).toBe(false);
+      const result = await page.evaluate(() => 
+        window.dataPackage.resolvePmtilesUrl('https://cdn.skypack.dev/@india-boundary-corrector/data@0.0.3')
+      );
+      expect(result).toBe(await page.evaluate(() => window.dataPackage.DEFAULT_CDN_URL));
+    });
+
+    test('resolves relative to localhost URL', async ({ page }) => {
+      await page.goto('/tests/fixtures/data-test.html');
+      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
+
+      const result = await page.evaluate(() => 
+        window.dataPackage.resolvePmtilesUrl('http://localhost:8080/packages/data/index.js')
+      );
+      expect(result).toBe('http://localhost:8080/packages/data/india_boundary_corrections.pmtiles');
     });
   });
 

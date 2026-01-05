@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IIFE Bundle Test - India Boundary Data</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+    .result { margin: 1rem 0; }
+    button { padding: 0.5rem 1rem; margin-right: 0.5rem; cursor: pointer; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>IIFE Bundle Test</h1>
+  <p>Testing how <code>@india-boundary-corrector/data</code> works when bundled as IIFE.</p>
+  
+  <div class="result">
+    <h3>Results (check console too):</h3>
+    <pre id="output">Loading...</pre>
+    <p>View PMTiles: <a id="pmtiles-link" href="#" target="_blank">Open in pmtiles.io</a></p>
+  </div>
+
+  <div>
+    <button onclick="testSetUrl()">Test setPmtilesUrl()</button>
+    <button onclick="resetAndShow()">Reset & Show</button>
+  </div>
+
+  <script src="bundle.js"></script>
+  <script>
+    function showResults() {
+      const output = document.getElementById('output');
+      const pmtilesUrl = IndiaBoundaryTest.getUrl();
+      output.textContent = JSON.stringify({
+        pmtilesUrl: pmtilesUrl,
+        dataVersion: IndiaBoundaryTest.getVersion(),
+        layers: IndiaBoundaryTest.getLayers(),
+      }, null, 2);
+      
+      // Update pmtiles.io viewer link
+      const viewerLink = document.getElementById('pmtiles-link');
+      viewerLink.href = `https://pmtiles.io/#url=${encodeURIComponent(pmtilesUrl)}`;
+    }
+
+    function testSetUrl() {
+      IndiaBoundaryTest.setUrl('/custom/path/to/file.pmtiles');
+      showResults();
+    }
+
+    function resetAndShow() {
+      // Note: can't truly reset without page reload since it's cached
+      location.reload();
+    }
+
+    showResults();
+  </script>
+</body>
+</html>
