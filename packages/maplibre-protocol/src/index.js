@@ -89,27 +89,6 @@ function parseCorrectionsUrl(url, registry) {
 }
 
 /**
- * Fetch and fix a tile for MapLibre protocol.
- * Extracted for testability.
- * @param {string} tileUrl - URL of the raster tile
- * @param {number} z - Zoom level
- * @param {number} x - Tile X coordinate
- * @param {number} y - Tile Y coordinate
- * @param {TileFixer} tileFixer - TileFixer instance
- * @param {Object} layerConfig - Layer configuration (can be null)
- * @param {number} tileSize - Tile size in pixels
- * @param {Object} [options] - Fetch options
- * @param {AbortSignal} [options.signal] - Abort signal
- * @returns {Promise<{data: ArrayBuffer, correctionsFailed: boolean, correctionsError: Error|null}>}
- */
-async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
-  const { data, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
-    tileUrl, z, x, y, layerConfig, { tileSize, signal: options.signal }
-  );
-  return { data, correctionsFailed, correctionsError };
-}
-
-/**
  * India boundary corrections protocol for MapLibre GL.
  * 
  * Usage:
@@ -245,33 +224,16 @@ export class CorrectionProtocol {
         layerConfig = self._registry.detectFromTileUrls([tileUrl]);
       }
       
-      try {
-        const result = await fetchAndFixTile(
-          tileUrl,
-          z, 
-          x,
-          y,
-          self._tileFixer,
-          layerConfig,
-          self._tileSize,
-          { signal: abortController?.signal }
-        );
-        
-        if (result.correctionsFailed && result.correctionsError?.name !== 'AbortError') {
-          console.warn('[CorrectionProtocol] Corrections fetch failed:', result.correctionsError);
-          self._emit('correctionerror', { error: result.correctionsError, coords: { z, x, y }, tileUrl });
-        }
-        
-        return { data: result.data };
-      } catch (err) {
-        // Don't catch AbortError - let it propagate
-        if (err.name === 'AbortError') {
-          throw err;
-        }
-        // Re-throw other errors (tile fetch failures, processing errors)
-        // correctionerror is only for PMTiles/correction failures (handled via correctionsFailed)
-        throw err;
+      const { data, correctionsFailed, correctionsError } = await self._tileFixer.fetchAndFixTile(
+        tileUrl, z, x, y, layerConfig, { tileSize: self._tileSize, signal: abortController?.signal }
+      );
+      
+      if (correctionsFailed && correctionsError?.name !== 'AbortError') {
+        console.warn('[CorrectionProtocol] Corrections fetch failed:', correctionsError);
+        self._emit('correctionerror', { error: correctionsError, coords: { z, x, y }, tileUrl });
       }
+      
+      return { data };
     };
   }
 }
@@ -313,4 +275,4 @@ export function registerCorrectionProtocol(maplibregl, options = {}) {
 }
 
 // Export for testing
-export { parseCorrectionsUrl, fetchAndFixTile };
+export { parseCorrectionsUrl };

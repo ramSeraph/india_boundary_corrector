@@ -36,8 +36,6 @@ test.describe('MapLibre Protocol Package', () => {
     test('returns undefined coords for unregistered URL without config ID', async ({ page }) => {
       const result = await page.evaluate(() => {
         const { parseCorrectionsUrl } = window.testContext;
-        // No config ID, URL doesn't match any registered pattern
-        // Should NOT use generic parsing - unregistered URLs don't get corrections
         return parseCorrectionsUrl('ibc://https://example.com/tiles/8/182/101.png');
       });
 
@@ -212,48 +210,6 @@ test.describe('MapLibre Protocol Package', () => {
     });
   });
 
-  test.describe('fetchAndFixTile - Wrapper Behavior', () => {
-    test('returns ArrayBuffer data', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-        
-        return {
-          hasData: result.data instanceof ArrayBuffer,
-          dataSize: result.data.byteLength,
-        };
-      });
-
-      expect(result.hasData).toBe(true);
-      expect(result.dataSize).toBeGreaterThan(0);
-    });
-
-    test('propagates errors from tilefixer', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('tile-fail');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        try {
-          await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-          return { error: null };
-        } catch (err) {
-          return { error: err.message };
-        }
-      });
-
-      expect(result.error).toBeTruthy();
-      expect(result.error).toContain('Tile fetch failed');
-    });
-  });
-
   test.describe('CorrectionProtocol Configuration', () => {
     test('initializes with default PMTiles URL', async ({ page }) => {
       const result = await page.evaluate(() => {
@@ -305,7 +261,7 @@ test.describe('MapLibre Protocol Package', () => {
 
     test('auto-detects layer config from tile URL when no configId provided', async ({ page }) => {
       const result = await page.evaluate(async () => {
-        const { CorrectionProtocol, parseCorrectionsUrl } = window.testContext;
+        const { parseCorrectionsUrl } = window.testContext;
         const { CorrectionProtocol: CP } = window;
         const protocol = new CP();
         

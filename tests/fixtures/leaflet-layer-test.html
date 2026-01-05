@@ -31,10 +31,10 @@
     // Expose package exports for testing
     window.leafletLayerPackage = { layerConfigs, LayerConfig };
 
-    // Mock fetch for testing different scenarios
+    // Mock fetch for testing scenarios
     const originalFetch = window.fetch;
     
-    // Create mock tile data (1x1 white PNG)
+    // Create mock tile data (256x256 white PNG)
     const createMockTile = () => {
       const canvas = new OffscreenCanvas(256, 256);
       const ctx = canvas.getContext('2d');
@@ -43,68 +43,23 @@
       return canvas.convertToBlob({ type: 'image/png' }).then(blob => blob.arrayBuffer());
     };
 
-    // Create corrupted data
-    const createCorruptedData = () => {
-      const arr = new Uint8Array(100);
-      for (let i = 0; i < 100; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
-      }
-      return Promise.resolve(arr.buffer);
-    };
-
-    // Mock URL generator with different scenarios
-    window.createMockTileUrl = (scenario) => {
-      return `mock://${scenario}/tile.png`;
-    };
+    // Mock URL generator
+    window.createMockTileUrl = (scenario) => `mock://${scenario}/8/182/101.png`;
 
     // Override fetch to handle mock URLs
     window.fetch = function(url, ...args) {
-      // Intercept broken PMTiles URL
       if (typeof url === 'string' && url.includes('broken.pmtiles')) {
         return Promise.reject(new Error('PMTiles fetch failed: network error'));
       }
       
       if (typeof url === 'string' && url.startsWith('mock://')) {
-        const parts = url.split('/');
-        const scenario = parts[2];
-
-        switch (scenario) {
-          case 'success':
-            return createMockTile().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
-
-          case 'tile-fail':
-            return Promise.resolve({
-              ok: false,
-              status: 404,
-              arrayBuffer: () => Promise.reject(new Error('Tile fetch failed: 404'))
-            });
-
-          case 'timeout':
-            return new Promise((resolve, reject) => {
-              setTimeout(() => reject(new Error('Network timeout')), 100);
-            });
-
-          case 'corrupted':
-            return createCorruptedData().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
-
-          default:
-            return createMockTile().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
-        }
+        return createMockTile().then(buffer => ({
+          ok: true,
+          status: 200,
+          arrayBuffer: () => Promise.resolve(buffer)
+        }));
       }
       
-      // Pass through to original fetch for real URLs
       return originalFetch(url, ...args);
     };
 

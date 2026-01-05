@@ -6,74 +6,6 @@ test.describe('OpenLayers Layer Package', () => {
     await page.waitForFunction(() => window.openlayersLayerLoaded === true, { timeout: 10000 });
   });
 
-  test.describe('fetchAndFixTile - Wrapper Behavior', () => {
-    test('returns Blob with correct type when fixed', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 182, y = 101; // Tile with corrections
-        const tileSize = 256;
-        
-        const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-        
-        return {
-          hasBlob: result.blob instanceof Blob,
-          wasFixed: result.wasFixed,
-          blobSize: result.blob.size,
-          blobType: result.blob.type,
-        };
-      });
-
-      expect(result.hasBlob).toBe(true);
-      expect(result.wasFixed).toBe(true);
-      expect(result.blobSize).toBeGreaterThan(0);
-      expect(result.blobType).toContain('image');
-    });
-
-    test('returns Blob when not fixed', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 0, y = 0; // Tile without corrections
-        const tileSize = 256;
-        
-        const result = await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-        
-        return {
-          hasBlob: result.blob instanceof Blob,
-          wasFixed: result.wasFixed,
-          blobSize: result.blob.size,
-        };
-      });
-
-      expect(result.hasBlob).toBe(true);
-      expect(result.wasFixed).toBe(false);
-      expect(result.blobSize).toBeGreaterThan(0);
-    });
-
-    test('propagates errors from tilefixer', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { fetchAndFixTile, tileFixer, layerConfig } = window.testContext;
-        
-        const mockTileUrl = window.createMockTileUrl('tile-fail');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        try {
-          await fetchAndFixTile(mockTileUrl, z, x, y, tileFixer, layerConfig, tileSize);
-          return { error: null };
-        } catch (err) {
-          return { error: err.message };
-        }
-      });
-
-      expect(result.error).toBeTruthy();
-      expect(result.error).toContain('Tile fetch failed');
-    });
-  });
-
   test.describe('Layer Configuration', () => {
     test('initializes with default PMTiles URL', async ({ page }) => {
       const result = await page.evaluate(() => {
@@ -194,36 +126,6 @@ test.describe('OpenLayers Layer Package', () => {
   });
 
   test.describe('correctionerror Event', () => {
-    test('returns correctionsFailed when PMTiles fetch fails', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { IndiaBoundaryCorrectedTileLayer } = window;
-        
-        // Create layer with a broken PMTiles URL
-        const layer = new IndiaBoundaryCorrectedTileLayer({
-          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          layerConfig: 'osm-carto',
-          pmtilesUrl: 'https://nonexistent.example.com/broken.pmtiles'
-        });
-
-        // Trigger a tile load with a working mock tile URL (PMTiles will fail)
-        const mockTileUrl = window.createMockTileUrl('success');
-        
-        const result = await layer._fetchAndFixTile(mockTileUrl, 8, 182, 101);
-
-        return {
-          hasBlob: result.blob instanceof Blob,
-          blobSize: result.blob.size,
-          correctionsFailed: result.correctionsFailed,
-          hasCorrectionsError: !!result.correctionsError,
-        };
-      });
-
-      expect(result.hasBlob).toBe(true);
-      expect(result.blobSize).toBeGreaterThan(0);
-      expect(result.correctionsFailed).toBe(true);
-      expect(result.hasCorrectionsError).toBe(true);
-    });
-
     test('dispatches correctionerror event on layer', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const { IndiaBoundaryCorrectedTileLayer } = window;
@@ -245,13 +147,20 @@ test.describe('OpenLayers Layer Package', () => {
           };
         });
 
-        // Manually dispatch event to verify listener works
-        layer.dispatchEvent({ 
-          type: 'correctionerror', 
-          error: new Error('test'), 
-          coords: { z: 8, x: 182, y: 101 }, 
-          tileUrl: 'http://example.com/tile.png' 
-        });
+        // Get the source and trigger a tile load
+        const source = layer.getSource();
+        const tileLoadFn = source.getTileLoadFunction();
+        
+        // Create a mock tile with the expected interface
+        const mockTileUrl = window.createMockTileUrl('success');
+        const mockImage = new Image();
+        const mockTile = {
+          getTileCoord: () => [8, 182, 101],
+          getImage: () => mockImage
+        };
+        
+        // Call the tile load function directly
+        await tileLoadFn(mockTile, mockTileUrl);
 
         return errorEvent;
       });

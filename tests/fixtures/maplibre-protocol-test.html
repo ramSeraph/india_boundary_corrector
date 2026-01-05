@@ -19,129 +19,76 @@
       const { 
         CorrectionProtocol, 
         parseCorrectionsUrl, 
-        fetchAndFixTile,
         LayerConfig 
       } = await import('@india-boundary-corrector/maplibre-protocol');
-      const { BoundaryCorrector: TileFixer } = await import('@india-boundary-corrector/tilefixer');
-      const { getPmtilesUrl } = await import('@india-boundary-corrector/data');
 
       // Create a test protocol instance
       const testProtocol = new CorrectionProtocol({ layerConfig: 'osm-carto' });
-    
-    // Get tileFixer and create a test layerConfig for direct testing
-    const tileFixer = testProtocol.getTileFixer();
-    const layerConfig = testProtocol.getRegistry().get('osm-carto');
 
-    // Mock fetch for testing different scenarios
-    const originalFetch = window.fetch;
-    
-    // Create mock tile data (256x256 white PNG)
-    const createMockTile = () => {
-      const canvas = new OffscreenCanvas(256, 256);
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, 256, 256);
-      return canvas.convertToBlob({ type: 'image/png' }).then(blob => blob.arrayBuffer());
-    };
-
-    // Create corrupted data
-    const createCorruptedData = () => {
-      const arr = new Uint8Array(100);
-      for (let i = 0; i < 100; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
-      }
-      return Promise.resolve(arr.buffer);
-    };
-
-    // Mock URL generator with different scenarios
-    window.createMockTileUrl = (scenario) => {
-      return `mock://${scenario}/tile.png`;
-    };
-
-    // Override fetch to handle mock URLs
-    window.fetch = function(url, ...args) {
-      // Intercept broken PMTiles URL
-      if (typeof url === 'string' && url.includes('broken.pmtiles')) {
-        return Promise.reject(new Error('PMTiles fetch failed: network error'));
-      }
+      // Mock fetch for testing different scenarios
+      const originalFetch = window.fetch;
       
-      if (typeof url === 'string' && url.startsWith('mock://')) {
-        const parts = url.split('/');
-        const scenario = parts[2];
+      // Create mock tile data (256x256 white PNG)
+      const createMockTile = () => {
+        const canvas = new OffscreenCanvas(256, 256);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 256, 256);
+        return canvas.convertToBlob({ type: 'image/png' }).then(blob => blob.arrayBuffer());
+      };
 
-        switch (scenario) {
-          case 'success':
-            return createMockTile().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
+      // Mock URL generator with different scenarios
+      window.createMockTileUrl = (scenario) => {
+        return `mock://${scenario}/8/182/101.png`;
+      };
 
-          case 'tile-fail':
-            return Promise.resolve({
-              ok: false,
-              status: 404,
-              arrayBuffer: () => Promise.reject(new Error('Tile fetch failed: 404'))
-            });
-
-          case 'timeout':
-            return new Promise((resolve, reject) => {
-              setTimeout(() => reject(new Error('Network timeout')), 100);
-            });
-
-          case 'slow':
-            // Slow response for abort testing
-            return new Promise((resolve, reject) => {
-              const timeoutId = setTimeout(() => {
-                createMockTile().then(buffer => {
-                  resolve({
-                    ok: true,
-                    status: 200,
-                    arrayBuffer: () => Promise.resolve(buffer)
-                  });
-                });
-              }, 500);
-              
-              // Handle abort
-              if (args[0]?.signal) {
-                args[0].signal.addEventListener('abort', () => {
-                  clearTimeout(timeoutId);
-                  reject(new DOMException('Aborted', 'AbortError'));
-                });
-              }
-            });
-
-          case 'corrupted':
-            return createCorruptedData().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
-
-          default:
-            return createMockTile().then(buffer => ({
-              ok: true,
-              status: 200,
-              arrayBuffer: () => Promise.resolve(buffer)
-            }));
+      // Override fetch to handle mock URLs
+      window.fetch = function(url, ...args) {
+        // Intercept broken PMTiles URL
+        if (typeof url === 'string' && url.includes('broken.pmtiles')) {
+          return Promise.reject(new Error('PMTiles fetch failed: network error'));
         }
-      }
-      
-      // Pass through to original fetch for real URLs
-      return originalFetch(url, ...args);
-    };
+        
+        if (typeof url === 'string' && url.startsWith('mock://')) {
+          const parts = url.split('/');
+          const scenario = parts[2];
 
-    // Expose for testing
-    window.testProtocol = testProtocol;
-    window.testContext = {
-      parseCorrectionsUrl: (url) => parseCorrectionsUrl(url, testProtocol.getRegistry()),
-      fetchAndFixTile,
-      tileFixer,
-      layerConfig,
-    };
-    window.CorrectionProtocol = CorrectionProtocol;
-    window.LayerConfig = LayerConfig;
-    window.maplibreProtocolLoaded = true;
+          switch (scenario) {
+            case 'success':
+              return createMockTile().then(buffer => ({
+                ok: true,
+                status: 200,
+                arrayBuffer: () => Promise.resolve(buffer)
+              }));
+
+            case 'tile-fail':
+              return Promise.resolve({
+                ok: false,
+                status: 404,
+                arrayBuffer: () => Promise.reject(new Error('Tile fetch failed: 404'))
+              });
+
+            default:
+              return createMockTile().then(buffer => ({
+                ok: true,
+                status: 200,
+                arrayBuffer: () => Promise.resolve(buffer)
+              }));
+          }
+        }
+        
+        // Pass through to original fetch for real URLs
+        return originalFetch(url, ...args);
+      };
+
+      // Expose for testing
+      window.testProtocol = testProtocol;
+      window.testContext = {
+        parseCorrectionsUrl: (url) => parseCorrectionsUrl(url, testProtocol.getRegistry()),
+      };
+      window.CorrectionProtocol = CorrectionProtocol;
+      window.LayerConfig = LayerConfig;
+      window.maplibreProtocolLoaded = true;
     } catch (error) {
       console.error('Error loading modules:', error);
       window.loadError = error.message;

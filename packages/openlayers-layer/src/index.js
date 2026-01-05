@@ -9,23 +9,17 @@ export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-confi
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
 
 /**
- * Handle tile fetching and correction application logic.
- * This method is extracted for testability.
- * @param {string} src - URL of the raster tile
- * @param {number} z - Zoom level
- * @param {number} x - Tile X coordinate
- * @param {number} y - Tile Y coordinate
- * @param {TileFixer} tileFixer - TileFixer instance
- * @param {Object} layerConfig - Layer configuration
- * @param {number} tileSize - Tile size in pixels
- * @returns {Promise<{blob: Blob, wasFixed: boolean, correctionsFailed: boolean, correctionsError: Error|null}>}
+ * Derive fetch options from crossOrigin attribute (matches OpenLayers behavior).
+ * @param {string|null} crossOrigin - The crossOrigin attribute value
+ * @returns {{mode: RequestMode, credentials: RequestCredentials}}
  */
-async function fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize) {
-  const { data, wasFixed, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
-    src, z, x, y, layerConfig, { tileSize, mode: 'cors' }
-  );
-  const blob = new Blob([data], { type: wasFixed ? 'image/png' : undefined });
-  return { blob, wasFixed, correctionsFailed, correctionsError };
+function getFetchOptionsFromCrossOrigin(crossOrigin) {
+  if (crossOrigin === 'anonymous' || crossOrigin === '') {
+    return { mode: 'cors', credentials: 'omit' };
+  } else if (crossOrigin === 'use-credentials') {
+    return { mode: 'cors', credentials: 'include' };
+  }
+  return { mode: 'same-origin', credentials: 'same-origin' };
 }
 
 /**
@@ -34,28 +28,27 @@ async function fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize) {
  * @param {Object} layerConfig - The layer configuration
  * @param {number} tileSize - Tile size in pixels
  * @param {IndiaBoundaryCorrectedTileLayer} layer - The layer instance for event dispatching
+ * @param {Object} fetchOptions - Fetch options (mode, credentials)
  * @returns {Function} Custom tile load function
  */
-function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer) {
+function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer, fetchOptions) {
   return async function(imageTile, src) {
     const tileCoord = imageTile.getTileCoord();
     const z = tileCoord[0];
     const x = tileCoord[1];
     const y = tileCoord[2];
 
-    // TODO: Pass AbortSignal to fetchAndFixTile to cancel in-flight requests when tiles
-    // go off-screen. OpenLayers' tileLoadFunction doesn't provide an AbortController,
-    // so this would require custom tracking. Deferred due to complexity - will revisit
-    // if performance becomes an issue during rapid panning.
     try {
-      const { blob, correctionsFailed, correctionsError } = await fetchAndFixTile(src, z, x, y, tileFixer, layerConfig, tileSize);
+      const { data, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
+        src, z, x, y, layerConfig, { tileSize, ...fetchOptions }
+      );
 
       if (correctionsFailed) {
-        // TODO: If abort is implemented, check for AbortError here and skip emitting correctionerror
         console.warn('[IndiaBoundaryCorrectedTileLayer] Corrections fetch failed:', correctionsError);
         layer.dispatchEvent({ type: 'correctionerror', error: correctionsError, coords: { z, x, y }, tileUrl: src });
       }
 
+      const blob = new Blob([data]);
       const image = imageTile.getImage();
       
       // Check if image is a canvas (OffscreenCanvas) or HTMLImageElement
@@ -80,7 +73,6 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer
         image.src = blobUrl;
       }
     } catch (err) {
-      // Don't emit correctionerror for tile fetch/processing errors - only for PMTiles failures (handled above)
       console.warn('[IndiaBoundaryCorrectedTileLayer] Tile fetch failed:', err);
       // Fall back to original tile
       const image = imageTile.getImage();
@@ -145,6 +137,10 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
       ...sourceOptions,
     });
 
+    // Derive fetch options from crossOrigin (matches OpenLayers behavior)
+    // Default to 'anonymous' if not specified in sourceOptions
+    const fetchOptions = getFetchOptionsFromCrossOrigin(sourceOptions.crossOrigin ?? 'anonymous');
+
     super({
       source,
       ...layerOptions
@@ -156,7 +152,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
 
     // Set tileLoadFunction after super() so we can pass 'this' for event dispatching
     if (resolvedConfig) {
-      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize, this));
+      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize, this, fetchOptions));
     }
 
     if (!resolvedConfig) {
@@ -187,24 +183,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
   getRegistry() {
     return this._registry;
   }
-
-  /**
-   * Fetch and fix a tile (exposed for testing).
-   * @param {string} src - Tile URL
-   * @param {number} z - Zoom level
-   * @param {number} x - Tile X coordinate
-   * @param {number} y - Tile Y coordinate
-   * @returns {Promise<{blob: Blob, wasFixed: boolean}>}
-   * @private
-   */
-  async _fetchAndFixTile(src, z, x, y) {
-    const tileSize = this.getSource().getTileGrid()?.getTileSize(z) || 256;
-    return fetchAndFixTile(src, z, x, y, this._tileFixer, this._layerConfig, tileSize);
-  }
 }
-
-// Export for testing
-export { fetchAndFixTile };
 
 /**
  * Factory function to create an IndiaBoundaryCorrectedTileLayer.

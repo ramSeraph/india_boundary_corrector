@@ -55,35 +55,7 @@ function shouldIntercept(request) {
 }
 
 /**
- * Fetch and fix a tile for service worker.
- * Extracted for testability.
- * @param {string} tileUrl - URL of the raster tile
- * @param {number} z - Zoom level
- * @param {number} x - Tile X coordinate
- * @param {number} y - Tile Y coordinate
- * @param {TileFixer} tileFixer - TileFixer instance
- * @param {Object} layerConfig - Layer configuration
- * @param {number} tileSize - Tile size in pixels
- * @param {Object} [options] - Fetch options
- * @returns {Promise<Response>}
- */
-async function fetchAndFixTile(tileUrl, z, x, y, tileFixer, layerConfig, tileSize, options = {}) {
-  const { data, wasFixed } = await tileFixer.fetchAndFixTile(
-    tileUrl, z, x, y, layerConfig, { tileSize, mode: 'cors', ...options }
-  );
-  
-  return new Response(data, {
-    status: 200,
-    headers: {
-      'Content-Type': 'image/png',
-      'Cache-Control': 'max-age=3600',
-      'X-Boundary-Corrected': wasFixed ? 'true' : 'false',
-    },
-  });
-}
-
-/**
- * Apply corrections to a tile.
+ * Apply corrections to a tile and return a Response.
  * @param {Request} request
  * @param {Object} layerConfig
  * @param {{ z: number, x: number, y: number }} coords
@@ -93,7 +65,22 @@ async function applyCorrectedTile(request, layerConfig, coords) {
   const { z, x, y } = coords;
   const fixer = getTileFixer();
   
-  return fetchAndFixTile(request.url, z, x, y, fixer, layerConfig, tileSize);
+  const { data, wasFixed, correctionsFailed, correctionsError } = await fixer.fetchAndFixTile(
+    request.url, z, x, y, layerConfig, { tileSize, mode: 'cors' }
+  );
+  
+  if (correctionsFailed) {
+    console.warn('[CorrectionSW] Corrections fetch failed:', correctionsError);
+  }
+  
+  return new Response(data, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=3600',
+      'X-Boundary-Corrected': wasFixed ? 'true' : 'false',
+    },
+  });
 }
 
 // Install event
@@ -113,11 +100,6 @@ self.addEventListener('fetch', (event) => {
   if (intercept) {
     event.respondWith(
       applyCorrectedTile(event.request, intercept.layerConfig, intercept.coords)
-        .catch((error) => {
-          console.warn('[CorrectionSW] Error applying corrections:', error);
-          // Fallback to original request
-          return fetch(event.request);
-        })
     );
   }
 });

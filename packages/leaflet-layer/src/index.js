@@ -43,25 +43,6 @@ function extendLeaflet(L) {
       }
     },
 
-    /**
-     * Handle tile fetching and correction application logic.
-     * This method is extracted for testability.
-     * @param {string} tileUrl - URL of the raster tile
-     * @param {number} z - Zoom level
-     * @param {number} x - Tile X coordinate
-     * @param {number} y - Tile Y coordinate
-     * @param {number} tileSize - Tile size in pixels
-     * @returns {Promise<{blob: Blob, wasFixed: boolean, correctionsFailed: boolean, correctionsError: Error|null}>}
-     * @private
-     */
-    _fetchAndFixTile: async function (tileUrl, z, x, y, tileSize) {
-      const { data, wasFixed, correctionsFailed, correctionsError } = await this._tileFixer.fetchAndFixTile(
-        tileUrl, z, x, y, this._layerConfig, { tileSize }
-      );
-      const blob = new Blob([data], { type: wasFixed ? 'image/png' : undefined });
-      return { blob, wasFixed, correctionsFailed, correctionsError };
-    },
-
     createTile: function (coords, done) {
       const tile = document.createElement('img');
       
@@ -88,17 +69,13 @@ function extendLeaflet(L) {
       const y = coords.y;
       const tileSize = this.options.tileSize || 256;
 
-      // TODO: Pass AbortSignal to _fetchAndFixTile to cancel in-flight requests when tiles
-      // go off-screen. This would require creating an AbortController per tile and hooking
-      // into Leaflet's _removeTile/_abortLoading. Deferred due to complexity - will revisit
-      // if performance becomes an issue during rapid panning.
-      this._fetchAndFixTile(tileUrl, z, x, y, tileSize)
-        .then(({ blob, wasFixed, correctionsFailed, correctionsError }) => {
-          // TODO: If abort is implemented, check for AbortError here and skip emitting correctionerror
+      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { tileSize })
+        .then(({ data, correctionsFailed, correctionsError }) => {
           if (correctionsFailed) {
             console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);
             this.fire('correctionerror', { error: correctionsError, coords: { z, x, y }, tileUrl });
           }
+          const blob = new Blob([data]);
           tile.src = URL.createObjectURL(blob);
           tile.onload = () => {
             URL.revokeObjectURL(tile.src);

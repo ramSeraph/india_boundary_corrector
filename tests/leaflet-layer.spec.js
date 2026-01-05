@@ -6,74 +6,6 @@ test.describe('Leaflet Layer Package', () => {
     await page.waitForFunction(() => window.leafletLayerLoaded === true, { timeout: 10000 });
   });
 
-  test.describe('_fetchAndFixTile - Wrapper Behavior', () => {
-    test('returns Blob with correct type when fixed', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const layer = window.testLayer;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 182, y = 101; // Tile with corrections
-        const tileSize = 256;
-        
-        const result = await layer._fetchAndFixTile(mockTileUrl, z, x, y, tileSize);
-        
-        return {
-          hasBlob: result.blob instanceof Blob,
-          wasFixed: result.wasFixed,
-          blobSize: result.blob.size,
-          blobType: result.blob.type,
-        };
-      });
-
-      expect(result.hasBlob).toBe(true);
-      expect(result.wasFixed).toBe(true);
-      expect(result.blobSize).toBeGreaterThan(0);
-      expect(result.blobType).toContain('image');
-    });
-
-    test('returns Blob when not fixed', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const layer = window.testLayer;
-        
-        const mockTileUrl = window.createMockTileUrl('success');
-        const z = 8, x = 0, y = 0; // Tile without corrections
-        const tileSize = 256;
-        
-        const result = await layer._fetchAndFixTile(mockTileUrl, z, x, y, tileSize);
-        
-        return {
-          hasBlob: result.blob instanceof Blob,
-          wasFixed: result.wasFixed,
-          blobSize: result.blob.size,
-        };
-      });
-
-      expect(result.hasBlob).toBe(true);
-      expect(result.wasFixed).toBe(false);
-      expect(result.blobSize).toBeGreaterThan(0);
-    });
-
-    test('propagates errors from tilefixer', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const layer = window.testLayer;
-        
-        const mockTileUrl = window.createMockTileUrl('tile-fail');
-        const z = 8, x = 182, y = 101;
-        const tileSize = 256;
-        
-        try {
-          await layer._fetchAndFixTile(mockTileUrl, z, x, y, tileSize);
-          return { error: null };
-        } catch (err) {
-          return { error: err.message };
-        }
-      });
-
-      expect(result.error).toBeTruthy();
-      expect(result.error).toContain('Tile fetch failed');
-    });
-  });
-
   test.describe('Layer Configuration', () => {
     test('initializes with default PMTiles URL', async ({ page }) => {
       const result = await page.evaluate(() => {
@@ -242,38 +174,6 @@ test.describe('Leaflet Layer Package', () => {
       expect(result.hasCoords).toBe(true);
       expect(result.hasTileUrl).toBe(true);
       expect(result.coords).toEqual({ z: 8, x: 182, y: 101 });
-    });
-
-    test('falls back to original tile data when corrections fail', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const L = window.L;
-        
-        // Create layer with a broken PMTiles URL
-        const layer = L.tileLayer.indiaBoundaryCorrected(
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          { 
-            layerConfig: 'osm-carto',
-            pmtilesUrl: 'https://nonexistent.example.com/broken.pmtiles'
-          }
-        );
-
-        // Use a mock tile URL that succeeds
-        const mockTileUrl = window.createMockTileUrl('success');
-        
-        // Call _fetchAndFixTile directly - should return tile data even when corrections fail
-        const result = await layer._fetchAndFixTile(mockTileUrl, 8, 182, 101, 256);
-
-        return { 
-          hasBlob: result.blob instanceof Blob,
-          blobSize: result.blob.size,
-          correctionsFailed: result.correctionsFailed,
-        };
-      });
-
-      // Tile data should be returned even when corrections fail
-      expect(result.hasBlob).toBe(true);
-      expect(result.blobSize).toBeGreaterThan(0);
-      expect(result.correctionsFailed).toBe(true);
     });
   });
 });
