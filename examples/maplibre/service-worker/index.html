@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker Example - MapLibre GL</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.css" />
+  <style>
+    body { margin: 0; padding: 0; font-family: sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 350px;
+      z-index: 1000;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    .info select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.warning { background: #fff3cd; color: #856404; }
+  </style>
+  <script>
+    // Importmaps are only needed for local development.
+    // For production, import directly from esm.sh (no importmap needed).
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    if (!isProd) {
+      const importmap = document.createElement('script');
+      importmap.type = 'importmap';
+      importmap.textContent = JSON.stringify({
+        imports: {
+          "@india-boundary-corrector/data": "../../../packages/data/index.js",
+          "@india-boundary-corrector/layer-configs": "../../../packages/layer-configs/dist/index.js",
+          "@india-boundary-corrector/service-worker": "../../../packages/service-worker/dist/index.js"
+        }
+      });
+      document.currentScript.after(importmap);
+    }
+  </script>
+</head>
+<body>
+  <div class="info">
+    <h3>Service Worker + MapLibre GL</h3>
+    <p>Uses a Service Worker to automatically intercept and correct MapLibre tile requests.</p>
+    <label for="basemap">Select basemap:</label>
+    <select id="basemap">
+      <option value="osm-carto">OSM Carto</option>
+      <option value="cartodb-dark">Carto Dark</option>
+    </select>
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.0.1/dist/maplibre-gl.js"></script>
+  <script type="module">
+    // For production, you can simply use:
+    // import { registerCorrectionServiceWorker } from 'https://esm.sh/@india-boundary-corrector/service-worker';
+    
+    const isProd = window.isProd;
+    const moduleUrl = isProd
+      ? 'https://esm.sh/@india-boundary-corrector/service-worker'
+      : '@india-boundary-corrector/service-worker';
+    
+    const { registerCorrectionServiceWorker } = await import(moduleUrl);
+
+    const statusEl = document.getElementById('status');
+    const basemapSelect = document.getElementById('basemap');
+
+    const BASEMAPS = {
+      'osm-carto': {
+        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      },
+      'cartodb-dark': {
+        tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
+      },
+    };
+
+    let map;
+
+    function updateStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    function switchBasemap(basemapId) {
+      const basemap = BASEMAPS[basemapId];
+      if (!basemap || !map) return;
+
+      const source = map.getSource('basemap');
+      if (source) {
+        map.removeLayer('basemap-layer');
+        map.removeSource('basemap');
+      }
+
+      map.addSource('basemap', {
+        type: 'raster',
+        tiles: basemap.tiles,
+        tileSize: 256,
+        attribution: basemap.attribution,
+      });
+
+      map.addLayer({
+        id: 'basemap-layer',
+        type: 'raster',
+        source: 'basemap',
+      });
+    }
+
+    async function init() {
+      try {
+        updateStatus('Registering service worker...');
+
+        // forceReregister: true is only for ease of testing - not needed in production
+        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js', { forceReregister: true });
+
+        if (!sw.isControlling()) {
+          updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
+          return;
+        }
+
+        updateStatus('✓ Service worker active' + (isProd ? ' (prod)' : ' (dev)'), 'success');
+
+        map = new maplibregl.Map({
+          container: 'map',
+          style: { version: 8, sources: {}, layers: [] },
+          center: [78.9629, 20.5937],
+          zoom: 4,
+        });
+
+        map.on('load', () => switchBasemap('osm-carto'));
+
+        basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));
+
+      } catch (error) {
+        updateStatus('✗ Error: ' + error.message, 'error');
+        console.error('Error:', error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

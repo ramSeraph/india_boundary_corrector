@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Service Worker Example - OpenLayers</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.3.1/ol.css">
+  <title>Service Worker Example - India Boundary Corrector</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body { margin: 0; padding: 0; font-family: sans-serif; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
@@ -52,9 +53,9 @@
       importmap.type = 'importmap';
       importmap.textContent = JSON.stringify({
         imports: {
-          "@india-boundary-corrector/data": "../../packages/data/index.js",
-          "@india-boundary-corrector/layer-configs": "../../packages/layer-configs/dist/index.js",
-          "@india-boundary-corrector/service-worker": "../../packages/service-worker/dist/index.js"
+          "@india-boundary-corrector/data": "../../../packages/data/index.js",
+          "@india-boundary-corrector/layer-configs": "../../../packages/layer-configs/dist/index.js",
+          "@india-boundary-corrector/service-worker": "../../../packages/service-worker/dist/index.js"
         }
       });
       document.currentScript.after(importmap);
@@ -63,8 +64,8 @@
 </head>
 <body>
   <div class="info">
-    <h3>Service Worker + OpenLayers</h3>
-    <p>Uses a Service Worker to automatically intercept and correct OpenLayers tile requests.</p>
+    <h3>Service Worker Example</h3>
+    <p>Uses a Service Worker to automatically intercept and correct map tile requests.</p>
     <label for="basemap">Select basemap:</label>
     <select id="basemap">
       <option value="osm-carto">OSM Carto</option>
@@ -74,7 +75,6 @@
   </div>
   <div id="map"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ol@10.3.1/dist/ol.js"></script>
   <script type="module">
     // For production, you can simply use:
     // import { registerCorrectionServiceWorker } from 'https://esm.sh/@india-boundary-corrector/service-worker';
@@ -91,11 +91,11 @@
 
     const BASEMAPS = {
       'osm-carto': {
-        url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
       'cartodb-dark': {
-        url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
       },
     };
@@ -110,21 +110,18 @@
 
     function switchBasemap(basemapId) {
       const basemap = BASEMAPS[basemapId];
-      if (!basemap || !map) return;
+      if (!basemap) return;
 
       if (currentLayer) {
         map.removeLayer(currentLayer);
       }
 
-      currentLayer = new ol.layer.Tile({
-        source: new ol.source.XYZ({
-          url: basemap.url,
-          attributions: basemap.attribution,
-          crossOrigin: 'anonymous',
-        }),
+      currentLayer = L.tileLayer(basemap.url, {
+        attribution: basemap.attribution,
+        maxZoom: 19,
       });
 
-      map.addLayer(currentLayer);
+      currentLayer.addTo(map);
     }
 
     async function init() {
@@ -141,14 +138,7 @@
 
         updateStatus('✓ Service worker active' + (isProd ? ' (prod)' : ' (dev)'), 'success');
 
-        map = new ol.Map({
-          target: 'map',
-          view: new ol.View({
-            center: ol.proj.fromLonLat([78.9629, 20.5937]),
-            zoom: 4,
-          }),
-        });
-
+        map = L.map('map').setView([20.5937, 78.9629], 4);
         switchBasemap('osm-carto');
 
         basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));

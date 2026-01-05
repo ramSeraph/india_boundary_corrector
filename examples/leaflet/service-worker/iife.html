@@ -17,7 +17,7 @@
     const script = document.createElement('script');
     script.src = isProd 
       ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js'
-      : '../../packages/service-worker/dist/index.global.js';
+      : '../../../packages/service-worker/dist/index.global.js';
     window.ibcScriptLoaded = new Promise((resolve, reject) => {
       script.onload = resolve;
       script.onerror = reject;
