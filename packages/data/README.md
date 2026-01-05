@@ -36,13 +36,17 @@ const version = getDataVersion(); // e.g., "osm_20231215_143022_ne_5.1.2"
 
 The `getPmtilesUrl()` function automatically detects the best URL for the PMTiles file:
 
-1. **ESM environments** (direct import, unpkg, jsDelivr): Uses `import.meta.url` to resolve the file relative to the module location
-2. **JS-only CDNs** (esm.sh, Skypack): These CDNs transform JS modules but don't serve static files, so falls back to jsDelivr CDN
+1. **ESM environments** (direct import, jsDelivr): Uses `import.meta.url` to resolve the file relative to the module location
+2. **CDNs requiring fallback** (esm.sh, Skypack, unpkg): These are redirected to jsDelivr (see below)
 3. **Bundled/other environments**: When `import.meta.url` isn't available (CJS, UMD), falls back to jsDelivr CDN with pinned package version
 
 ### CDN fallback
 
-When the package is loaded from jsDelivr or unpkg, the PMTiles file is resolved relative to the module URL - no extra configuration needed.
+When the package is loaded from jsDelivr, the PMTiles file is resolved relative to the module URL - no extra configuration needed.
+
+The following CDNs automatically fall back to jsDelivr:
+- **esm.sh, Skypack**: These CDNs transform JS modules but don't serve static files
+- **unpkg**: Has issues serving PMTiles files (see [#13](https://github.com/ramSeraph/india_boundary_corrector/issues/13))
 
 When bundled (Rollup IIFE, Webpack, etc.), `import.meta.url` typically points to the bundle location. If the PMTiles file isn't copied alongside the bundle, the resolved URL will 404. In this case, either:
 - Copy the PMTiles file to your output directory (see below)
