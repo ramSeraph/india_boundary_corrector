@@ -6,13 +6,14 @@ const PACKAGE_NAME = '@india-boundary-corrector/data';
 const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles';
 
 /**
- * CDNs that don't serve static assets (JS module transformers only)
+ * CDNs that need fallback to jsDelivr:
+ * - esm.sh, skypack: JS module transformers only, don't serve static files
+ * - unpkg.com: Has issues serving PMTiles files (incorrect content-type, range request problems)
  */
-const JS_ONLY_CDNS = new Set(['esm.sh', 'skypack.dev', 'cdn.skypack.dev']);
+const FALLBACK_CDNS = new Set(['esm.sh', 'skypack.dev', 'cdn.skypack.dev', 'unpkg.com']);
 
 // Default fallback CDN (jsDelivr has multi-CDN architecture, more reliable)
 export const DEFAULT_CDN_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
-// export const DEFAULT_CDN_URL = `https://unpkg.com/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
 
 // Capture document.currentScript.src at module load time (becomes null after script executes)
 const CURRENT_SCRIPT_URL = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || null;
@@ -57,7 +58,7 @@ function detectPmtilesUrl() {
   if (scriptUrl) {
     const moduleUrl = new URL('.', scriptUrl);
     // JS-only CDNs don't serve static files, fall back to default
-    if (JS_ONLY_CDNS.has(moduleUrl.hostname)) {
+    if (FALLBACK_CDNS.has(moduleUrl.hostname)) {
       return DEFAULT_CDN_URL;
     }
     return new URL(PMTILES_FILENAME, moduleUrl).href;
@@ -76,7 +77,7 @@ function detectPmtilesUrl() {
 export function resolvePmtilesUrl(scriptUrl) {
   const moduleUrl = new URL('.', scriptUrl);
   // JS-only CDNs don't serve static files, fall back to default
-  if (JS_ONLY_CDNS.has(moduleUrl.hostname)) {
+  if (FALLBACK_CDNS.has(moduleUrl.hostname)) {
     return DEFAULT_CDN_URL;
   }
   return new URL(PMTILES_FILENAME, moduleUrl).href;
