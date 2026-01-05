@@ -129,8 +129,9 @@
           updateStatus('Registering service worker...');
 
           // Register the service worker
+          // forceReregister: true is only for ease of testing - not needed in production
           const swPath = window.isProd ? './sw-prod.js' : './sw.js';
-          const sw = await registerCorrectionServiceWorker(swPath);
+          const sw = await registerCorrectionServiceWorker(swPath, { forceReregister: true });
 
           if (!sw.isControlling()) {
             updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
