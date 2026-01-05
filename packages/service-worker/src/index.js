@@ -5,7 +5,8 @@
 
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
-export { MessageTypes } from './constants.js';
+import { MessageTypes } from './constants.js';
+export { MessageTypes };
 
 /**
  * Controller for the boundary correction service worker.
