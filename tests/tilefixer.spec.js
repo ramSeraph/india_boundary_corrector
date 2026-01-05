@@ -1706,10 +1706,11 @@ test.describe('TileFixer Package', () => {
       await page.waitForFunction(() => window.tilefixerLoaded === true, { timeout: 10000 });
     });
 
-    test('throws error when tile fetch fails', async ({ page }) => {
+    test('throws TileFetchError with status when tile fetch fails', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const corrector = window.corrector;
         const layerConfig = window.layerConfig;
+        const { TileFetchError } = window.tilefixerExports;
         
         const mockTileUrl = window.createMockTileUrl('tile-fail');
         const z = 8, x = 182, y = 101;
@@ -1718,12 +1719,19 @@ test.describe('TileFixer Package', () => {
           await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
           return { error: null };
         } catch (err) {
-          return { error: err.message };
+          return { 
+            error: err.message,
+            name: err.name,
+            status: err.status,
+            isTileFetchError: err instanceof TileFetchError
+          };
         }
       });
 
-      expect(result.error).toBeTruthy();
       expect(result.error).toContain('Tile fetch failed');
+      expect(result.name).toBe('TileFetchError');
+      expect(result.status).toBe(404);
+      expect(result.isTileFetchError).toBe(true);
     });
 
     test('handles network timeout', async ({ page }) => {

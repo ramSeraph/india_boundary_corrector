@@ -15,7 +15,8 @@
   </script>
   <script type="module">
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
-    import { BoundaryCorrector, getLineWidth } from '@india-boundary-corrector/tilefixer';
+    import * as tilefixerExports from '@india-boundary-corrector/tilefixer';
+    const { BoundaryCorrector, getLineWidth, TileFetchError } = tilefixerExports;
     import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
     // Create corrector instance
@@ -27,6 +28,9 @@
 
     // Expose getLineWidth for direct testing
     window.getLineWidth = getLineWidth;
+    
+    // Expose all tilefixer exports for testing
+    window.tilefixerExports = tilefixerExports;
 
     // Helper functions for tests
     const testHelpers = {

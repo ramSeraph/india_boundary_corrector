@@ -1,6 +1,40 @@
 import { CorrectionsSource } from './corrections.js';
 
 /**
+ * Error thrown when tile fetch fails.
+ * Includes the HTTP status code and response body for proper error handling.
+ */
+export class TileFetchError extends Error {
+  /**
+   * @param {number} status - HTTP status code
+   * @param {string} [url] - The URL that failed
+   * @param {string} [body] - Response body text
+   */
+  constructor(status, url, body) {
+    super(`Tile fetch failed: ${status}`);
+    this.name = 'TileFetchError';
+    this.status = status;
+    this.url = url;
+    this.body = body;
+  }
+
+  /**
+   * Create a TileFetchError from a failed Response.
+   * @param {Response} response - The failed fetch response
+   * @returns {Promise<TileFetchError>}
+   */
+  static async fromResponse(response) {
+    let body;
+    try {
+      body = await response.text();
+    } catch {
+      // Ignore body read errors
+    }
+    return new TileFetchError(response.status, response.url, body);
+  }
+}
+
+/**
  * Minimum line width used when extrapolating below the lowest zoom stop.
  */
 export const MIN_LINE_WIDTH = 0.5;
@@ -497,14 +531,14 @@ export class BoundaryCorrector {
     // No layerConfig means no corrections needed
     if (!layerConfig) {
       const response = await fetch(tileUrl, fetchOptions);
-      if (!response.ok) throw new Error(`Tile fetch failed: ${response.status}`);
+      if (!response.ok) throw await TileFetchError.fromResponse(response);
       return { data: await response.arrayBuffer(), wasFixed: false };
     }
 
     // Fetch tile and corrections in parallel
     const [tileResult, correctionsResult] = await Promise.allSettled([
-      fetch(tileUrl, fetchOptions).then(r => {
-        if (!r.ok) throw new Error(`Tile fetch failed: ${r.status}`);
+      fetch(tileUrl, fetchOptions).then(async r => {
+        if (!r.ok) throw await TileFetchError.fromResponse(r);
         return r.arrayBuffer();
       }),
       this.getCorrections(z, x, y)

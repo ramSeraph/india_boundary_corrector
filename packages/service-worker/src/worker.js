@@ -8,7 +8,7 @@
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
-import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+import { BoundaryCorrector as TileFixer, TileFetchError } from '@india-boundary-corrector/tilefixer';
 import { MessageTypes } from './constants.js';
 
 // State
@@ -100,6 +100,11 @@ self.addEventListener('fetch', (event) => {
   if (intercept) {
     event.respondWith(
       applyCorrectedTile(event.request, intercept.layerConfig, intercept.coords)
+        .catch((error) => {
+          const status = error instanceof TileFetchError ? error.status : 502;
+          const body = error instanceof TileFetchError ? error.body : null;
+          return new Response(body, { status, statusText: error.message });
+        })
     );
   }
 });
