@@ -193,6 +193,10 @@ The SW scope must include the page that registers it. Typically:
 - Place `sw.js` in your app's root directory
 - Or specify a narrower scope if needed
 
+## Bundling
+
+If you're bundling your application (Rollup, Webpack, Vite, etc.), you may need to copy the PMTiles data file to your output directory. See **[Bundling the PMTiles Asset](../data/bundling-pmtiles.md)** for instructions.
+
 ## License
 
 Unlicense

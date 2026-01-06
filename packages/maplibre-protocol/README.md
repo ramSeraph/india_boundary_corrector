@@ -204,6 +204,10 @@ protocol.on('correctionerror', (e) => {
 | `coords` | object | Tile coordinates `{ z, x, y }` |
 | `tileUrl` | string | URL of the tile being loaded |
 
+## Bundling
+
+If you're bundling your application (Rollup, Webpack, Vite, etc.), you may need to copy the PMTiles data file to your output directory. See **[Bundling the PMTiles Asset](../data/bundling-pmtiles.md)** for instructions.
+
 ## License
 
 Unlicense
