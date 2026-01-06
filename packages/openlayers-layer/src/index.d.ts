@@ -18,7 +18,7 @@ export interface IndiaBoundaryCorrectedTileLayerOptions {
   layerConfig?: LayerConfig | string;
   /** Additional layer configs for matching */
   extraLayerConfigs?: LayerConfig[];
-  /** Tile size in pixels (default: 256) */
+  /** Tile size in pixels (default: 256) - passed to OpenLayers XYZ source */
   tileSize?: number;
   /** Whether to return original tile if corrections fail (default: true) */
   fallbackOnCorrectionFailure?: boolean;

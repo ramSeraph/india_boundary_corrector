@@ -450,10 +450,9 @@ export class TileFixer {
    * @param {ArrayBuffer} rasterTile - The original raster tile as ArrayBuffer
    * @param {Object} layerConfig - Layer configuration with colors and styles
    * @param {number} zoom - Current zoom level
-   * @param {number} [tileSize=256] - Size of the tile in pixels
    * @returns {Promise<ArrayBuffer>} The corrected tile as ArrayBuffer (PNG)
    */
-  async fixTile(corrections, rasterTile, layerConfig, zoom, tileSize = 256) {
+  async fixTile(corrections, rasterTile, layerConfig, zoom) {
     const {
       startZoom = 0,
       zoomThreshold,
@@ -485,6 +484,11 @@ export class TileFixer {
     const addLayerName = useOsm ? 'to-add-osm' : 'to-add-ne';
     const delLayerName = useOsm ? 'to-del-osm' : 'to-del-ne';
 
+    // Decode the raster tile to get dimensions
+    const blob = new Blob([rasterTile]);
+    const imageBitmap = await createImageBitmap(blob);
+    const tileSize = imageBitmap.width;
+
     // Get or create reusable main canvas
     if (!this._canvas || this._canvas.width !== tileSize) {
       this._canvas = new OffscreenCanvas(tileSize, tileSize);
@@ -493,8 +497,6 @@ export class TileFixer {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     // Draw original raster tile
-    const blob = new Blob([rasterTile]);
-    const imageBitmap = await createImageBitmap(blob);
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
     // Calculate base line width
@@ -548,14 +550,13 @@ export class TileFixer {
    * @param {number} y - Tile Y coordinate
    * @param {Object} layerConfig - Layer configuration with colors and styles
    * @param {Object} [options] - Fetch options
-   * @param {number} [options.tileSize=256] - Tile size in pixels
    * @param {AbortSignal} [options.signal] - Abort signal for fetch
    * @param {RequestMode} [options.mode] - Fetch mode (e.g., 'cors')
    * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
    * @returns {Promise<{data: ArrayBuffer, wasFixed: boolean}>}
    */
   async fetchAndFixTile(tileUrl, z, x, y, layerConfig, options = {}) {
-    const { tileSize = 256, signal, mode, fallbackOnCorrectionFailure = true } = options;
+    const { signal, mode, fallbackOnCorrectionFailure = true } = options;
     const fetchOptions = {};
     if (signal) fetchOptions.signal = signal;
     if (mode) fetchOptions.mode = mode;
@@ -606,8 +607,8 @@ export class TileFixer {
       return { data: tileData, wasFixed: false, correctionsFailed, correctionsError };
     }
 
-    // Apply corrections
-    const fixedData = await this.fixTile(corrections, tileData, layerConfig, z, tileSize);
+    // Apply corrections (tileSize is derived from the image)
+    const fixedData = await this.fixTile(corrections, tileData, layerConfig, z);
     return { data: fixedData, wasFixed: true, correctionsFailed: false, correctionsError: null };
   }
 }

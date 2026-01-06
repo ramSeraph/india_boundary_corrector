@@ -7,53 +7,85 @@
  */
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
-import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
+import { layerConfigs, LayerConfig, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
 import { TileFixer, TileFetchError } from '@india-boundary-corrector/tilefixer';
 import { MessageTypes } from './constants.js';
 
-// State
-let registry = layerConfigs.createMergedRegistry();
-let tileFixer = null;
-let pmtilesUrl = null; // Will be set lazily or via message
-let enabled = true;
-let tileSize = 256;
-let fallbackOnCorrectionFailure = true;
+// Per-client settings
+// Map of clientId -> { registry, pmtilesUrl, enabled, fallbackOnCorrectionFailure }
+const clientSettings = new Map();
 
-// Reset to default configuration
-function resetConfig() {
-  pmtilesUrl = null;
-  tileFixer = null;
-  enabled = true;
-  fallbackOnCorrectionFailure = true;
-  registry = layerConfigs.createMergedRegistry();
+/**
+ * Get default settings for a new client.
+ */
+function createDefaultSettings() {
+  return {
+    registry: layerConfigs.createMergedRegistry(),
+    pmtilesUrl: null, // Will use default lazily
+    enabled: true,
+    fallbackOnCorrectionFailure: true,
+  };
 }
 
-// Initialize TileFixer lazily
-function getTileFixer() {
-  if (!tileFixer) {
-    if (!pmtilesUrl) {
-      pmtilesUrl = getPmtilesUrl();
-    }
-    tileFixer = TileFixer.getOrCreate(pmtilesUrl);
+/**
+ * Get settings for a client, creating defaults if not exists.
+ * @param {string} clientId
+ * @returns {Object}
+ */
+function getClientSettings(clientId) {
+  if (!clientId) {
+    // No client ID (e.g., navigation request) - use a default client
+    clientId = '__default__';
   }
-  return tileFixer;
+  if (!clientSettings.has(clientId)) {
+    clientSettings.set(clientId, createDefaultSettings());
+  }
+  return clientSettings.get(clientId);
 }
 
-// Reinitialize TileFixer with new URL
-function reinitTileFixer() {
-  tileFixer = TileFixer.getOrCreate(pmtilesUrl);
+/**
+ * Reset settings for a client to defaults.
+ * @param {string} clientId
+ */
+function resetClientSettings(clientId) {
+  clientSettings.set(clientId, createDefaultSettings());
+}
+
+/**
+ * Clean up settings for clients that no longer exist.
+ */
+async function cleanupStaleClients() {
+  const activeClients = await self.clients.matchAll({ includeUncontrolled: true });
+  const activeIds = new Set(activeClients.map(c => c.id));
+  activeIds.add('__default__');
+  
+  for (const clientId of clientSettings.keys()) {
+    if (!activeIds.has(clientId)) {
+      clientSettings.delete(clientId);
+    }
+  }
+}
+
+/**
+ * Get TileFixer for a given pmtilesUrl.
+ * @param {string|null} pmtilesUrl
+ * @returns {TileFixer}
+ */
+function getTileFixer(pmtilesUrl) {
+  return TileFixer.getOrCreate(pmtilesUrl || getPmtilesUrl());
 }
 
 /**
  * Check if a request is for a map tile that we should intercept.
  * @param {Request} request
+ * @param {Object} settings - Client settings
  * @returns {{ layerConfig: Object, coords: { z: number, x: number, y: number } } | null}
  */
-function shouldIntercept(request) {
-  if (!enabled) return null;
+function shouldIntercept(request, settings) {
+  if (!settings.enabled) return null;
   if (request.method !== 'GET') return null;
   
-  return registry.parseTileUrl(request.url);
+  return settings.registry.parseTileUrl(request.url);
 }
 
 /**
@@ -61,14 +93,18 @@ function shouldIntercept(request) {
  * @param {Request} request
  * @param {Object} layerConfig
  * @param {{ z: number, x: number, y: number }} coords
+ * @param {Object} settings - Client settings
  * @returns {Promise<Response>}
  */
-async function applyCorrectedTile(request, layerConfig, coords) {
+async function applyCorrectedTile(request, layerConfig, coords, settings) {
   const { z, x, y } = coords;
-  const fixer = getTileFixer();
+  const fixer = getTileFixer(settings.pmtilesUrl);
   
   const { data, wasFixed, correctionsFailed, correctionsError } = await fixer.fetchAndFixTile(
-    request.url, z, x, y, layerConfig, { tileSize, mode: 'cors', fallbackOnCorrectionFailure }
+    request.url, z, x, y, layerConfig, { 
+      mode: 'cors', 
+      fallbackOnCorrectionFailure: settings.fallbackOnCorrectionFailure 
+    }
   );
   
   if (correctionsFailed) {
@@ -92,16 +128,22 @@ self.addEventListener('install', (event) => {
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      cleanupStaleClients(),
+    ])
+  );
 });
 
 // Fetch event - intercept tile requests
 self.addEventListener('fetch', (event) => {
-  const intercept = shouldIntercept(event.request);
+  const settings = getClientSettings(event.clientId);
+  const intercept = shouldIntercept(event.request, settings);
   
   if (intercept) {
     event.respondWith(
-      applyCorrectedTile(event.request, intercept.layerConfig, intercept.coords)
+      applyCorrectedTile(event.request, intercept.layerConfig, intercept.coords, settings)
         .catch((error) => {
           const status = error instanceof TileFetchError ? error.status : 502;
           const body = error instanceof TileFetchError ? error.body : null;
@@ -115,60 +157,72 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   const { type, ...data } = event.data;
   const port = event.ports[0];
+  const clientId = event.source?.id || '__default__';
+  const settings = getClientSettings(clientId);
   
   try {
     switch (type) {
       case MessageTypes.ADD_LAYER_CONFIG:
         // Reconstruct LayerConfig from plain object
         const config = LayerConfig.fromJSON(data.layerConfig);
-        registry.register(config);
+        settings.registry.register(config);
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.REMOVE_LAYER_CONFIG:
-        const removed = registry.remove(data.configId);
+        const removed = settings.registry.remove(data.configId);
         port?.postMessage({ success: removed });
         break;
         
       case MessageTypes.SET_PMTILES_URL:
-        pmtilesUrl = data.pmtilesUrl;
-        reinitTileFixer();
+        settings.pmtilesUrl = data.pmtilesUrl;
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.SET_ENABLED:
-        enabled = data.enabled;
+        settings.enabled = data.enabled;
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.SET_FALLBACK_ON_CORRECTION_FAILURE:
-        fallbackOnCorrectionFailure = data.fallbackOnCorrectionFailure;
+        settings.fallbackOnCorrectionFailure = data.fallbackOnCorrectionFailure;
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.SET_CACHE_MAX_FEATURES:
+        // This is global - affects all TileFixer instances
         TileFixer.setDefaultCacheMaxFeatures(data.cacheMaxFeatures);
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.CLEAR_CACHE:
-        tileFixer?.clearCache();
+        // Clear cache for this client's TileFixer
+        const fixer = getTileFixer(settings.pmtilesUrl);
+        fixer?.clearCache();
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.RESET_CONFIG:
-        resetConfig();
+        resetClientSettings(clientId);
         port?.postMessage({ success: true });
         break;
         
       case MessageTypes.GET_STATUS:
         port?.postMessage({
-          enabled,
-          fallbackOnCorrectionFailure,
-          pmtilesUrl: pmtilesUrl || getPmtilesUrl(),
-          configIds: registry.getAvailableIds(),
+          enabled: settings.enabled,
+          fallbackOnCorrectionFailure: settings.fallbackOnCorrectionFailure,
+          pmtilesUrl: settings.pmtilesUrl || getPmtilesUrl(),
+          configIds: settings.registry.getAvailableIds(),
         });
         break;
+        
+      case MessageTypes.CLAIM_CLIENTS:
+        self.clients.claim().then(() => {
+          port?.postMessage({ success: true });
+        }).catch((error) => {
+          port?.postMessage({ error: error.message });
+        });
+        return; // Don't fall through to sync postMessage
         
       default:
         port?.postMessage({ error: `Unknown message type: ${type}` });

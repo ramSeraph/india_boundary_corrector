@@ -160,7 +160,6 @@ Convenience function to create and register a protocol.
 |-----------|------|-------------|
 | `maplibregl` | object | MapLibre GL namespace |
 | `options.pmtilesUrl` | string | URL to PMTiles file |
-| `options.tileSize` | number | Tile size (default: 256) |
 | `options.fallbackOnCorrectionFailure` | boolean | Return original tile if corrections fail (default: true) |
 
 Returns: `CorrectionProtocol`

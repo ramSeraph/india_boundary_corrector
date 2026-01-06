@@ -113,15 +113,13 @@ export declare class TileFixer {
    * @param rasterTile - The original raster tile as ArrayBuffer
    * @param layerConfig - Layer configuration with colors and styles
    * @param zoom - Current zoom level
-   * @param tileSize - Size of the tile in pixels (default: 256)
    * @returns The corrected tile as ArrayBuffer (PNG)
    */
   fixTile(
     corrections: CorrectionResult,
     rasterTile: ArrayBuffer,
     layerConfig: LayerConfig,
-    zoom: number,
-    tileSize?: number
+    zoom: number
   ): Promise<ArrayBuffer>;
 
   /**
@@ -148,8 +146,6 @@ export declare class TileFixer {
  * Options for fetchAndFixTile method.
  */
 export interface FetchAndFixTileOptions {
-  /** Tile size in pixels (default: 256) */
-  tileSize?: number;
   /** Abort signal for fetch */
   signal?: AbortSignal;
   /** Fetch mode (e.g., 'cors') */

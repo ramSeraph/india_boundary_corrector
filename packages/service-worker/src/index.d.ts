@@ -16,6 +16,7 @@ export declare const MessageTypes: {
   CLEAR_CACHE: 'CLEAR_CACHE';
   GET_STATUS: 'GET_STATUS';
   RESET_CONFIG: 'RESET_CONFIG';
+  CLAIM_CLIENTS: 'CLAIM_CLIENTS';
 };
 
 /**

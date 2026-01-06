@@ -57,8 +57,11 @@ export class CorrectionServiceWorker {
     // Wait for the service worker to be ready
     await navigator.serviceWorker.ready;
 
-    // Wait for controller if not already controlling
-    if (!navigator.serviceWorker.controller) {
+    // Handle the case where SW is active but not controlling (e.g., hard reload)
+    if (!navigator.serviceWorker.controller && this._registration.active) {
+      await this._requestClaim();
+    } else if (!navigator.serviceWorker.controller) {
+      // New SW installing - wait for it to activate and take control
       await this._waitForController();
     }
 
@@ -95,6 +98,43 @@ export class CorrectionServiceWorker {
       navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
       
       // Timeout fallback - check again in case we missed the event
+      timeoutId = setTimeout(() => {
+        navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        resolve();
+      }, this._controllerTimeout);
+    });
+  }
+
+  /**
+   * Request the service worker to claim this client.
+   * Used after hard reload when page is not controlled.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _requestClaim() {
+    const worker = this._registration?.active;
+    if (!worker) {
+      return; // No active worker to claim
+    }
+
+    // Send claim request and wait for controllerchange
+    return new Promise((resolve) => {
+      let timeoutId;
+      const onControllerChange = () => {
+        clearTimeout(timeoutId);
+        navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        resolve();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+      // Send the claim message via the active worker (not controller, which is null)
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        // Claim was called, controllerchange should fire soon
+      };
+      worker.postMessage({ type: MessageTypes.CLAIM_CLIENTS }, [channel.port2]);
+
+      // Timeout fallback
       timeoutId = setTimeout(() => {
         navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
         resolve();

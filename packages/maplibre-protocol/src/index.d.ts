@@ -10,8 +10,6 @@ export { getPmtilesUrl } from '@india-boundary-corrector/data';
 export interface CorrectionProtocolOptions {
   /** URL to PMTiles file (defaults to CDN) */
   pmtilesUrl?: string;
-  /** Tile size in pixels (default: 256) */
-  tileSize?: number;
   /** Whether to return original tile if corrections fail (default: true) */
   fallbackOnCorrectionFailure?: boolean;
 }

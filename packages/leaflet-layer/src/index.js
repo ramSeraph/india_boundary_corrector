@@ -68,10 +68,9 @@ function extendLeaflet(L) {
       const z = coords.z;
       const x = coords.x;
       const y = coords.y;
-      const tileSize = this.options.tileSize || 256;
       const fallbackOnCorrectionFailure = this.options.fallbackOnCorrectionFailure;
 
-      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { tileSize, fallbackOnCorrectionFailure })
+      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { fallbackOnCorrectionFailure })
         .then(({ data, correctionsFailed, correctionsError }) => {
           if (correctionsFailed) {
             console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);
