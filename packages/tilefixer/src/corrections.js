@@ -27,7 +27,9 @@ import { PMTiles } from 'pmtiles';
 import { VectorTile } from '@mapbox/vector-tile';
 import Protobuf from 'pbf';
 
-const DEFAULT_CACHE_SIZE = 64;
+// Default cache size: enough to cache all tiles in PMTiles
+// 6136 tiles with ~10.7k total features, uses ~0.5MB memory
+// Note: Default is set in TileFixer._defaultCacheMaxFeatures
 
 /**
  * Generate cache key from tile coordinates.
@@ -39,6 +41,28 @@ const DEFAULT_CACHE_SIZE = 64;
  */
 function toIndex(z, x, y) {
   return `${x}:${y}:${z}`;
+}
+
+/**
+ * Count total features in a parsed corrections object.
+ * @param {Object<string, Array>} corrections - Parsed corrections
+ * @returns {number} Total feature count
+ */
+function countFeatures(corrections) {
+  let count = 0;
+  for (const features of Object.values(corrections)) {
+    count += features.length;
+  }
+  return count;
+}
+
+/**
+ * Check if corrections object is empty.
+ * @param {Object<string, Array>} corrections - Parsed corrections
+ * @returns {boolean}
+ */
+function isEmpty(corrections) {
+  return countFeatures(corrections) === 0;
 }
 
 /**
@@ -114,18 +138,25 @@ export class CorrectionsSource {
   /**
    * @param {string} pmtilesUrl - URL to the PMTiles file
    * @param {Object} [options] - Options
-   * @param {number} [options.cacheSize=64] - Maximum number of tiles to cache
+   * @param {number} [options.cacheMaxFeatures=10000] - Maximum number of features to cache
    * @param {number} [options.maxDataZoom] - Maximum zoom level in PMTiles (auto-detected if not provided)
    */
   constructor(pmtilesUrl, options = {}) {
     this.pmtilesUrl = pmtilesUrl;
     this.pmtiles = new PMTiles(pmtilesUrl);
-    this.cacheSize = options.cacheSize ?? DEFAULT_CACHE_SIZE;
+    this.cacheMaxFeatures = options.cacheMaxFeatures;
     this.maxDataZoom = options.maxDataZoom;
     
     // Cache based on protomaps-leaflet TileCache pattern
-    this.cache = new Map(); // Maps toIndex(z,x,y) -> {used: timestamp, data: corrections}
+    // Maps toIndex(z,x,y) -> {used: timestamp, data: corrections, featureCount: number, empty: boolean}
+    this.cache = new Map();
     this.inflight = new Map(); // Maps toIndex(z,x,y) -> [{resolve, reject}]
+    this.cachedFeatureCount = 0; // Track total features in cache
+    
+    // Separate tracking for empty vs non-empty entries for efficient eviction
+    // Empty entries are evicted first since they're cheap to re-fetch
+    this.emptyKeys = new Set();
+    this.nonEmptyKeys = new Set();
   }
 
   /**
@@ -142,6 +173,42 @@ export class CorrectionsSource {
   clearCache() {
     this.cache.clear();
     this.inflight.clear();
+    this.cachedFeatureCount = 0;
+    this.emptyKeys.clear();
+    this.nonEmptyKeys.clear();
+  }
+
+  /**
+   * Evict cache entries to stay under the feature limit.
+   * Empty entries are evicted first (cheap to re-fetch from PMTiles directory cache).
+   * Within each category, evicts LRU (least recently used) entries.
+   * @private
+   */
+  _evictIfNeeded() {
+    while (this.cachedFeatureCount > this.cacheMaxFeatures && this.cache.size > 1) {
+      // Determine which set to evict from: empty first, then non-empty
+      const targetSet = this.emptyKeys.size > 0 ? this.emptyKeys : this.nonEmptyKeys;
+      if (targetSet.size === 0) break;
+      
+      // Find LRU entry within the target set
+      let evictKey = undefined;
+      let minUsed = Infinity;
+      for (const key of targetSet) {
+        const entry = this.cache.get(key);
+        if (entry && entry.used < minUsed) {
+          minUsed = entry.used;
+          evictKey = key;
+        }
+      }
+      
+      if (!evictKey) break;
+      
+      // Evict the entry
+      const evicted = this.cache.get(evictKey);
+      this.cachedFeatureCount -= evicted.featureCount;
+      targetSet.delete(evictKey);
+      this.cache.delete(evictKey);
+    }
   }
 
   /**
@@ -202,8 +269,14 @@ export class CorrectionsSource {
             data = {};
           }
 
-          // Cache the result
-          this.cache.set(idx, { used: performance.now(), data });
+          // Track features and empty status for cache management
+          const featureCount = countFeatures(data);
+          const empty = featureCount === 0;
+
+          // Cache the result and track in appropriate set
+          this.cache.set(idx, { used: performance.now(), data, featureCount, empty });
+          this.cachedFeatureCount += featureCount;
+          (empty ? this.emptyKeys : this.nonEmptyKeys).add(idx);
 
           // Resolve all waiting promises
           const ifentry2 = this.inflight.get(idx);
@@ -215,20 +288,8 @@ export class CorrectionsSource {
           this.inflight.delete(idx);
           resolve(data);
 
-          // Evict LRU entry if cache is full (protomaps pattern)
-          if (this.cache.size > this.cacheSize) {
-            let minUsed = Infinity;
-            let minKey = undefined;
-            this.cache.forEach((value, key) => {
-              if (value.used < minUsed) {
-                minUsed = value.used;
-                minKey = key;
-              }
-            });
-            if (minKey) {
-              this.cache.delete(minKey);
-            }
-          }
+          // Evict if over limit
+          this._evictIfNeeded();
         })
         .catch((e) => {
           // Reject all waiting promises

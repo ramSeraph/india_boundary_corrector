@@ -15,6 +15,8 @@ export interface IndiaBoundaryCorrectedTileLayerOptions extends L.TileLayerOptio
   layerConfig?: LayerConfig | string;
   /** Additional layer configs for matching */
   extraLayerConfigs?: LayerConfig[];
+  /** Whether to return original tile if corrections fail (default: true) */
+  fallbackOnCorrectionFailure?: boolean;
 }
 
 /**

@@ -21,13 +21,14 @@ function extendLeaflet(L) {
       pmtilesUrl: null,
       layerConfig: null,
       extraLayerConfigs: null,
+      fallbackOnCorrectionFailure: true,
     },
 
     initialize: function (url, options) {
       L.TileLayer.prototype.initialize.call(this, url, options);
       
       this._pmtilesUrl = this.options.pmtilesUrl ?? getPmtilesUrl();
-      this._tileFixer = new TileFixer(this._pmtilesUrl);
+      this._tileFixer = TileFixer.getOrCreate(this._pmtilesUrl);
       this._registry = layerConfigs.createMergedRegistry(this.options.extraLayerConfigs);
       
       if (typeof this.options.layerConfig === 'string') {
@@ -68,8 +69,9 @@ function extendLeaflet(L) {
       const x = coords.x;
       const y = coords.y;
       const tileSize = this.options.tileSize || 256;
+      const fallbackOnCorrectionFailure = this.options.fallbackOnCorrectionFailure;
 
-      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { tileSize })
+      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { tileSize, fallbackOnCorrectionFailure })
         .then(({ data, correctionsFailed, correctionsError }) => {
           if (correctionsFailed) {
             console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);

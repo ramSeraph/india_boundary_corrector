@@ -17,12 +17,14 @@ let tileFixer = null;
 let pmtilesUrl = null; // Will be set lazily or via message
 let enabled = true;
 let tileSize = 256;
+let fallbackOnCorrectionFailure = true;
 
 // Reset to default configuration
 function resetConfig() {
   pmtilesUrl = null;
   tileFixer = null;
   enabled = true;
+  fallbackOnCorrectionFailure = true;
   registry = layerConfigs.createMergedRegistry();
 }
 
@@ -32,14 +34,14 @@ function getTileFixer() {
     if (!pmtilesUrl) {
       pmtilesUrl = getPmtilesUrl();
     }
-    tileFixer = new TileFixer(pmtilesUrl);
+    tileFixer = TileFixer.getOrCreate(pmtilesUrl);
   }
   return tileFixer;
 }
 
 // Reinitialize TileFixer with new URL
 function reinitTileFixer() {
-  tileFixer = new TileFixer(pmtilesUrl);
+  tileFixer = TileFixer.getOrCreate(pmtilesUrl);
 }
 
 /**
@@ -66,7 +68,7 @@ async function applyCorrectedTile(request, layerConfig, coords) {
   const fixer = getTileFixer();
   
   const { data, wasFixed, correctionsFailed, correctionsError } = await fixer.fetchAndFixTile(
-    request.url, z, x, y, layerConfig, { tileSize, mode: 'cors' }
+    request.url, z, x, y, layerConfig, { tileSize, mode: 'cors', fallbackOnCorrectionFailure }
   );
   
   if (correctionsFailed) {
@@ -139,6 +141,16 @@ self.addEventListener('message', (event) => {
         port?.postMessage({ success: true });
         break;
         
+      case MessageTypes.SET_FALLBACK_ON_CORRECTION_FAILURE:
+        fallbackOnCorrectionFailure = data.fallbackOnCorrectionFailure;
+        port?.postMessage({ success: true });
+        break;
+        
+      case MessageTypes.SET_CACHE_MAX_FEATURES:
+        TileFixer.setDefaultCacheMaxFeatures(data.cacheMaxFeatures);
+        port?.postMessage({ success: true });
+        break;
+        
       case MessageTypes.CLEAR_CACHE:
         tileFixer?.clearCache();
         port?.postMessage({ success: true });
@@ -152,6 +164,7 @@ self.addEventListener('message', (event) => {
       case MessageTypes.GET_STATUS:
         port?.postMessage({
           enabled,
+          fallbackOnCorrectionFailure,
           pmtilesUrl: pmtilesUrl || getPmtilesUrl(),
           configIds: registry.getAvailableIds(),
         });

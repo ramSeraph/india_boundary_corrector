@@ -20,6 +20,8 @@ export interface IndiaBoundaryCorrectedTileLayerOptions {
   extraLayerConfigs?: LayerConfig[];
   /** Tile size in pixels (default: 256) */
   tileSize?: number;
+  /** Whether to return original tile if corrections fail (default: true) */
+  fallbackOnCorrectionFailure?: boolean;
   /** Additional options for XYZ source */
   sourceOptions?: Partial<ConstructorParameters<typeof XYZ>[0]>;
   /** Additional options for TileLayer (opacity, visible, etc.) */

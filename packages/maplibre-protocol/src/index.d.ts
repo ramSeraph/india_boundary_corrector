@@ -12,6 +12,8 @@ export interface CorrectionProtocolOptions {
   pmtilesUrl?: string;
   /** Tile size in pixels (default: 256) */
   tileSize?: number;
+  /** Whether to return original tile if corrections fail (default: true) */
+  fallbackOnCorrectionFailure?: boolean;
 }
 
 /**

@@ -171,6 +171,8 @@ const sw = await registerCorrectionServiceWorker('./sw.js', {
 | `removeLayerConfig(id)` | `Promise<void>` | Remove a layer config |
 | `setPmtilesUrl(url)` | `Promise<void>` | Set PMTiles URL |
 | `setEnabled(enabled)` | `Promise<void>` | Enable/disable corrections |
+| `setFallbackOnCorrectionFailure(fallback)` | `Promise<void>` | Set whether to return original tile if corrections fail |
+| `setCacheMaxFeatures(count)` | `Promise<void>` | Set maximum features to cache |
 | `clearCache()` | `Promise<void>` | Clear the tile cache |
 | `getStatus()` | `Promise<Object>` | Get SW status |
 | `resetConfig()` | `Promise<void>` | Reset to default pmtilesUrl and layer configs |

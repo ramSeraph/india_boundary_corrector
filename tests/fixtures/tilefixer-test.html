@@ -218,6 +218,11 @@
     };
 
     window.fetch = function(url, options = {}) {
+      // Mock broken PMTiles requests
+      if (typeof url === 'string' && url.includes('broken.pmtiles')) {
+        return Promise.reject(new Error('Failed to fetch'));
+      }
+      
       if (typeof url === 'string' && url.startsWith('mock://')) {
         const parts = url.split('/');
         const scenario = parts[2];

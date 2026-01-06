@@ -29,9 +29,10 @@ function getFetchOptionsFromCrossOrigin(crossOrigin) {
  * @param {number} tileSize - Tile size in pixels
  * @param {IndiaBoundaryCorrectedTileLayer} layer - The layer instance for event dispatching
  * @param {Object} fetchOptions - Fetch options (mode, credentials)
+ * @param {boolean} fallbackOnCorrectionFailure - Whether to return original tile if corrections fail
  * @returns {Function} Custom tile load function
  */
-function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer, fetchOptions) {
+function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer, fetchOptions, fallbackOnCorrectionFailure) {
   return async function(imageTile, src) {
     const tileCoord = imageTile.getTileCoord();
     const z = tileCoord[0];
@@ -40,7 +41,7 @@ function createCorrectedTileLoadFunction(tileFixer, layerConfig, tileSize, layer
 
     try {
       const { data, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
-        src, z, x, y, layerConfig, { tileSize, ...fetchOptions }
+        src, z, x, y, layerConfig, { tileSize, fallbackOnCorrectionFailure, ...fetchOptions }
       );
 
       if (correctionsFailed) {
@@ -99,6 +100,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
    * @param {Object|string} [options.layerConfig] - LayerConfig or config ID (auto-detected if not provided)
    * @param {Object[]} [options.extraLayerConfigs] - Additional LayerConfigs for matching
    * @param {number} [options.tileSize=256] - Tile size in pixels
+   * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
    * @param {Object} [options.sourceOptions] - Additional options for XYZ source
    * @param {Object} [options.layerOptions] - Additional options for TileLayer
    */
@@ -109,6 +111,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
       layerConfig,
       extraLayerConfigs,
       tileSize = 256,
+      fallbackOnCorrectionFailure = true,
       sourceOptions = {},
       ...layerOptions
     } = options;
@@ -127,7 +130,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
     }
 
     // Create TileFixer
-    const tileFixer = new TileFixer(pmtilesUrl ?? getPmtilesUrl());
+    const tileFixer = TileFixer.getOrCreate(pmtilesUrl ?? getPmtilesUrl());
 
     // Create XYZ source (tileLoadFunction set after super() to access 'this')
     const source = new XYZ({
@@ -152,7 +155,7 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
 
     // Set tileLoadFunction after super() so we can pass 'this' for event dispatching
     if (resolvedConfig) {
-      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize, this, fetchOptions));
+      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, tileSize, this, fetchOptions, fallbackOnCorrectionFailure));
     }
 
     if (!resolvedConfig) {

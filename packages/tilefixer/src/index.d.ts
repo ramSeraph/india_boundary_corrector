@@ -58,8 +58,8 @@ export interface LayerConfig {
  * Options for TileFixer constructor.
  */
 export interface TileFixerOptions {
-  /** Maximum number of tiles to cache (default: 64) */
-  cacheSize?: number;
+  /** Maximum number of features to cache (default: 25000) */
+  cacheMaxFeatures?: number;
   /** Maximum zoom level in PMTiles (auto-detected if not provided) */
   maxDataZoom?: number;
 }
@@ -68,6 +68,19 @@ export interface TileFixerOptions {
  * Boundary corrector that fetches correction data and applies it to raster tiles.
  */
 export declare class TileFixer {
+  /**
+   * Set the default maximum features to cache for new TileFixer instances.
+   * @param maxFeatures - Maximum features to cache
+   */
+  static setDefaultCacheMaxFeatures(maxFeatures: number): void;
+
+  /**
+   * Get or create a TileFixer instance for a given PMTiles URL.
+   * Reuses existing instances for the same URL.
+   * @param pmtilesUrl - URL to the PMTiles file
+   */
+  static getOrCreate(pmtilesUrl: string): TileFixer;
+
   /**
    * Create a new TileFixer.
    * @param pmtilesUrl - URL to the PMTiles file
@@ -141,6 +154,8 @@ export interface FetchAndFixTileOptions {
   signal?: AbortSignal;
   /** Fetch mode (e.g., 'cors') */
   mode?: RequestMode;
+  /** Return original tile if corrections fail (default: true) */
+  fallbackOnCorrectionFailure?: boolean;
 }
 
 /**

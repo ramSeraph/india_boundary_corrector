@@ -39,6 +39,13 @@ const fixedTileData = await corrector.fixTile(
 
 ### `TileFixer`
 
+#### Static Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `TileFixer.getOrCreate(pmtilesUrl)` | `TileFixer` | Get or create a TileFixer for a URL (reuses existing instances) |
+| `TileFixer.setDefaultCacheMaxFeatures(count)` | `void` | Set default max features to cache for new instances (default: 25000) |
+
 #### Constructor
 
 ```javascript
@@ -48,7 +55,7 @@ new TileFixer(pmtilesUrl, options?)
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `pmtilesUrl` | string | URL to the PMTiles file |
-| `options.cacheSize` | number | Maximum tiles to cache (default: 64) |
+| `options.cacheMaxFeatures` | number | Maximum features to cache |
 
 #### Methods
 

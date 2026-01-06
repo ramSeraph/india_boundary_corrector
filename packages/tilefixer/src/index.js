@@ -374,10 +374,41 @@ function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray, alph
  * Boundary corrector that applies corrections to raster tiles.
  */
 export class TileFixer {
+  /** @type {Map<string, TileFixer>} */
+  static _instances = new Map();
+  
+  /** @type {number} */
+  static _defaultCacheMaxFeatures = 25000;
+
+  /**
+   * Set the default maximum features to cache for new TileFixer instances.
+   * @param {number} maxFeatures - Maximum features to cache
+   */
+  static setDefaultCacheMaxFeatures(maxFeatures) {
+    TileFixer._defaultCacheMaxFeatures = maxFeatures;
+  }
+
+  /**
+   * Get or create a TileFixer instance for a given PMTiles URL.
+   * Reuses existing instances for the same URL.
+   * @param {string} pmtilesUrl - URL to the PMTiles file
+   * @returns {TileFixer}
+   */
+  static getOrCreate(pmtilesUrl) {
+    let instance = TileFixer._instances.get(pmtilesUrl);
+    if (!instance) {
+      instance = new TileFixer(pmtilesUrl, {
+        cacheMaxFeatures: TileFixer._defaultCacheMaxFeatures,
+      });
+      TileFixer._instances.set(pmtilesUrl, instance);
+    }
+    return instance;
+  }
+
   /**
    * @param {string} pmtilesUrl - URL to the PMTiles file
    * @param {Object} [options] - Options
-   * @param {number} [options.cacheSize=64] - Maximum number of tiles to cache
+   * @param {number} [options.cacheMaxFeatures] - Maximum number of features to cache
    * @param {number} [options.maxDataZoom] - Maximum zoom level in PMTiles (auto-detected if not provided)
    */
   constructor(pmtilesUrl, options = {}) {
@@ -520,10 +551,11 @@ export class TileFixer {
    * @param {number} [options.tileSize=256] - Tile size in pixels
    * @param {AbortSignal} [options.signal] - Abort signal for fetch
    * @param {RequestMode} [options.mode] - Fetch mode (e.g., 'cors')
+   * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
    * @returns {Promise<{data: ArrayBuffer, wasFixed: boolean}>}
    */
   async fetchAndFixTile(tileUrl, z, x, y, layerConfig, options = {}) {
-    const { tileSize = 256, signal, mode } = options;
+    const { tileSize = 256, signal, mode, fallbackOnCorrectionFailure = true } = options;
     const fetchOptions = {};
     if (signal) fetchOptions.signal = signal;
     if (mode) fetchOptions.mode = mode;
@@ -559,6 +591,12 @@ export class TileFixer {
     // Check if corrections fetch failed
     const correctionsFailed = correctionsResult.status === 'rejected';
     const correctionsError = correctionsFailed ? correctionsResult.reason : null;
+    
+    // If corrections failed and fallback is disabled, throw the error
+    if (correctionsFailed && !fallbackOnCorrectionFailure) {
+      throw correctionsError;
+    }
+    
     const corrections = correctionsResult.status === 'fulfilled' ? correctionsResult.value : {};
 
     // Check if there are any corrections to apply

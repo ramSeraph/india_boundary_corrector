@@ -11,6 +11,8 @@ export declare const MessageTypes: {
   REMOVE_LAYER_CONFIG: 'REMOVE_LAYER_CONFIG';
   SET_PMTILES_URL: 'SET_PMTILES_URL';
   SET_ENABLED: 'SET_ENABLED';
+  SET_FALLBACK_ON_CORRECTION_FAILURE: 'SET_FALLBACK_ON_CORRECTION_FAILURE';
+  SET_CACHE_MAX_FEATURES: 'SET_CACHE_MAX_FEATURES';
   CLEAR_CACHE: 'CLEAR_CACHE';
   GET_STATUS: 'GET_STATUS';
   RESET_CONFIG: 'RESET_CONFIG';
@@ -71,6 +73,12 @@ export declare class CorrectionServiceWorker {
   
   /** Enable or disable the correction service */
   setEnabled(enabled: boolean): Promise<void>;
+  
+  /** Set whether to return original tile if corrections fail */
+  setFallbackOnCorrectionFailure(fallbackOnCorrectionFailure: boolean): Promise<void>;
+  
+  /** Set maximum features to cache */
+  setCacheMaxFeatures(cacheMaxFeatures: number): Promise<void>;
   
   /** Clear the tile cache */
   clearCache(): Promise<void>;

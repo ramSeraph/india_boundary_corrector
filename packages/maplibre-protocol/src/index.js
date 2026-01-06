@@ -105,11 +105,13 @@ export class CorrectionProtocol {
    * @param {Object} [options]
    * @param {string} [options.pmtilesUrl] - URL to PMTiles file (defaults to CDN)
    * @param {number} [options.tileSize=256] - Tile size in pixels
+   * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
    */
   constructor(options = {}) {
     this._pmtilesUrl = options.pmtilesUrl ?? getPmtilesUrl();
     this._tileSize = options.tileSize ?? 256;
-    this._tileFixer = new TileFixer(this._pmtilesUrl);
+    this._fallbackOnCorrectionFailure = options.fallbackOnCorrectionFailure ?? true;
+    this._tileFixer = TileFixer.getOrCreate(this._pmtilesUrl);
     this._registry = layerConfigs.createMergedRegistry();
     /** @type {Map<string, Set<Function>>} */
     this._listeners = new Map();
@@ -225,7 +227,11 @@ export class CorrectionProtocol {
       }
       
       const { data, correctionsFailed, correctionsError } = await self._tileFixer.fetchAndFixTile(
-        tileUrl, z, x, y, layerConfig, { tileSize: self._tileSize, signal: abortController?.signal }
+        tileUrl, z, x, y, layerConfig, { 
+          tileSize: self._tileSize, 
+          signal: abortController?.signal,
+          fallbackOnCorrectionFailure: self._fallbackOnCorrectionFailure
+        }
       );
       
       if (correctionsFailed && correctionsError?.name !== 'AbortError') {
@@ -245,6 +251,7 @@ export class CorrectionProtocol {
  * @param {Object} [options] - Protocol options
  * @param {string} [options.pmtilesUrl] - URL to PMTiles file
  * @param {number} [options.tileSize=256] - Tile size in pixels
+ * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
  * @returns {CorrectionProtocol}
  * 
  * @example

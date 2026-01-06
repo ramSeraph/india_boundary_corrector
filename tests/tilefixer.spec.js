@@ -267,6 +267,43 @@ test.describe('TileFixer Package', () => {
       }
     });
 
+    test('missing tiles do not cause correction errors', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        const layerConfig = window.layerConfig;
+        
+        // Tile outside India - no corrections in PMTiles
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 4, x = 0, y = 0;
+        
+        try {
+          const result = await corrector.fetchAndFixTile(
+            mockTileUrl, z, x, y, layerConfig,
+            { tileSize: 256, fallbackOnCorrectionFailure: false }
+          );
+          
+          return {
+            success: true,
+            hasData: result.data instanceof ArrayBuffer,
+            wasFixed: result.wasFixed,
+            correctionsFailed: result.correctionsFailed ?? false,
+          };
+        } catch (err) {
+          return {
+            success: false,
+            error: err.message,
+          };
+        }
+      });
+
+      // Should succeed without throwing, even with fallbackOnCorrectionFailure: false
+      // because missing tiles are not an error - they just have no corrections
+      expect(result.success).toBe(true);
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+      expect(result.correctionsFailed).toBe(false);
+    });
+
     test('overzoom z15: children tiles match parent z14 tile', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const corrector = window.corrector;
@@ -458,6 +495,54 @@ test.describe('TileFixer Package', () => {
       expect(result.cacheSizeAfter).toBe(0);
     });
 
+    test('empty tile results are cached', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const corrector = window.corrector;
+        
+        // Clear cache first
+        corrector.clearCache();
+        
+        // Track fetch calls to PMTiles
+        let fetchCount = 0;
+        const originalGetZxy = corrector.correctionsSource.pmtiles.getZxy.bind(corrector.correctionsSource.pmtiles);
+        corrector.correctionsSource.pmtiles.getZxy = async (...args) => {
+          fetchCount++;
+          return originalGetZxy(...args);
+        };
+        
+        // Fetch a tile outside India (will be empty)
+        const z = 4, x = 0, y = 0;
+        const firstResult = await corrector.getCorrections(z, x, y);
+        const fetchCountAfterFirst = fetchCount;
+        
+        // Fetch again - should come from cache, no network request
+        const secondResult = await corrector.getCorrections(z, x, y);
+        const fetchCountAfterSecond = fetchCount;
+        
+        // Check cache state
+        const cacheKey = `${x}:${y}:${z}`;
+        const isCached = corrector.correctionsSource.cache.has(cacheKey);
+        
+        return {
+          firstIsEmpty: Object.keys(firstResult).length === 0,
+          secondIsEmpty: Object.keys(secondResult).length === 0,
+          fetchCountAfterFirst,
+          fetchCountAfterSecond,
+          isCached,
+        };
+      });
+
+      // Both results should be empty
+      expect(result.firstIsEmpty).toBe(true);
+      expect(result.secondIsEmpty).toBe(true);
+      // Empty result should be cached
+      expect(result.isCached).toBe(true);
+      // First fetch should make one network request
+      expect(result.fetchCountAfterFirst).toBe(1);
+      // Second fetch should NOT make a network request (served from cache)
+      expect(result.fetchCountAfterSecond).toBe(1);
+    });
+
     test('getCorrections still works after clearCache', async ({ page }) => {
       const result = await page.evaluate(async () => {
         const corrector = window.corrector;
@@ -482,6 +567,45 @@ test.describe('TileFixer Package', () => {
       expect(result.secondHasData).toBe(true);
       // Both should return same layers
       expect(result.firstLayers).toEqual(result.secondLayers);
+    });
+
+    test('evicts LRU entries when cache exceeds max features', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { TileFixer } = window.tilefixerExports;
+        const { getPmtilesUrl } = await import('@india-boundary-corrector/data');
+        
+        // Create a corrector with very small cache (10 features max)
+        const smallCacheCorrector = new TileFixer(getPmtilesUrl(), { cacheMaxFeatures: 10 });
+        
+        // Fetch multiple tiles with data to fill and exceed cache
+        const tiles = [
+          { z: 4, x: 11, y: 6 },   // Has corrections
+          { z: 5, x: 22, y: 12 },  // Has corrections
+          { z: 6, x: 45, y: 25 },  // Has corrections
+        ];
+        
+        const results = [];
+        for (const { z, x, y } of tiles) {
+          await smallCacheCorrector.getCorrections(z, x, y);
+          results.push({
+            z, x, y,
+            cacheSize: smallCacheCorrector.correctionsSource.cache.size,
+            cachedFeatureCount: smallCacheCorrector.correctionsSource.cachedFeatureCount,
+          });
+        }
+        
+        return {
+          results,
+          finalCacheSize: smallCacheCorrector.correctionsSource.cache.size,
+          finalFeatureCount: smallCacheCorrector.correctionsSource.cachedFeatureCount,
+          maxFeatures: smallCacheCorrector.correctionsSource.cacheMaxFeatures,
+        };
+      });
+
+      // Cache should have evicted entries to stay under limit
+      expect(result.finalFeatureCount).toBeLessThanOrEqual(result.maxFeatures);
+      // Should have at least one entry (the most recent)
+      expect(result.finalCacheSize).toBeGreaterThan(0);
     });
   });
 
@@ -1854,6 +1978,63 @@ test.describe('TileFixer Package', () => {
       });
 
       expect(result.hasData).toBe(true);
+    });
+
+    test('throws when corrections fail and fallbackOnCorrectionFailure is false', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { TileFixer } = window.tilefixerExports;
+        const layerConfig = window.layerConfig;
+        
+        // Create a TileFixer with a broken PMTiles URL
+        const brokenCorrector = new TileFixer('/broken.pmtiles');
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 182, y = 101; // Tile that would have corrections
+        
+        try {
+          await brokenCorrector.fetchAndFixTile(
+            mockTileUrl, z, x, y, layerConfig, 
+            { tileSize: 256, fallbackOnCorrectionFailure: false }
+          );
+          return { threw: false };
+        } catch (err) {
+          return { 
+            threw: true,
+            errorMessage: err.message,
+          };
+        }
+      });
+
+      expect(result.threw).toBe(true);
+      expect(result.errorMessage).toBeTruthy();
+    });
+
+    test('returns original tile when corrections fail and fallbackOnCorrectionFailure is true (default)', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        const { TileFixer } = window.tilefixerExports;
+        const layerConfig = window.layerConfig;
+        
+        // Create a TileFixer with a broken PMTiles URL
+        const brokenCorrector = new TileFixer('/broken.pmtiles');
+        
+        const mockTileUrl = window.createMockTileUrl('success');
+        const z = 8, x = 182, y = 101; // Tile that would have corrections
+        
+        const result = await brokenCorrector.fetchAndFixTile(
+          mockTileUrl, z, x, y, layerConfig, 
+          { tileSize: 256 } // fallbackOnCorrectionFailure defaults to true
+        );
+        
+        return {
+          hasData: result.data instanceof ArrayBuffer,
+          wasFixed: result.wasFixed,
+          correctionsFailed: result.correctionsFailed,
+        };
+      });
+
+      expect(result.hasData).toBe(true);
+      expect(result.wasFixed).toBe(false);
+      expect(result.correctionsFailed).toBe(true);
     });
   });
 });

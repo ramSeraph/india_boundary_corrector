@@ -117,6 +117,7 @@ All standard `L.TileLayer` options are supported, plus:
 | `pmtilesUrl` | string | URL to PMTiles file (auto-detected if not provided) |
 | `layerConfig` | LayerConfig \| string | Layer config object or config ID |
 | `extraLayerConfigs` | LayerConfig[] | Additional configs for auto-detection |
+| `fallbackOnCorrectionFailure` | boolean | Return original tile if corrections fail (default: true) |
 
 ## Events
 

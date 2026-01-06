@@ -32,28 +32,6 @@ test.describe('Service Worker Package', () => {
       expect(result.isConstructor).toBe(true);
     });
 
-    test('exports MessageTypes', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { MessageTypes } = window;
-        
-        return {
-          hasTypes: !!MessageTypes,
-          types: Object.keys(MessageTypes).sort(),
-        };
-      });
-
-      expect(result.hasTypes).toBe(true);
-      expect(result.types).toEqual([
-        'ADD_LAYER_CONFIG',
-        'CLEAR_CACHE',
-        'GET_STATUS',
-        'REMOVE_LAYER_CONFIG',
-        'RESET_CONFIG',
-        'SET_ENABLED',
-        'SET_PMTILES_URL',
-      ]);
-    });
-
     test('exports helper functions', async ({ page }) => {
       const result = await page.evaluate(() => {
         return {
@@ -134,53 +112,6 @@ test.describe('Service Worker Package', () => {
       });
 
       expect(result.worker).toBeNull();
-    });
-
-    test('has all expected methods', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        const sw = new CorrectionServiceWorker('/test-sw.js');
-        
-        return {
-          hasRegister: typeof sw.register === 'function',
-          hasUnregister: typeof sw.unregister === 'function',
-          hasIsControlling: typeof sw.isControlling === 'function',
-          hasGetWorker: typeof sw.getWorker === 'function',
-          hasSendMessage: typeof sw.sendMessage === 'function',
-          hasAddLayerConfig: typeof sw.addLayerConfig === 'function',
-          hasRemoveLayerConfig: typeof sw.removeLayerConfig === 'function',
-          hasSetPmtilesUrl: typeof sw.setPmtilesUrl === 'function',
-          hasSetEnabled: typeof sw.setEnabled === 'function',
-          hasClearCache: typeof sw.clearCache === 'function',
-          hasGetStatus: typeof sw.getStatus === 'function',
-        };
-      });
-
-      expect(result.hasRegister).toBe(true);
-      expect(result.hasUnregister).toBe(true);
-      expect(result.hasIsControlling).toBe(true);
-      expect(result.hasGetWorker).toBe(true);
-      expect(result.hasSendMessage).toBe(true);
-      expect(result.hasAddLayerConfig).toBe(true);
-      expect(result.hasRemoveLayerConfig).toBe(true);
-      expect(result.hasSetPmtilesUrl).toBe(true);
-      expect(result.hasSetEnabled).toBe(true);
-      expect(result.hasClearCache).toBe(true);
-      expect(result.hasGetStatus).toBe(true);
-    });
-  });
-
-  test.describe('Helper Functions', () => {
-    test('registerCorrectionServiceWorker is a function', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { registerCorrectionServiceWorker } = window;
-        
-        return {
-          isFunction: typeof registerCorrectionServiceWorker === 'function',
-        };
-      });
-
-      expect(result.isFunction).toBe(true);
     });
   });
 

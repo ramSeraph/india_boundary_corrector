@@ -206,6 +206,30 @@ export class CorrectionServiceWorker {
   }
 
   /**
+   * Set whether to return original tile if corrections fail.
+   * @param {boolean} fallbackOnCorrectionFailure
+   * @returns {Promise<void>}
+   */
+  async setFallbackOnCorrectionFailure(fallbackOnCorrectionFailure) {
+    await this.sendMessage({
+      type: MessageTypes.SET_FALLBACK_ON_CORRECTION_FAILURE,
+      fallbackOnCorrectionFailure,
+    });
+  }
+
+  /**
+   * Set maximum features to cache.
+   * @param {number} cacheMaxFeatures
+   * @returns {Promise<void>}
+   */
+  async setCacheMaxFeatures(cacheMaxFeatures) {
+    await this.sendMessage({
+      type: MessageTypes.SET_CACHE_MAX_FEATURES,
+      cacheMaxFeatures,
+    });
+  }
+
+  /**
    * Clear the tile cache.
    * @returns {Promise<void>}
    */

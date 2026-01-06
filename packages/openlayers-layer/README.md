@@ -139,6 +139,7 @@ const layer = indiaBoundaryCorrectedTileLayer({
 | `layerConfig` | LayerConfig \| string | Layer config object or config ID |
 | `extraLayerConfigs` | LayerConfig[] | Additional configs for auto-detection |
 | `tileSize` | number | Tile size in pixels (default: 256) |
+| `fallbackOnCorrectionFailure` | boolean | Return original tile if corrections fail (default: true) |
 | `sourceOptions` | Object | Additional options passed to XYZ source |
 | `...layerOptions` | Object | Additional options passed to TileLayer |
 
