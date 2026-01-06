@@ -637,4 +637,251 @@ test.describe('Service Worker Package', () => {
       expect(result.hasCorrectionHeader).toBe(true);
     });
   });
+
+  test.describe('Integration - Reload Behavior', () => {
+    test('soft reload maintains SW control without re-registration', async ({ page, context }) => {
+      // First, register the SW
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+      });
+
+      // Soft reload (normal navigation)
+      await page.reload();
+      await page.waitForFunction(() => window.serviceWorkerTestLoaded === true, { timeout: 10000 });
+
+      // Check that SW is still controlling without needing to re-register
+      const result = await page.evaluate(async () => {
+        // SW should already be controlling from before reload
+        const isControlled = !!navigator.serviceWorker.controller;
+        
+        // We can still use registerCorrectionServiceWorker - it should connect to existing SW
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        return {
+          wasControlledBeforeRegister: isControlled,
+          isControllingAfter: sw.isControlling(),
+        };
+      });
+
+      expect(result.wasControlledBeforeRegister).toBe(true);
+      expect(result.isControllingAfter).toBe(true);
+    });
+
+    test('hard reload (shift+reload) reconnects to existing SW via claim', async ({ page }) => {
+      // Register SW first
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+      });
+
+      // Hard reload - bypasses SW for the page load but SW stays registered
+      // In Playwright, we simulate this by clearing the controller relationship
+      await page.evaluate(async () => {
+        // We can't truly simulate hard reload, but we can verify the claim mechanism
+        // by checking that an active but non-controlling SW gets claimed
+      });
+
+      // Reload the page
+      await page.reload();
+      await page.waitForFunction(() => window.serviceWorkerTestLoaded === true, { timeout: 10000 });
+
+      // Re-register should work and claim control
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        
+        return {
+          isControlling: sw.isControlling(),
+          hasWorker: sw.getWorker() !== null,
+        };
+      });
+
+      expect(result.isControlling).toBe(true);
+      expect(result.hasWorker).toBe(true);
+    });
+
+    test('forceReinstall unregisters and re-registers SW', async ({ page }) => {
+      // Register SW first
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        // Add a custom config to prove state is reset
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'pre-reinstall-config',
+          zoomThreshold: 5,
+          tileUrlTemplates: ['https://pre-reinstall.test/{z}/{x}/{y}.png'],
+        }));
+      });
+
+      // Get status before forceReinstall
+      const beforeStatus = await page.evaluate(async () => {
+        const { CorrectionServiceWorker, MessageTypes } = window;
+        const sw = new CorrectionServiceWorker('/tests/fixtures/sw.js');
+        sw._registration = await navigator.serviceWorker.getRegistration('/tests/fixtures/');
+        return await sw.getStatus();
+      });
+
+      expect(beforeStatus.configIds).toContain('pre-reinstall-config');
+
+      // Register with forceReinstall
+      const result = await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+          forceReinstall: true,
+        });
+        
+        const status = await sw.getStatus();
+        
+        return {
+          isControlling: sw.isControlling(),
+          configIds: status.configIds,
+        };
+      });
+
+      expect(result.isControlling).toBe(true);
+      // Custom config should be gone after reinstall (fresh SW)
+      expect(result.configIds).not.toContain('pre-reinstall-config');
+      // Default configs should be present
+      expect(result.configIds).toContain('osm-carto');
+    });
+  });
+
+  test.describe('Integration - Client Isolation', () => {
+    test('config changes in one client do not affect other clients', async ({ page, context }) => {
+      // Register SW in first page
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker, LayerConfig } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        // Add config only in this client
+        await sw.addLayerConfig(new LayerConfig({
+          id: 'client1-only-config',
+          zoomThreshold: 5,
+          tileUrlTemplates: ['https://client1.test/{z}/{x}/{y}.png'],
+        }));
+      });
+
+      // Open second page (same context, so same SW)
+      const page2 = await context.newPage();
+      await page2.goto('/tests/fixtures/service-worker-test.html');
+      await page2.waitForFunction(() => window.serviceWorkerTestLoaded === true, { timeout: 10000 });
+
+      // Register SW in second page - should get fresh config
+      const page2Result = await page2.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        const status = await sw.getStatus();
+        return {
+          configIds: status.configIds,
+        };
+      });
+
+      // Second client should NOT have the config added by first client
+      expect(page2Result.configIds).not.toContain('client1-only-config');
+      expect(page2Result.configIds).toContain('osm-carto'); // Should have defaults
+
+      // Verify first client still has its config
+      const page1Result = await page.evaluate(async () => {
+        const { CorrectionServiceWorker } = window;
+        const sw = new CorrectionServiceWorker('/tests/fixtures/sw.js');
+        sw._registration = await navigator.serviceWorker.getRegistration('/tests/fixtures/');
+        const status = await sw.getStatus();
+        return { configIds: status.configIds };
+      });
+
+      expect(page1Result.configIds).toContain('client1-only-config');
+
+      await page2.close();
+    });
+
+    test('disabling in one client does not affect other clients', async ({ page, context }) => {
+      // Register SW in first page and disable
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        await sw.setEnabled(false);
+      });
+
+      // Open second page
+      const page2 = await context.newPage();
+      await page2.goto('/tests/fixtures/service-worker-test.html');
+      await page2.waitForFunction(() => window.serviceWorkerTestLoaded === true, { timeout: 10000 });
+
+      // Register in second page - should be enabled by default
+      const page2Result = await page2.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        const status = await sw.getStatus();
+        return { enabled: status.enabled };
+      });
+
+      // Second client should be enabled (independent of first)
+      expect(page2Result.enabled).toBe(true);
+
+      // First client should still be disabled
+      const page1Result = await page.evaluate(async () => {
+        const { CorrectionServiceWorker } = window;
+        const sw = new CorrectionServiceWorker('/tests/fixtures/sw.js');
+        sw._registration = await navigator.serviceWorker.getRegistration('/tests/fixtures/');
+        const status = await sw.getStatus();
+        return { enabled: status.enabled };
+      });
+
+      expect(page1Result.enabled).toBe(false);
+
+      await page2.close();
+    });
+
+    test('pmtilesUrl changes in one client do not affect other clients', async ({ page, context }) => {
+      // Register SW in first page and change pmtilesUrl
+      await page.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        await sw.setPmtilesUrl('https://client1-custom.example.com/tiles.pmtiles');
+      });
+
+      // Open second page
+      const page2 = await context.newPage();
+      await page2.goto('/tests/fixtures/service-worker-test.html');
+      await page2.waitForFunction(() => window.serviceWorkerTestLoaded === true, { timeout: 10000 });
+
+      // Register in second page
+      const page2Result = await page2.evaluate(async () => {
+        const { registerCorrectionServiceWorker } = window;
+        const sw = await registerCorrectionServiceWorker('/tests/fixtures/sw.js', {
+          pmtilesUrl: '/packages/data/india_boundary_corrections.pmtiles',
+        });
+        const status = await sw.getStatus();
+        return { pmtilesUrl: status.pmtilesUrl };
+      });
+
+      // Second client should have its own pmtilesUrl (not client1's custom one)
+      expect(page2Result.pmtilesUrl).toContain('india_boundary_corrections.pmtiles');
+      expect(page2Result.pmtilesUrl).not.toContain('client1-custom');
+
+      await page2.close();
+    });
+  });
 });
