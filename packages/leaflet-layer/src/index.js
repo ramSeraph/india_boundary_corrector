@@ -1,6 +1,6 @@
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs } from '@india-boundary-corrector/layer-configs';
-import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+import { TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';

@@ -81,7 +81,7 @@ const darkConfig: LayerConfig | undefined = cartoDbDark;
 const cartoConfig: LayerConfig | undefined = osmCarto;
 
 // Test @india-boundary-corrector/tilefixer types
-import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+import { TileFixer } from '@india-boundary-corrector/tilefixer';
 
 // Test TileFixer construction
 const tileFixer = new TileFixer('https://example.com/tiles.pmtiles', {

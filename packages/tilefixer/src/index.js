@@ -373,7 +373,7 @@ function drawFeatures(ctx, features, color, lineWidth, tileSize, dashArray, alph
 /**
  * Boundary corrector that applies corrections to raster tiles.
  */
-export class BoundaryCorrector {
+export class TileFixer {
   /**
    * @param {string} pmtilesUrl - URL to the PMTiles file
    * @param {Object} [options] - Options

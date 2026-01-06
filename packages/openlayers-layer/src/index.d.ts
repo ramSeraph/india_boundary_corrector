@@ -1,7 +1,7 @@
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import { LayerConfig, LayerConfigRegistry } from '@india-boundary-corrector/layer-configs';
-import { BoundaryCorrector as TileFixer } from '@india-boundary-corrector/tilefixer';
+import { TileFixer } from '@india-boundary-corrector/tilefixer';
 
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';

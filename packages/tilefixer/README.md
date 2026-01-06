@@ -13,12 +13,12 @@ npm install @india-boundary-corrector/tilefixer
 ## Usage
 
 ```javascript
-import { BoundaryCorrector } from '@india-boundary-corrector/tilefixer';
+import { TileFixer } from '@india-boundary-corrector/tilefixer';
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
 // Create a boundary corrector
-const corrector = new BoundaryCorrector(getPmtilesUrl());
+const corrector = new TileFixer(getPmtilesUrl());
 
 // Get corrections for a tile
 const corrections = await corrector.getCorrections(z, x, y);
@@ -37,12 +37,12 @@ const fixedTileData = await corrector.fixTile(
 
 ## API
 
-### `BoundaryCorrector`
+### `TileFixer`
 
 #### Constructor
 
 ```javascript
-new BoundaryCorrector(pmtilesUrl, options?)
+new TileFixer(pmtilesUrl, options?)
 ```
 
 | Parameter | Type | Description |

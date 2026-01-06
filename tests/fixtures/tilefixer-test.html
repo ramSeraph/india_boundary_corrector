@@ -16,12 +16,12 @@
   <script type="module">
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
     import * as tilefixerExports from '@india-boundary-corrector/tilefixer';
-    const { BoundaryCorrector, getLineWidth, TileFetchError } = tilefixerExports;
+    const { TileFixer, getLineWidth, TileFetchError } = tilefixerExports;
     import { layerConfigs } from '@india-boundary-corrector/layer-configs';
 
     // Create corrector instance
     const pmtilesUrl = getPmtilesUrl();
-    const corrector = new BoundaryCorrector(pmtilesUrl);
+    const corrector = new TileFixer(pmtilesUrl);
     
     // Get a default layer config for testing
     const layerConfig = layerConfigs.get('osm-carto');

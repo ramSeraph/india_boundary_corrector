@@ -8,7 +8,7 @@
 
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
-import { BoundaryCorrector as TileFixer, TileFetchError } from '@india-boundary-corrector/tilefixer';
+import { TileFixer, TileFetchError } from '@india-boundary-corrector/tilefixer';
 import { MessageTypes } from './constants.js';
 
 // State

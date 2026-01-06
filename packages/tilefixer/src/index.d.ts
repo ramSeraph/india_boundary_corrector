@@ -55,9 +55,9 @@ export interface LayerConfig {
 }
 
 /**
- * Options for BoundaryCorrector constructor.
+ * Options for TileFixer constructor.
  */
-export interface BoundaryCorrectorOptions {
+export interface TileFixerOptions {
   /** Maximum number of tiles to cache (default: 64) */
   cacheSize?: number;
   /** Maximum zoom level in PMTiles (auto-detected if not provided) */
@@ -67,13 +67,13 @@ export interface BoundaryCorrectorOptions {
 /**
  * Boundary corrector that fetches correction data and applies it to raster tiles.
  */
-export declare class BoundaryCorrector {
+export declare class TileFixer {
   /**
-   * Create a new BoundaryCorrector.
+   * Create a new TileFixer.
    * @param pmtilesUrl - URL to the PMTiles file
    * @param options - Options
    */
-  constructor(pmtilesUrl: string, options?: BoundaryCorrectorOptions);
+  constructor(pmtilesUrl: string, options?: TileFixerOptions);
 
   /**
    * Get the PMTiles source object.
