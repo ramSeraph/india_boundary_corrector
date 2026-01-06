@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/service-worker",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Service worker for automatic India boundary corrections on map tiles",
   "type": "module",
   "main": "dist/index.cjs",
@@ -30,9 +30,9 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@india-boundary-corrector/data": "^0.0.3",
-    "@india-boundary-corrector/layer-configs": "^0.0.3",
-    "@india-boundary-corrector/tilefixer": "^0.0.3"
+    "@india-boundary-corrector/data": "^0.0.4",
+    "@india-boundary-corrector/layer-configs": "^0.0.4",
+    "@india-boundary-corrector/tilefixer": "^0.0.4"
   },
   "keywords": [
     "india",
