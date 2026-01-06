@@ -1,228 +1,445 @@
 /**
  * Type tests for @india-boundary-corrector packages
+ * Uses expect-type for robust type checking.
  * This file is only type-checked, not executed.
  */
 
-import type { Map as MapLibreMap } from 'maplibre-gl';
+import { expectTypeOf } from 'expect-type';
 import type maplibregl from 'maplibre-gl';
-import type { Map as LeafletMap } from 'leaflet';
 import type L from 'leaflet';
-import type { Map as OLMap } from 'ol';
+import type { PMTiles } from 'pmtiles';
 
-// Test @india-boundary-corrector/data types
+// ============================================================================
+// @india-boundary-corrector/data
+// ============================================================================
 import {
   getPmtilesUrl,
   setPmtilesUrl,
   getDataVersion,
+  resolvePmtilesUrl,
   layers,
+  DEFAULT_CDN_URL,
 } from '@india-boundary-corrector/data';
 
-// Verify return types
-const pmtilesUrl: string = getPmtilesUrl();
-const dataVersion: string = getDataVersion();
-const layerNames: {
+// Function signatures
+expectTypeOf(getPmtilesUrl).toBeFunction();
+expectTypeOf(getPmtilesUrl).parameters.toEqualTypeOf<[]>();
+expectTypeOf(getPmtilesUrl).returns.toBeString();
+
+expectTypeOf(setPmtilesUrl).toBeFunction();
+expectTypeOf(setPmtilesUrl).parameters.toEqualTypeOf<[url: string]>();
+expectTypeOf(setPmtilesUrl).returns.toBeVoid();
+
+expectTypeOf(getDataVersion).toBeFunction();
+expectTypeOf(getDataVersion).parameters.toEqualTypeOf<[]>();
+expectTypeOf(getDataVersion).returns.toBeString();
+
+expectTypeOf(resolvePmtilesUrl).toBeFunction();
+expectTypeOf(resolvePmtilesUrl).parameters.toEqualTypeOf<[scriptUrl: string]>();
+expectTypeOf(resolvePmtilesUrl).returns.toBeString();
+
+// Exports
+expectTypeOf(DEFAULT_CDN_URL).toBeString();
+expectTypeOf(layers).toEqualTypeOf<{
   toAddOsm: string;
   toDelOsm: string;
   toAddNe: string;
   toDelNe: string;
-} = layers;
+}>();
 
-// setPmtilesUrl returns void
-setPmtilesUrl('https://example.com/tiles.pmtiles');
-
-// Test @india-boundary-corrector/layer-configs types
+// ============================================================================
+// @india-boundary-corrector/layer-configs
+// ============================================================================
 import {
   LayerConfig,
   LayerConfigRegistry,
   layerConfigs,
   type LayerConfigOptions,
+  type LineStyle,
+  type TileCoords,
+  type ParsedTileUrl,
 } from '@india-boundary-corrector/layer-configs';
 
-// Test LayerConfig construction
-const customConfig = new LayerConfig({
-  id: 'test-config',
-  zoomThreshold: 6,
-  tileUrlTemplates: ['https://example.com/tiles/{z}/{x}/{y}.png'],
-  lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
-  lineStyles: [
-    { color: '#000' },
-    { color: '#111', widthFraction: 0.5, dashArray: [5, 3] },
-    { color: '#222', startZoom: 5 },
-    { color: '#333', endZoom: 8 },
-    { color: '#444', startZoom: 3, endZoom: 6 },
-    { color: '#555', alpha: 0.5 },
-    { color: '#666', widthFraction: 0.8, alpha: 0.7, startZoom: 4 },
-  ],
+// LayerConfig class
+expectTypeOf(LayerConfig).toBeConstructibleWith({
+  id: 'test',
+  lineWidthStops: { 1: 0.5, 10: 2.5 },
 });
 
-// Test getting configs from registry
-const cartoDbDark = layerConfigs.get('cartodb-dark');
-const osmCarto = layerConfigs.get('osm-carto');
+// LayerConfig instance properties
+expectTypeOf<LayerConfig>().toHaveProperty('id').toBeString();
+expectTypeOf<LayerConfig>().toHaveProperty('startZoom').toBeNumber();
+expectTypeOf<LayerConfig>().toHaveProperty('zoomThreshold').toBeNumber();
+expectTypeOf<LayerConfig>().toHaveProperty('tileUrlTemplates').toEqualTypeOf<string[]>();
+expectTypeOf<LayerConfig>().toHaveProperty('lineWidthStops').toEqualTypeOf<Record<number, number>>();
+expectTypeOf<LayerConfig>().toHaveProperty('lineStyles').toEqualTypeOf<LineStyle[]>();
+expectTypeOf<LayerConfig>().toHaveProperty('delWidthFactor').toBeNumber();
+expectTypeOf<LayerConfig>().toHaveProperty('lineExtensionFactor').toBeNumber();
 
-// Test LayerConfig properties
-const configId: string = customConfig.id;
-const configZoom: number = customConfig.zoomThreshold;
-const configTemplates: string[] = customConfig.tileUrlTemplates;
-const matchTemplateResult: boolean = customConfig.matchTemplate(['https://example.com/tiles/{z}/{x}/{y}.png']);
-const matchTileUrlResult: boolean = customConfig.matchTileUrl(['https://example.com/tiles/5/10/15.png']);
-const coordsResult = customConfig.extractCoords('https://example.com/tiles/5/10/15.png');
+// LayerConfig instance methods
+expectTypeOf<LayerConfig>().toHaveProperty('getLineStylesForZoom').toBeFunction();
+expectTypeOf<LayerConfig['getLineStylesForZoom']>().parameters.toEqualTypeOf<[z: number]>();
+expectTypeOf<LayerConfig['getLineStylesForZoom']>().returns.toEqualTypeOf<LineStyle[]>();
 
-// Test LayerConfigRegistry
-const registry = new LayerConfigRegistry();
-registry.register(customConfig);
-const retrieved: LayerConfig | undefined = registry.get('test-config');
-const detectedFromTemplates: LayerConfig | undefined = registry.detectFromTemplates(['https://example.com/tiles/{z}/{x}/{y}.png']);
-const detectedFromTileUrls: LayerConfig | undefined = registry.detectFromTileUrls(['https://example.com/tiles/5/10/15.png']);
-const ids: string[] = registry.getAvailableIds();
-const removed: boolean = registry.remove('test-config');
+expectTypeOf<LayerConfig>().toHaveProperty('matchTemplate').toBeFunction();
+expectTypeOf<LayerConfig['matchTemplate']>().parameters.toEqualTypeOf<[templates: string | string[]]>();
+expectTypeOf<LayerConfig['matchTemplate']>().returns.toBeBoolean();
 
-// Test built-in configs from registry
-const darkConfig: LayerConfig | undefined = cartoDbDark;
-const cartoConfig: LayerConfig | undefined = osmCarto;
+expectTypeOf<LayerConfig>().toHaveProperty('matchTileUrl').toBeFunction();
+expectTypeOf<LayerConfig['matchTileUrl']>().parameters.toEqualTypeOf<[tiles: string | string[]]>();
+expectTypeOf<LayerConfig['matchTileUrl']>().returns.toBeBoolean();
 
-// Test @india-boundary-corrector/tilefixer types
-import { TileFixer } from '@india-boundary-corrector/tilefixer';
+expectTypeOf<LayerConfig>().toHaveProperty('extractCoords').toBeFunction();
+expectTypeOf<LayerConfig['extractCoords']>().parameters.toEqualTypeOf<[url: string]>();
+expectTypeOf<LayerConfig['extractCoords']>().returns.toEqualTypeOf<TileCoords | null>();
 
-// Test TileFixer construction
-const tileFixer = new TileFixer('https://example.com/tiles.pmtiles', {
-  cacheSize: 128,
-});
+expectTypeOf<LayerConfig>().toHaveProperty('toJSON').toBeFunction();
+expectTypeOf<LayerConfig['toJSON']>().returns.toEqualTypeOf<LayerConfigOptions>();
 
-// Test TileFixer methods
-const source = tileFixer.getSource(); // PMTiles
-tileFixer.clearCache();
+expectTypeOf(LayerConfig.fromJSON).toBeFunction();
+expectTypeOf(LayerConfig.fromJSON).parameters.toEqualTypeOf<[obj: LayerConfigOptions]>();
+expectTypeOf(LayerConfig.fromJSON).returns.toEqualTypeOf<LayerConfig>();
 
-// Test getCorrections
-import type { CorrectionResult } from '@india-boundary-corrector/tilefixer';
-const corrections: Promise<CorrectionResult> = tileFixer.getCorrections(4, 11, 6);
+// LineStyle interface
+expectTypeOf<LineStyle>().toHaveProperty('color').toBeString();
+expectTypeOf<LineStyle>().toHaveProperty('widthFraction').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('dashArray').toEqualTypeOf<number[] | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('alpha').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('startZoom').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('endZoom').toEqualTypeOf<number | undefined>();
 
-// Test fixTile
-declare const rasterTile: ArrayBuffer;
-const fixedTile: Promise<ArrayBuffer> = tileFixer.fixTile(
-  await corrections,
-  rasterTile,
-  customConfig,
-  10,
-  256
-);
+// TileCoords interface
+expectTypeOf<TileCoords>().toEqualTypeOf<{ z: number; x: number; y: number }>();
 
-// Test fetchAndFixTile
-import type { FetchAndFixTileResult, FetchAndFixTileOptions } from '@india-boundary-corrector/tilefixer';
-const fetchResult: Promise<FetchAndFixTileResult> = tileFixer.fetchAndFixTile(
-  'https://tile.openstreetmap.org/10/512/512.png',
-  10,
-  512,
-  512,
-  customConfig,
-  { tileSize: 256, mode: 'cors' }
-);
+// LayerConfigRegistry class
+expectTypeOf(LayerConfigRegistry).toBeConstructibleWith();
 
-// Test fetchAndFixTile result properties
-const result = await fetchResult;
-const resultData: ArrayBuffer = result.data;
-const resultWasFixed: boolean = result.wasFixed;
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('get').toBeFunction();
+expectTypeOf<LayerConfigRegistry['get']>().parameters.toEqualTypeOf<[id: string]>();
+expectTypeOf<LayerConfigRegistry['get']>().returns.toEqualTypeOf<LayerConfig | undefined>();
 
-// Test @india-boundary-corrector/leaflet-layer types
-import { extendLeaflet } from '@india-boundary-corrector/leaflet-layer';
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('register').toBeFunction();
+expectTypeOf<LayerConfigRegistry['register']>().parameters.toEqualTypeOf<[config: LayerConfig]>();
+expectTypeOf<LayerConfigRegistry['register']>().returns.toBeVoid();
 
-declare const leaflet: typeof L;
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('remove').toBeFunction();
+expectTypeOf<LayerConfigRegistry['remove']>().parameters.toEqualTypeOf<[id: string]>();
+expectTypeOf<LayerConfigRegistry['remove']>().returns.toBeBoolean();
 
-// Test extendLeaflet
-extendLeaflet(leaflet);
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('detectFromTemplates').toBeFunction();
+expectTypeOf<LayerConfigRegistry['detectFromTemplates']>().parameters.toEqualTypeOf<[templates: string | string[]]>();
+expectTypeOf<LayerConfigRegistry['detectFromTemplates']>().returns.toEqualTypeOf<LayerConfig | undefined>();
 
-// After extension, L.TileLayer.IndiaBoundaryCorrected and L.tileLayer.indiaBoundaryCorrected are available
-// These are runtime types that TypeScript can't fully verify
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('detectFromTileUrls').toBeFunction();
+expectTypeOf<LayerConfigRegistry['detectFromTileUrls']>().parameters.toEqualTypeOf<[urls: string | string[]]>();
+expectTypeOf<LayerConfigRegistry['detectFromTileUrls']>().returns.toEqualTypeOf<LayerConfig | undefined>();
 
-// Test @india-boundary-corrector/openlayers-layer types
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('getAvailableIds').toBeFunction();
+expectTypeOf<LayerConfigRegistry['getAvailableIds']>().parameters.toEqualTypeOf<[]>();
+expectTypeOf<LayerConfigRegistry['getAvailableIds']>().returns.toEqualTypeOf<string[]>();
+
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('createMergedRegistry').toBeFunction();
+expectTypeOf<LayerConfigRegistry['createMergedRegistry']>().returns.toEqualTypeOf<LayerConfigRegistry>();
+
+expectTypeOf<LayerConfigRegistry>().toHaveProperty('parseTileUrl').toBeFunction();
+expectTypeOf<LayerConfigRegistry['parseTileUrl']>().parameters.toEqualTypeOf<[url: string]>();
+expectTypeOf<LayerConfigRegistry['parseTileUrl']>().returns.toEqualTypeOf<ParsedTileUrl | null>();
+
+// Default registry export
+expectTypeOf(layerConfigs).toEqualTypeOf<LayerConfigRegistry>();
+
+// ============================================================================
+// @india-boundary-corrector/tilefixer
+// ============================================================================
 import {
-  IndiaBoundaryCorrectedTileLayer,
+  TileFixer,
+  TileFetchError,
+  getLineWidth,
+  MIN_LINE_WIDTH,
+  type CorrectionResult,
+  type FetchAndFixTileResult,
+  type FetchAndFixTileOptions,
+  type TileFixerOptions,
+  type Feature,
+} from '@india-boundary-corrector/tilefixer';
+
+// Constants
+expectTypeOf(MIN_LINE_WIDTH).toBeNumber();
+
+// TileFetchError class
+expectTypeOf(TileFetchError).toBeConstructibleWith(404);
+expectTypeOf(TileFetchError).toBeConstructibleWith(404, 'https://example.com/tile.png');
+expectTypeOf(TileFetchError).toBeConstructibleWith(404, 'https://example.com/tile.png', 'Not found');
+expectTypeOf<TileFetchError>().toHaveProperty('status').toBeNumber();
+expectTypeOf<TileFetchError>().toHaveProperty('url').toEqualTypeOf<string | undefined>();
+expectTypeOf<TileFetchError>().toHaveProperty('body').toEqualTypeOf<string | undefined>();
+expectTypeOf(TileFetchError.fromResponse).toBeFunction();
+expectTypeOf(TileFetchError.fromResponse).returns.toEqualTypeOf<Promise<TileFetchError>>();
+
+// getLineWidth function
+expectTypeOf(getLineWidth).toBeFunction();
+expectTypeOf(getLineWidth).parameters.toEqualTypeOf<[zoom: number, lineWidthStops: Record<number, number>]>();
+expectTypeOf(getLineWidth).returns.toBeNumber();
+
+// TileFixer static methods
+expectTypeOf(TileFixer.setDefaultCacheMaxFeatures).toBeFunction();
+expectTypeOf(TileFixer.setDefaultCacheMaxFeatures).parameters.toEqualTypeOf<[maxFeatures: number]>();
+expectTypeOf(TileFixer.setDefaultCacheMaxFeatures).returns.toBeVoid();
+
+expectTypeOf(TileFixer.getOrCreate).toBeFunction();
+expectTypeOf(TileFixer.getOrCreate).parameters.toEqualTypeOf<[pmtilesUrl: string]>();
+expectTypeOf(TileFixer.getOrCreate).returns.toEqualTypeOf<TileFixer>();
+
+// TileFixer constructor
+expectTypeOf(TileFixer).toBeConstructibleWith('https://example.com/tiles.pmtiles');
+expectTypeOf(TileFixer).toBeConstructibleWith('https://example.com/tiles.pmtiles', {});
+expectTypeOf(TileFixer).toBeConstructibleWith('https://example.com/tiles.pmtiles', { cacheMaxFeatures: 100 });
+
+// TileFixer instance methods
+expectTypeOf<TileFixer>().toHaveProperty('getSource').toBeFunction();
+expectTypeOf<TileFixer['getSource']>().returns.toEqualTypeOf<PMTiles>();
+
+expectTypeOf<TileFixer>().toHaveProperty('clearCache').toBeFunction();
+expectTypeOf<TileFixer['clearCache']>().returns.toBeVoid();
+
+expectTypeOf<TileFixer>().toHaveProperty('getCorrections').toBeFunction();
+expectTypeOf<TileFixer['getCorrections']>().parameters.toEqualTypeOf<[z: number, x: number, y: number]>();
+expectTypeOf<TileFixer['getCorrections']>().returns.toEqualTypeOf<Promise<CorrectionResult>>();
+
+expectTypeOf<TileFixer>().toHaveProperty('fixTile').toBeFunction();
+expectTypeOf<TileFixer['fixTile']>().returns.toEqualTypeOf<Promise<ArrayBuffer>>();
+
+expectTypeOf<TileFixer>().toHaveProperty('fetchAndFixTile').toBeFunction();
+expectTypeOf<TileFixer['fetchAndFixTile']>().returns.toEqualTypeOf<Promise<FetchAndFixTileResult>>();
+
+// FetchAndFixTileResult interface
+expectTypeOf<FetchAndFixTileResult>().toHaveProperty('data').toEqualTypeOf<ArrayBuffer>();
+expectTypeOf<FetchAndFixTileResult>().toHaveProperty('wasFixed').toBeBoolean();
+expectTypeOf<FetchAndFixTileResult>().toHaveProperty('correctionsFailed').toEqualTypeOf<boolean | undefined>();
+expectTypeOf<FetchAndFixTileResult>().toHaveProperty('correctionsError').toEqualTypeOf<Error | null | undefined>();
+
+// FetchAndFixTileOptions interface
+expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('signal').toEqualTypeOf<AbortSignal | undefined>();
+expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('mode').toEqualTypeOf<RequestMode | undefined>();
+expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('fallbackOnCorrectionFailure').toEqualTypeOf<boolean | undefined>();
+
+// TileFixerOptions interface
+expectTypeOf<TileFixerOptions>().toHaveProperty('cacheMaxFeatures').toEqualTypeOf<number | undefined>();
+expectTypeOf<TileFixerOptions>().toHaveProperty('maxDataZoom').toEqualTypeOf<number | undefined>();
+
+// Feature interface
+expectTypeOf<Feature>().toHaveProperty('id').toEqualTypeOf<number | undefined>();
+expectTypeOf<Feature>().toHaveProperty('type').toBeNumber();
+expectTypeOf<Feature>().toHaveProperty('properties').toEqualTypeOf<Record<string, unknown>>();
+expectTypeOf<Feature>().toHaveProperty('geometry').toEqualTypeOf<Array<Array<{ x: number; y: number }>>>();
+expectTypeOf<Feature>().toHaveProperty('extent').toBeNumber();
+
+// CorrectionResult type
+expectTypeOf<CorrectionResult>().toEqualTypeOf<Record<string, Feature[]>>();
+
+// ============================================================================
+// @india-boundary-corrector/leaflet-layer
+// ============================================================================
+import {
+  extendLeaflet,
+  type IndiaBoundaryCorrectedTileLayerOptions,
+  type IndiaBoundaryCorrectedTileLayer,
+} from '@india-boundary-corrector/leaflet-layer';
+
+// extendLeaflet function
+expectTypeOf(extendLeaflet).toBeFunction();
+expectTypeOf(extendLeaflet).parameters.toEqualTypeOf<[L: typeof L]>();
+expectTypeOf(extendLeaflet).returns.toBeVoid();
+
+// IndiaBoundaryCorrectedTileLayerOptions interface
+expectTypeOf<IndiaBoundaryCorrectedTileLayerOptions>().toHaveProperty('pmtilesUrl').toEqualTypeOf<string | undefined>();
+expectTypeOf<IndiaBoundaryCorrectedTileLayerOptions>().toHaveProperty('layerConfig').toEqualTypeOf<LayerConfig | string | undefined>();
+expectTypeOf<IndiaBoundaryCorrectedTileLayerOptions>().toHaveProperty('extraLayerConfigs').toEqualTypeOf<LayerConfig[] | undefined>();
+expectTypeOf<IndiaBoundaryCorrectedTileLayerOptions>().toHaveProperty('fallbackOnCorrectionFailure').toEqualTypeOf<boolean | undefined>();
+
+// IndiaBoundaryCorrectedTileLayer interface
+expectTypeOf<IndiaBoundaryCorrectedTileLayer>().toHaveProperty('getTileFixer').toBeFunction();
+expectTypeOf<IndiaBoundaryCorrectedTileLayer['getTileFixer']>().returns.toEqualTypeOf<TileFixer>();
+expectTypeOf<IndiaBoundaryCorrectedTileLayer>().toHaveProperty('getLayerConfig').toBeFunction();
+expectTypeOf<IndiaBoundaryCorrectedTileLayer['getLayerConfig']>().returns.toEqualTypeOf<LayerConfig | null>();
+
+// ============================================================================
+// @india-boundary-corrector/openlayers-layer
+// ============================================================================
+import {
+  IndiaBoundaryCorrectedTileLayer as OLCorrectedTileLayer,
   indiaBoundaryCorrectedTileLayer,
+  type IndiaBoundaryCorrectedTileLayerOptions as OLOptions,
 } from '@india-boundary-corrector/openlayers-layer';
 
-// Test IndiaBoundaryCorrectedTileLayer construction
-const olLayer = new IndiaBoundaryCorrectedTileLayer({
-  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-  layerConfig: 'osm-carto',
-  extraLayerConfigs: [customConfig],
-  tileSize: 256,
-});
-
-// Test IndiaBoundaryCorrectedTileLayer methods
-const olTileFixer: TileFixer = olLayer.getTileFixer();
-const olLayerConfig: LayerConfig | null = olLayer.getLayerConfig();
-const olRegistry: LayerConfigRegistry = olLayer.getRegistry();
-
-// Test factory function
-const olLayer2 = indiaBoundaryCorrectedTileLayer({
+// Constructor
+expectTypeOf(OLCorrectedTileLayer).toBeConstructibleWith({
   url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 });
 
-// Test @india-boundary-corrector/maplibre-protocol types
+// Instance methods
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>>().toHaveProperty('getTileFixer').toBeFunction();
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>['getTileFixer']>().returns.toEqualTypeOf<TileFixer>();
+
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>>().toHaveProperty('getLayerConfig').toBeFunction();
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>['getLayerConfig']>().returns.toEqualTypeOf<LayerConfig | null>();
+
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>>().toHaveProperty('getRegistry').toBeFunction();
+expectTypeOf<InstanceType<typeof OLCorrectedTileLayer>['getRegistry']>().returns.toEqualTypeOf<LayerConfigRegistry>();
+
+// Factory function
+expectTypeOf(indiaBoundaryCorrectedTileLayer).toBeFunction();
+expectTypeOf(indiaBoundaryCorrectedTileLayer).returns.toEqualTypeOf<InstanceType<typeof OLCorrectedTileLayer>>();
+
+// Options interface
+expectTypeOf<OLOptions>().toHaveProperty('url').toBeString();
+expectTypeOf<OLOptions>().toHaveProperty('pmtilesUrl').toEqualTypeOf<string | undefined>();
+expectTypeOf<OLOptions>().toHaveProperty('layerConfig').toEqualTypeOf<LayerConfig | string | undefined>();
+expectTypeOf<OLOptions>().toHaveProperty('extraLayerConfigs').toEqualTypeOf<LayerConfig[] | undefined>();
+expectTypeOf<OLOptions>().toHaveProperty('tileSize').toEqualTypeOf<number | undefined>();
+expectTypeOf<OLOptions>().toHaveProperty('fallbackOnCorrectionFailure').toEqualTypeOf<boolean | undefined>();
+
+// ============================================================================
+// @india-boundary-corrector/maplibre-protocol
+// ============================================================================
 import {
   CorrectionProtocol,
   registerCorrectionProtocol,
+  type CorrectionProtocolOptions,
+  type CorrectionErrorEvent,
 } from '@india-boundary-corrector/maplibre-protocol';
 
-declare const maplibreGl: typeof maplibregl;
+// CorrectionProtocol constructor
+expectTypeOf(CorrectionProtocol).toBeConstructibleWith();
+expectTypeOf(CorrectionProtocol).toBeConstructibleWith({});
+expectTypeOf(CorrectionProtocol).toBeConstructibleWith({ pmtilesUrl: 'https://example.com/tiles.pmtiles' });
 
-// Test CorrectionProtocol construction
-const protocol = new CorrectionProtocol({
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-  tileSize: 256,
-});
+// CorrectionProtocol instance methods
+expectTypeOf<CorrectionProtocol>().toHaveProperty('addLayerConfig').toBeFunction();
+expectTypeOf<CorrectionProtocol['addLayerConfig']>().parameters.toEqualTypeOf<[layerConfig: LayerConfig]>();
+expectTypeOf<CorrectionProtocol['addLayerConfig']>().returns.toEqualTypeOf<CorrectionProtocol>();
 
-// Test CorrectionProtocol methods
-protocol.addLayerConfig(customConfig);
-const protocolRegistry: LayerConfigRegistry = protocol.getRegistry();
-const protocolTileFixer: TileFixer = protocol.getTileFixer();
-protocol.register(maplibreGl);
-protocol.unregister(maplibreGl);
+expectTypeOf<CorrectionProtocol>().toHaveProperty('getRegistry').toBeFunction();
+expectTypeOf<CorrectionProtocol['getRegistry']>().returns.toEqualTypeOf<LayerConfigRegistry>();
 
-// Test registerCorrectionProtocol
-const protocol2: CorrectionProtocol = registerCorrectionProtocol(maplibreGl, {
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-});
+expectTypeOf<CorrectionProtocol>().toHaveProperty('getTileFixer').toBeFunction();
+expectTypeOf<CorrectionProtocol['getTileFixer']>().returns.toEqualTypeOf<TileFixer>();
 
-// Test @india-boundary-corrector/service-worker types
+expectTypeOf<CorrectionProtocol>().toHaveProperty('register').toBeFunction();
+expectTypeOf<CorrectionProtocol['register']>().returns.toEqualTypeOf<CorrectionProtocol>();
+
+expectTypeOf<CorrectionProtocol>().toHaveProperty('unregister').toBeFunction();
+expectTypeOf<CorrectionProtocol['unregister']>().returns.toEqualTypeOf<CorrectionProtocol>();
+
+expectTypeOf<CorrectionProtocol>().toHaveProperty('on').toBeFunction();
+expectTypeOf<CorrectionProtocol['on']>().returns.toEqualTypeOf<CorrectionProtocol>();
+
+expectTypeOf<CorrectionProtocol>().toHaveProperty('off').toBeFunction();
+expectTypeOf<CorrectionProtocol['off']>().returns.toEqualTypeOf<CorrectionProtocol>();
+
+// CorrectionProtocolOptions interface
+expectTypeOf<CorrectionProtocolOptions>().toHaveProperty('pmtilesUrl').toEqualTypeOf<string | undefined>();
+expectTypeOf<CorrectionProtocolOptions>().toHaveProperty('fallbackOnCorrectionFailure').toEqualTypeOf<boolean | undefined>();
+
+// CorrectionErrorEvent interface
+expectTypeOf<CorrectionErrorEvent>().toHaveProperty('error').toEqualTypeOf<Error>();
+expectTypeOf<CorrectionErrorEvent>().toHaveProperty('coords').toEqualTypeOf<{ z: number; x: number; y: number }>();
+expectTypeOf<CorrectionErrorEvent>().toHaveProperty('tileUrl').toBeString();
+
+// registerCorrectionProtocol function
+expectTypeOf(registerCorrectionProtocol).toBeFunction();
+expectTypeOf(registerCorrectionProtocol).returns.toEqualTypeOf<CorrectionProtocol>();
+
+// ============================================================================
+// @india-boundary-corrector/service-worker
+// ============================================================================
 import {
   CorrectionServiceWorker,
   registerCorrectionServiceWorker,
   MessageTypes,
+  type CorrectionServiceWorkerOptions,
+  type ServiceWorkerStatus,
 } from '@india-boundary-corrector/service-worker';
 
-// Test MessageTypes
-const msgTypes: {
-  ADD_LAYER_CONFIG: string;
-  REMOVE_LAYER_CONFIG: string;
-  SET_PMTILES_URL: string;
-  SET_ENABLED: string;
-  CLEAR_CACHE: string;
-  GET_STATUS: string;
-} = MessageTypes;
+// MessageTypes - verify all keys exist
+expectTypeOf(MessageTypes).toHaveProperty('ADD_LAYER_CONFIG').toEqualTypeOf<'ADD_LAYER_CONFIG'>();
+expectTypeOf(MessageTypes).toHaveProperty('REMOVE_LAYER_CONFIG').toEqualTypeOf<'REMOVE_LAYER_CONFIG'>();
+expectTypeOf(MessageTypes).toHaveProperty('SET_PMTILES_URL').toEqualTypeOf<'SET_PMTILES_URL'>();
+expectTypeOf(MessageTypes).toHaveProperty('SET_ENABLED').toEqualTypeOf<'SET_ENABLED'>();
+expectTypeOf(MessageTypes).toHaveProperty('SET_FALLBACK_ON_CORRECTION_FAILURE').toEqualTypeOf<'SET_FALLBACK_ON_CORRECTION_FAILURE'>();
+expectTypeOf(MessageTypes).toHaveProperty('SET_CACHE_MAX_FEATURES').toEqualTypeOf<'SET_CACHE_MAX_FEATURES'>();
+expectTypeOf(MessageTypes).toHaveProperty('CLEAR_CACHE').toEqualTypeOf<'CLEAR_CACHE'>();
+expectTypeOf(MessageTypes).toHaveProperty('GET_STATUS').toEqualTypeOf<'GET_STATUS'>();
+expectTypeOf(MessageTypes).toHaveProperty('RESET_CONFIG').toEqualTypeOf<'RESET_CONFIG'>();
+expectTypeOf(MessageTypes).toHaveProperty('CLAIM_CLIENTS').toEqualTypeOf<'CLAIM_CLIENTS'>();
 
-// Test CorrectionServiceWorker construction
-const sw = new CorrectionServiceWorker('./sw.js', {
-  scope: './',
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-  controllerTimeout: 5000,
-});
+// CorrectionServiceWorker constructor
+expectTypeOf(CorrectionServiceWorker).toBeConstructibleWith('./sw.js');
+expectTypeOf(CorrectionServiceWorker).toBeConstructibleWith('./sw.js', {});
+expectTypeOf(CorrectionServiceWorker).toBeConstructibleWith('./sw.js', { scope: './' });
 
-// Test CorrectionServiceWorker methods
-const registerPromise: Promise<CorrectionServiceWorker> = sw.register();
-const isControlling: boolean = sw.isControlling();
-const unregisterPromise: Promise<boolean> = sw.unregister();
-const worker: ServiceWorker | null = sw.getWorker();
-const sendMsgPromise: Promise<unknown> = sw.sendMessage({ type: 'test' });
-const addConfigPromise: Promise<void> = sw.addLayerConfig(customConfig);
-const removeConfigPromise: Promise<void> = sw.removeLayerConfig('test-config');
-const setPmtilesPromise: Promise<void> = sw.setPmtilesUrl('https://example.com/tiles.pmtiles');
-const setEnabledPromise: Promise<void> = sw.setEnabled(true);
-const clearCachePromise: Promise<void> = sw.clearCache();
-const getStatusPromise: Promise<object> = sw.getStatus();
+// CorrectionServiceWorker instance methods
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('register').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['register']>().returns.toEqualTypeOf<Promise<CorrectionServiceWorker>>();
 
-// Test registerCorrectionServiceWorker
-const swPromise: Promise<CorrectionServiceWorker> = registerCorrectionServiceWorker('./sw.js', {
-  scope: './',
-  pmtilesUrl: 'https://example.com/tiles.pmtiles',
-});
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('isControlling').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['isControlling']>().returns.toBeBoolean();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('unregister').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['unregister']>().returns.toEqualTypeOf<Promise<boolean>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('getWorker').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['getWorker']>().returns.toEqualTypeOf<ServiceWorker | null>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('sendMessage').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['sendMessage']>().parameters.toEqualTypeOf<[message: object]>();
+expectTypeOf<CorrectionServiceWorker['sendMessage']>().returns.toEqualTypeOf<Promise<any>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('addLayerConfig').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['addLayerConfig']>().parameters.toEqualTypeOf<[layerConfig: LayerConfig]>();
+expectTypeOf<CorrectionServiceWorker['addLayerConfig']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('removeLayerConfig').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['removeLayerConfig']>().parameters.toEqualTypeOf<[configId: string]>();
+expectTypeOf<CorrectionServiceWorker['removeLayerConfig']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('setPmtilesUrl').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['setPmtilesUrl']>().parameters.toEqualTypeOf<[pmtilesUrl: string]>();
+expectTypeOf<CorrectionServiceWorker['setPmtilesUrl']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('setEnabled').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['setEnabled']>().parameters.toEqualTypeOf<[enabled: boolean]>();
+expectTypeOf<CorrectionServiceWorker['setEnabled']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('setFallbackOnCorrectionFailure').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['setFallbackOnCorrectionFailure']>().parameters.toEqualTypeOf<[fallbackOnCorrectionFailure: boolean]>();
+expectTypeOf<CorrectionServiceWorker['setFallbackOnCorrectionFailure']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('setCacheMaxFeatures').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['setCacheMaxFeatures']>().parameters.toEqualTypeOf<[cacheMaxFeatures: number]>();
+expectTypeOf<CorrectionServiceWorker['setCacheMaxFeatures']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('clearCache').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['clearCache']>().returns.toEqualTypeOf<Promise<void>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('getStatus').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['getStatus']>().returns.toEqualTypeOf<Promise<ServiceWorkerStatus>>();
+
+expectTypeOf<CorrectionServiceWorker>().toHaveProperty('resetConfig').toBeFunction();
+expectTypeOf<CorrectionServiceWorker['resetConfig']>().returns.toEqualTypeOf<Promise<void>>();
+
+// CorrectionServiceWorkerOptions interface
+expectTypeOf<CorrectionServiceWorkerOptions>().toHaveProperty('scope').toEqualTypeOf<string | undefined>();
+expectTypeOf<CorrectionServiceWorkerOptions>().toHaveProperty('pmtilesUrl').toEqualTypeOf<string | undefined>();
+expectTypeOf<CorrectionServiceWorkerOptions>().toHaveProperty('controllerTimeout').toEqualTypeOf<number | undefined>();
+expectTypeOf<CorrectionServiceWorkerOptions>().toHaveProperty('forceReinstall').toEqualTypeOf<boolean | undefined>();
+
+// ServiceWorkerStatus interface
+expectTypeOf<ServiceWorkerStatus>().toHaveProperty('enabled').toBeBoolean();
+expectTypeOf<ServiceWorkerStatus>().toHaveProperty('fallbackOnCorrectionFailure').toBeBoolean();
+expectTypeOf<ServiceWorkerStatus>().toHaveProperty('pmtilesUrl').toBeString();
+expectTypeOf<ServiceWorkerStatus>().toHaveProperty('configIds').toEqualTypeOf<string[]>();
+
+// registerCorrectionServiceWorker function
+expectTypeOf(registerCorrectionServiceWorker).toBeFunction();
+expectTypeOf(registerCorrectionServiceWorker).returns.toEqualTypeOf<Promise<CorrectionServiceWorker>>();

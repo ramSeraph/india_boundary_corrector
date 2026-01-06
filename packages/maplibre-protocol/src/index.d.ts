@@ -53,6 +53,29 @@ export declare class CorrectionProtocol {
    * Unregister the protocol from MapLibre GL.
    */
   unregister(maplibregl: typeof import('maplibre-gl')): this;
+
+  /**
+   * Add a listener for an event.
+   * @param event - Event name
+   * @param listener - Callback function receiving event data
+   */
+  on(event: 'correctionerror', listener: (data: CorrectionErrorEvent) => void): this;
+
+  /**
+   * Remove an event listener.
+   * @param event - Event name
+   * @param listener - Callback to remove
+   */
+  off(event: 'correctionerror', listener: (data: CorrectionErrorEvent) => void): this;
+}
+
+/**
+ * Event data for correctionerror event.
+ */
+export interface CorrectionErrorEvent {
+  error: Error;
+  coords: { z: number; x: number; y: number };
+  tileUrl: string;
 }
 
 /**

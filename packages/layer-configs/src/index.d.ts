@@ -34,6 +34,8 @@ export interface LayerConfigOptions {
   lineStyles?: LineStyle[];
   /** Factor to multiply line width for deletion blur (default: 1.5) */
   delWidthFactor?: number;
+  /** Factor to extend add lines by (multiplied by deletion line width) (default: 0.5) */
+  lineExtensionFactor?: number;
 }
 
 /**
@@ -47,6 +49,7 @@ export class LayerConfig {
   readonly lineWidthStops: Record<number, number>;
   readonly lineStyles: LineStyle[];
   readonly delWidthFactor: number;
+  readonly lineExtensionFactor: number;
 
   constructor(options: LayerConfigOptions);
 

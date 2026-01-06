@@ -1,6 +1,26 @@
 import { PMTiles } from 'pmtiles';
 
 /**
+ * Error thrown when tile fetch fails.
+ * Includes the HTTP status code and response body for proper error handling.
+ */
+export declare class TileFetchError extends Error {
+  /** HTTP status code */
+  status: number;
+  /** The URL that failed */
+  url?: string;
+  /** Response body text */
+  body?: string;
+
+  constructor(status: number, url?: string, body?: string);
+
+  /**
+   * Create a TileFetchError from a failed Response.
+   */
+  static fromResponse(response: Response): Promise<TileFetchError>;
+}
+
+/**
  * Minimum line width used when extrapolating below the lowest zoom stop.
  */
 export const MIN_LINE_WIDTH: number;
@@ -52,6 +72,7 @@ export interface LayerConfig {
   lineWidthStops: Record<number, number>;
   lineStyles: LineStyle[];
   delWidthFactor?: number;
+  lineExtensionFactor?: number;
 }
 
 /**
@@ -162,4 +183,8 @@ export interface FetchAndFixTileResult {
   data: ArrayBuffer;
   /** Whether corrections were applied */
   wasFixed: boolean;
+  /** Whether corrections fetch failed (only present if fallbackOnCorrectionFailure is true) */
+  correctionsFailed?: boolean;
+  /** The error if corrections fetch failed */
+  correctionsError?: Error | null;
 }

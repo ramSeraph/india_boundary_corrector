@@ -38,6 +38,7 @@ export interface CorrectionServiceWorkerOptions {
  */
 export interface ServiceWorkerStatus {
   enabled: boolean;
+  fallbackOnCorrectionFailure: boolean;
   pmtilesUrl: string;
   configIds: string[];
 }
