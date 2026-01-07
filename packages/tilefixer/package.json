@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/tilefixer",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Tile fixer for India boundary corrections using PMTiles",
   "type": "module",
   "main": "dist/index.cjs",

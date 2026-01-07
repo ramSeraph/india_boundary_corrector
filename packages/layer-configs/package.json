@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/layer-configs",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Pre-built layer configurations for India boundary corrections",
   "type": "module",
   "main": "dist/index.cjs",

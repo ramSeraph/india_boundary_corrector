@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/maplibre-protocol",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "MapLibre GL custom protocol for India boundary corrections",
   "type": "module",
   "main": "dist/index.cjs",
@@ -29,9 +29,9 @@
     "maplibre-gl": ">=3.0.0"
   },
   "dependencies": {
-    "@india-boundary-corrector/data": "^0.0.4",
-    "@india-boundary-corrector/layer-configs": "^0.0.4",
-    "@india-boundary-corrector/tilefixer": "^0.0.4"
+    "@india-boundary-corrector/data": "^0.0.5",
+    "@india-boundary-corrector/layer-configs": "^0.0.5",
+    "@india-boundary-corrector/tilefixer": "^0.0.5"
   },
   "keywords": [
     "india",

@@ -1,5 +1,37 @@
 # @india-boundary-corrector/leaflet-layer
 
+## 0.0.5
+
+### Patch Changes
+
+- d85fe25: ### Bug Fixes
+
+  - **data**: Use `.pmtiles.gz` filename suffix to prevent CDN transparent compression issues with HTTP range requests
+  - **data**: Remove unpkg from CDN fallback list (now works with .gz files)
+  - **tilefixer**: Default fetch mode to `cors` (was `same-origin`) to allow cross-origin tile fetches without explicit `crossOrigin` attribute
+  - **tilefixer**: Pass abort signal to `getCorrections()` for proper cancellation support
+  - **service-worker**: Use hardcoded `mode: 'cors'` instead of copying from original request (which could be `no-cors` for images)
+  - **service-worker**: Add AbortController forwarding since `request.signal` doesn't propagate automatically in service workers
+  - **service-worker**: Suppress AbortError logging (intentional cancellations)
+
+  ### New Features
+
+  - **layer-configs**: Add `LineStyle` class with `isActiveAtZoom()`, `toJSON()`, and `fromJSON()` methods
+  - **layer-configs**: Add `validateJSON()` static methods on `LineStyle` and `LayerConfig` for validating plain objects
+  - **layer-configs**: Export `configsJson` for testing/inspection of built-in configs
+
+  ### Internal
+
+  - **tilefixer**: Add `buildFetchOptions()` helper to map HTML image element attributes to fetch options
+  - **tilefixer**: Refactor `fetchAndFixTile()` signature - `fetchOptions` is now a separate object parameter, `fallbackOnCorrectionFailure` is a separate boolean
+  - **tilefixer**: Extract `extendFeaturesByFactor()` helper function
+  - **layer-configs**: Validation moved from constructors to `fromJSON()` - constructors no longer validate
+
+- Updated dependencies [d85fe25]
+  - @india-boundary-corrector/data@0.0.5
+  - @india-boundary-corrector/layer-configs@0.0.5
+  - @india-boundary-corrector/tilefixer@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
