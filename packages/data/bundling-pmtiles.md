@@ -133,19 +133,11 @@ const sw = await registerCorrectionServiceWorker('./sw.js', {
 });
 ```
 
-## File Size Considerations
-
-The PMTiles file is approximately 2MB. Consider:
-
-- **Lazy loading**: The file is only fetched when tiles are requested
-- **Caching**: Set appropriate cache headers for the PMTiles file
-- **CDN**: Using jsDelivr or another CDN offloads bandwidth from your server
-
 ## Server Requirements
 
-The PMTiles file must be hosted on a server that supports **HTTP Range Requests**. PMTiles uses range requests to fetch only the portions of the file needed for the current view, rather than downloading the entire file.
+The PMTiles file is approximately 2MB, but the entire file is **never downloaded at once**. PMTiles uses HTTP Range Requests to fetch only the specific tile data needed for the current map view—typically just a few KB per tile request.
 
-Most web servers and CDNs support range requests by default, including:
+Your server must support **HTTP Range Requests** for this to work. Most web servers and CDNs support range requests by default, including:
 - nginx
 - Apache
 - Cloudflare

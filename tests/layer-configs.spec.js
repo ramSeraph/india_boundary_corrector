@@ -565,7 +565,8 @@ test.describe('Layer Configs Package', () => {
           return e.message;
         }
       });
-      expect(error).toContain('must be an object');
+      // When a string is passed, it gets spread and color is undefined
+      expect(error).toContain('color must be a non-empty string');
     });
 
     test('throws error when lineStyles entry has no color', async ({ page }) => {
@@ -707,10 +708,11 @@ test.describe('Layer Configs Package', () => {
             { color: 'yellow', startZoom: 3, endZoom: 6 },
           ],
         });
-        return config.lineStyles;
+        // Use toJSON to get serialized form for comparison
+        return config.lineStyles.map(s => s.toJSON());
       });
-      expect(result[0]).toEqual({ color: 'red', startZoom: 2, endZoom: Infinity });
-      expect(result[1]).toEqual({ color: 'blue', startZoom: 5, endZoom: Infinity });
+      expect(result[0]).toEqual({ color: 'red', startZoom: 2 });
+      expect(result[1]).toEqual({ color: 'blue', startZoom: 5 });
       expect(result[2]).toEqual({ color: 'green', startZoom: 2, endZoom: 8 });
       expect(result[3]).toEqual({ color: 'yellow', startZoom: 3, endZoom: 6 });
     });
@@ -817,6 +819,91 @@ test.describe('Layer Configs Package', () => {
       expect(result.matchesUrl).toBe(true);
       expect(result.extractedCoords).toEqual({ z: 7, x: 100, y: 200 });
       expect(result.stylesAtZoom3).toEqual(['green']);
+    });
+
+    test.describe('color validation', () => {
+      const validColors = [
+        // Named colors
+        'red', 'green', 'blue', 'black', 'white', 'transparent',
+        'rebeccapurple', 'darkslategray',
+        // Hex colors
+        '#fff', '#FFF', '#ffffff', '#FFFFFF', '#ff0000', '#00ff00cc',
+        // rgb/rgba
+        'rgb(255, 0, 0)', 'rgb(0,0,0)', 'rgba(255, 0, 0, 0.5)', 'rgba(0, 0, 0, 1)',
+        // hsl/hsla
+        'hsl(120, 100%, 50%)', 'hsla(120, 100%, 50%, 0.5)',
+      ];
+
+      const invalidColors = [
+        'notacolor',
+        '#gg0000',
+        '#12345',
+        'rgb()',
+      ];
+
+      for (const color of validColors) {
+        test(`accepts valid color: ${color}`, async ({ page }) => {
+          const result = await page.evaluate((testColor) => {
+            try {
+              new window.layerConfigsPackage.LayerConfig({
+                id: 'color-test',
+                lineStyles: [{ color: testColor }],
+              });
+              return { success: true };
+            } catch (e) {
+              return { success: false, error: e.message };
+            }
+          }, color);
+          expect(result.success).toBe(true);
+        });
+      }
+
+      for (const color of invalidColors) {
+        test(`rejects invalid color: "${color}"`, async ({ page }) => {
+          const error = await page.evaluate((testColor) => {
+            try {
+              new window.layerConfigsPackage.LayerConfig({
+                id: 'color-test',
+                lineStyles: [{ color: testColor }],
+              });
+              return null;
+            } catch (e) {
+              return e.message;
+            }
+          }, color);
+          expect(error).toContain('not a valid CSS color');
+        });
+      }
+
+      test('rejects empty string color', async ({ page }) => {
+        const error = await page.evaluate(() => {
+          try {
+            new window.layerConfigsPackage.LayerConfig({
+              id: 'color-test',
+              lineStyles: [{ color: '' }],
+            });
+            return null;
+          } catch (e) {
+            return e.message;
+          }
+        });
+        expect(error).toContain('color must be a non-empty string');
+      });
+
+      test('rejects whitespace-only color', async ({ page }) => {
+        const error = await page.evaluate(() => {
+          try {
+            new window.layerConfigsPackage.LayerConfig({
+              id: 'color-test',
+              lineStyles: [{ color: '   ' }],
+            });
+            return null;
+          } catch (e) {
+            return e.message;
+          }
+        });
+        expect(error).toContain('not a valid CSS color');
+      });
     });
   });
 

@@ -40,6 +40,52 @@ export class TileFetchError extends Error {
 export const MIN_LINE_WIDTH = 0.5;
 
 /**
+ * Default vector tile extent (coordinate space size).
+ */
+const DEFAULT_TILE_EXTENT = 4096;
+
+/**
+ * Default fallback line width if interpolation fails.
+ */
+const DEFAULT_LINE_WIDTH = 1;
+
+/**
+ * Build fetch options from HTML image element attributes.
+ * Maps crossorigin and referrerpolicy attribute values to fetch() options.
+ * 
+ * Note: Unlike native <img> elements which can load cross-origin images without CORS,
+ * fetch() requires CORS mode to read cross-origin responses. Therefore, we default
+ * to 'cors' mode with 'same-origin' credentials when crossOrigin is not specified.
+ * 
+ * @param {string|boolean|null|undefined} crossOrigin - The crossOrigin attribute value
+ * @param {string} [referrerPolicy] - The referrerPolicy attribute value
+ * @returns {{mode: RequestMode, credentials: RequestCredentials, referrerPolicy?: ReferrerPolicy}}
+ */
+export function buildFetchOptions(crossOrigin, referrerPolicy) {
+  const options = {};
+  
+  if (crossOrigin === 'use-credentials') {
+    options.mode = 'cors';
+    options.credentials = 'include';
+  } else if (crossOrigin === 'anonymous' || crossOrigin === '' || crossOrigin === true) {
+    options.mode = 'cors';
+    options.credentials = 'omit';
+  } else {
+    // No crossOrigin specified - default to cors mode since fetch() requires it
+    // to read cross-origin responses. Use same-origin credentials for same-origin
+    // requests (browser will automatically omit credentials for cross-origin).
+    options.mode = 'cors';
+    options.credentials = 'same-origin';
+  }
+  
+  if (referrerPolicy) {
+    options.referrerPolicy = referrerPolicy;
+  }
+  
+  return options;
+}
+
+/**
  * Interpolate or extrapolate line width from a zoom-to-width map.
  * @param {number} zoom - Zoom level
  * @param {Object<number, number>} lineWidthStops - Map of zoom level to line width (at least 2 entries)
@@ -85,7 +131,7 @@ export function getLineWidth(zoom, lineWidthStops) {
     }
   }
   
-  return 1; // fallback
+  return DEFAULT_LINE_WIDTH; // fallback
 }
 
 /**
@@ -327,6 +373,23 @@ function extendFeaturesEnds(features, extensionLength) {
 }
 
 /**
+ * Extend features by a factor of the deletion line width.
+ * @param {Array} features - Array of features with geometry
+ * @param {number} extensionFactor - Factor to multiply by deletion line width
+ * @param {number} delLineWidth - Deletion line width in pixels
+ * @param {number} tileSize - Size of the tile in pixels
+ * @returns {Array} New array of features with extended geometry, or original if no extension needed
+ */
+function extendFeaturesByFactor(features, extensionFactor, delLineWidth, tileSize) {
+  if (!features || features.length === 0 || extensionFactor <= 0) {
+    return features;
+  }
+  const extent = features[0]?.extent || DEFAULT_TILE_EXTENT;
+  const extensionLength = (delLineWidth * extensionFactor / tileSize) * extent;
+  return extendFeaturesEnds(features, extensionLength);
+}
+
+/**
  * Draw features on a canvas context.
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Array} features - Array of features to draw
@@ -413,6 +476,8 @@ export class TileFixer {
    */
   constructor(pmtilesUrl, options = {}) {
     this.correctionsSource = new CorrectionsSource(pmtilesUrl, options);
+    /** @type {OffscreenCanvas|null} Reusable scratch canvas for tile operations */
+    this._canvas = null;
     /** @type {OffscreenCanvas|null} Reusable scratch canvas for mask operations */
     this._maskCanvas = null;
   }
@@ -438,10 +503,11 @@ export class TileFixer {
    * @param {number} z - Zoom level
    * @param {number} x - Tile X coordinate
    * @param {number} y - Tile Y coordinate
+   * @param {AbortSignal} [signal] - Optional abort signal
    * @returns {Promise<Object<string, Array>>} Map of layer name to array of features
    */
-  async getCorrections(z, x, y) {
-    return await this.correctionsSource.get(z, x, y);
+  async getCorrections(z, x, y, signal) {
+    return await this.correctionsSource.get(z, x, y, signal);
   }
 
   /**
@@ -504,7 +570,7 @@ export class TileFixer {
 
     // Calculate deletion width based on the thickest add line
     const maxWidthFraction = activeLineStyles.length > 0
-      ? Math.max(...activeLineStyles.map(s => s.widthFraction ?? 1.0))
+      ? Math.max(...activeLineStyles.map(s => s.widthFraction))
       : 1.0;
     const delLineWidth = baseLineWidth * maxWidthFraction * delWidthFactor;
 
@@ -521,17 +587,13 @@ export class TileFixer {
     // Draw addition lines using active lineStyles (in order)
     let addFeatures = corrections[addLayerName] || [];
     if (addFeatures.length > 0 && activeLineStyles.length > 0) {
-      // Extend add lines if factor > 0 (to cover where deleted lines meet the boundary)
-      const extensionFactor = layerConfig.lineExtensionFactor ?? 0.5;
-      if (extensionFactor > 0 && delFeatures.length > 0) {
-        // Extension length in extent units
-        const extent = addFeatures[0]?.extent || 4096;
-        const extensionLength = (delLineWidth * extensionFactor / tileSize) * extent;
-        addFeatures = extendFeaturesEnds(addFeatures, extensionLength);
+      // Extend add lines if there are deletion features
+      if (delFeatures.length > 0) {
+        addFeatures = extendFeaturesByFactor(addFeatures, layerConfig.lineExtensionFactor, delLineWidth, tileSize);
       }
       
       for (const style of activeLineStyles) {
-        const { color, widthFraction = 1.0, dashArray, alpha = 1.0 } = style;
+        const { color, widthFraction, dashArray, alpha } = style;
         const lineWidth = baseLineWidth * widthFraction;
         drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray, alpha);
       }
@@ -549,17 +611,17 @@ export class TileFixer {
    * @param {number} x - Tile X coordinate
    * @param {number} y - Tile Y coordinate
    * @param {Object} layerConfig - Layer configuration with colors and styles
-   * @param {Object} [options] - Fetch options
-   * @param {AbortSignal} [options.signal] - Abort signal for fetch
-   * @param {RequestMode} [options.mode] - Fetch mode (e.g., 'cors')
-   * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
+   * @param {Object} [fetchOptions] - Fetch options passed to fetch()
+   * @param {AbortSignal} [fetchOptions.signal] - Abort signal for fetch
+   * @param {RequestMode} [fetchOptions.mode] - Fetch mode (e.g., 'cors')
+   * @param {RequestCredentials} [fetchOptions.credentials] - Fetch credentials (e.g., 'omit', 'include')
+   * @param {string} [fetchOptions.referrer] - Referrer URL or empty string for none
+   * @param {ReferrerPolicy} [fetchOptions.referrerPolicy] - Referrer policy (e.g., 'no-referrer', 'origin')
+   * @param {boolean} [fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
    * @returns {Promise<{data: ArrayBuffer, wasFixed: boolean}>}
    */
-  async fetchAndFixTile(tileUrl, z, x, y, layerConfig, options = {}) {
-    const { signal, mode, fallbackOnCorrectionFailure = true } = options;
-    const fetchOptions = {};
-    if (signal) fetchOptions.signal = signal;
-    if (mode) fetchOptions.mode = mode;
+  async fetchAndFixTile(tileUrl, z, x, y, layerConfig, fetchOptions = {}, fallbackOnCorrectionFailure = true) {
+    const { signal } = fetchOptions;
 
     // No layerConfig means no corrections needed
     if (!layerConfig) {
@@ -568,19 +630,17 @@ export class TileFixer {
       return { data: await response.arrayBuffer(), wasFixed: false };
     }
 
-    // Fetch tile and corrections in parallel
+    // Fetch tile and corrections in parallel (both support abort signals)
     const [tileResult, correctionsResult] = await Promise.allSettled([
       fetch(tileUrl, fetchOptions).then(async r => {
         if (!r.ok) throw await TileFetchError.fromResponse(r);
         return r.arrayBuffer();
       }),
-      this.getCorrections(z, x, y)
+      this.getCorrections(z, x, y, signal)
     ]);
 
     // Check if aborted before proceeding with CPU-intensive work
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
+    signal?.throwIfAborted();
 
     // Handle fetch failure
     if (tileResult.status === 'rejected') {

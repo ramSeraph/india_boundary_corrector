@@ -278,8 +278,7 @@ test.describe('TileFixer Package', () => {
         
         try {
           const result = await corrector.fetchAndFixTile(
-            mockTileUrl, z, x, y, layerConfig,
-            { tileSize: 256, fallbackOnCorrectionFailure: false }
+            mockTileUrl, z, x, y, layerConfig, {}, false
           );
           
           return {
@@ -726,8 +725,10 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
+        const LayerConfig = window.LayerConfig;
+
         // Config with fully opaque black line
-        const opaqueConfig = {
+        const opaqueConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
@@ -735,10 +736,10 @@ test.describe('TileFixer Package', () => {
           lineStyles: [
             { color: 'rgb(0, 0, 0)', alpha: 1.0 },
           ],
-        };
+        });
 
         // Config with semi-transparent black line (50% opacity)
-        const semiTransparentConfig = {
+        const semiTransparentConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
@@ -746,7 +747,7 @@ test.describe('TileFixer Package', () => {
           lineStyles: [
             { color: 'rgb(0, 0, 0)', alpha: 0.5 },
           ],
-        };
+        });
 
         const opaqueTile = await corrector.fixTile(corrections, blankTile, opaqueConfig, 6, tileSize);
         const opaqueCenter = await getPixelColor(opaqueTile, tileSize, 128, 128);
@@ -813,15 +814,15 @@ test.describe('TileFixer Package', () => {
 
         // Plain object config with lineStyles that have zoom constraints
         // Only one style active at each zoom to make testing clear
-        const plainConfig = {
+        const plainConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
-          lineWidthStops: [[0, 1], [10, 2], [14, 3]],
+          lineWidthStops: { 0: 1, 10: 2, 14: 3 },
           delWidthFactor: 3,
           lineStyles: [
             { color: 'rgb(255, 0, 0)', startZoom: 6, endZoom: 7 }, // z6-7 only
           ],
-        };
+        });
 
         // Test at z5: should NOT have the line (below startZoom 6)
         const z5Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 5, tileSize);
@@ -869,15 +870,15 @@ test.describe('TileFixer Package', () => {
         };
 
         // Config with only one style that ends at z5
-        const plainConfig = {
+        const plainConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
-          lineWidthStops: [[0, 1], [10, 2], [14, 3]],
+          lineWidthStops: { 0: 1, 10: 2, 14: 3 },
           delWidthFactor: 3,
           lineStyles: [
             { color: 'red', endZoom: 5 }, // Only z1-5
           ],
-        };
+        });
 
         // Test at z5: should have the line
         const z5Tile = await corrector.fixTile(corrections, blankTile, plainConfig, 5, tileSize);
@@ -935,25 +936,27 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
+        const LayerConfig = window.LayerConfig;
+
         // Config with extension enabled (default 0.5)
-        const configWithExtension = {
+        const configWithExtension = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineExtensionFactor: 0.5,
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         // Config with extension disabled
-        const configNoExtension = {
+        const configNoExtension = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineExtensionFactor: 0,
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         const tileWithExtension = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
         const tileNoExtension = await corrector.fixTile(corrections, blankTile, configNoExtension, 6, tileSize);
@@ -1012,14 +1015,15 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
-        const configWithExtension = {
+        const LayerConfig = window.LayerConfig;
+        const configWithExtension = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineExtensionFactor: 0.5,
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         const tile = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
         const analysis = await analyzePixels(tile, tileSize);
@@ -1070,25 +1074,27 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
+        const LayerConfig = window.LayerConfig;
+
         // Thin deletion line
-        const thinConfig = {
+        const thinConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 2, 10: 2, 14: 2 },
           delWidthFactor: 2,  // delLineWidth = 2 * 2 = 4
           lineExtensionFactor: 0.5,  // extension = 4 * 0.5 = 2 pixels
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         // Thick deletion line
-        const thickConfig = {
+        const thickConfig = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 8, 10: 8, 14: 8 },
           delWidthFactor: 2,  // delLineWidth = 8 * 2 = 16
           lineExtensionFactor: 0.5,  // extension = 16 * 0.5 = 8 pixels
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         const thinTile = await corrector.fixTile(corrections, blankTile, thinConfig, 6, tileSize);
         const thickTile = await corrector.fixTile(corrections, blankTile, thickConfig, 6, tileSize);
@@ -1133,14 +1139,15 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
-        const config = {
+        const LayerConfig = window.LayerConfig;
+        const config = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineExtensionFactor: 0.5,
           lineStyles: [{ color: 'rgb(0, 0, 0)' }],
-        };
+        });
 
         const tile = await corrector.fixTile(corrections, blankTile, config, 6, tileSize);
         const analysis = await analyzePixels(tile, tileSize);
@@ -1187,13 +1194,14 @@ test.describe('TileFixer Package', () => {
         };
 
         // Config with startZoom = 3
-        const config = {
+        const LayerConfig = window.LayerConfig;
+        const config = LayerConfig.fromJSON({ id: 'test',
           startZoom: 3,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineStyles: [{ color: 'rgb(255, 0, 0)' }],
-        };
+        });
 
         // Test at z2 (below startZoom) - should NOT draw
         const z2Tile = await corrector.fixTile(corrections, blankTile, config, 2, tileSize);
@@ -1263,13 +1271,14 @@ test.describe('TileFixer Package', () => {
         };
 
         // Config with zoomThreshold = 5
-        const config = {
+        const LayerConfig = window.LayerConfig;
+        const config = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineStyles: [{ color: 'rgb(255, 0, 0)' }],
-        };
+        });
 
         // Test at z4 (below zoomThreshold) - should use NE layer (line at y=64)
         const z4Tile = await corrector.fixTile(corrections, blankTile, config, 4, tileSize);
@@ -1361,13 +1370,14 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
-        const config = {
+        const LayerConfig = window.LayerConfig;
+        const config = LayerConfig.fromJSON({ id: 'test',
           startZoom: 1,
           zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
           delWidthFactor: 3,
           lineStyles: [{ color: 'rgb(255, 0, 0)' }],
-        };
+        });
 
         // At z4 (below threshold), should delete NE layer (y=64 line removed)
         const z4Tile = await corrector.fixTile(corrections, tileWithLines, config, 4, tileSize);
@@ -1748,7 +1758,7 @@ test.describe('TileFixer Package', () => {
         const mockTileUrl = window.createMockTileUrl('success');
         const z = 8, x = 182, y = 101; // Tile with corrections
         
-        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
         
         return {
           hasData: result.data instanceof ArrayBuffer,
@@ -1770,7 +1780,7 @@ test.describe('TileFixer Package', () => {
         const mockTileUrl = window.createMockTileUrl('success');
         const z = 8, x = 0, y = 0; // Tile outside India - no corrections
         
-        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
         
         return {
           hasData: result.data instanceof ArrayBuffer,
@@ -1792,7 +1802,7 @@ test.describe('TileFixer Package', () => {
         const mockTileUrl = window.createMockTileUrl('success');
         const z = 999, x = 999999, y = 999999; // Invalid coords cause correction failure
         
-        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
         
         return {
           hasData: result.data instanceof ArrayBuffer,
@@ -1811,7 +1821,7 @@ test.describe('TileFixer Package', () => {
         const mockTileUrl = window.createMockTileUrl('success');
         const z = 8, x = 182, y = 101;
         
-        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, null, { tileSize: 256 });
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, null, {});
         
         return {
           hasData: result.data instanceof ArrayBuffer,
@@ -1840,7 +1850,7 @@ test.describe('TileFixer Package', () => {
         const z = 8, x = 182, y = 101;
         
         try {
-          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
           return { error: null };
         } catch (err) {
           return { 
@@ -1867,7 +1877,7 @@ test.describe('TileFixer Package', () => {
         const z = 8, x = 182, y = 101;
         
         try {
-          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
           return { error: null, timedOut: false };
         } catch (err) {
           return { error: err.message, timedOut: true };
@@ -1890,7 +1900,7 @@ test.describe('TileFixer Package', () => {
         
         const fetchPromise = corrector.fetchAndFixTile(
           mockTileUrl, z, x, y, layerConfig, 
-          { tileSize: 256, signal: controller.signal }
+          { signal: controller.signal }
         );
         
         // Abort after a short delay
@@ -1923,7 +1933,7 @@ test.describe('TileFixer Package', () => {
         const z = 8, x = 182, y = 101;
         
         try {
-          const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+          const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
           return { success: true, hasData: result.data instanceof ArrayBuffer };
         } catch (err) {
           return { success: false, error: err.message };
@@ -1946,7 +1956,7 @@ test.describe('TileFixer Package', () => {
         const mockTileUrl = window.createMockTileUrl('success');
         const z = 1, x = 0, y = 0; // Very low zoom, likely no corrections
         
-        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, { tileSize: 256 });
+        const result = await corrector.fetchAndFixTile(mockTileUrl, z, x, y, layerConfig, {});
         
         return {
           hasData: result.data instanceof ArrayBuffer,
@@ -1969,7 +1979,7 @@ test.describe('TileFixer Package', () => {
         // This should work with cors mode
         const result = await corrector.fetchAndFixTile(
           mockTileUrl, z, x, y, layerConfig, 
-          { tileSize: 256, mode: 'cors' }
+          { mode: 'cors' }
         );
         
         return {
@@ -1993,8 +2003,7 @@ test.describe('TileFixer Package', () => {
         
         try {
           await brokenCorrector.fetchAndFixTile(
-            mockTileUrl, z, x, y, layerConfig, 
-            { tileSize: 256, fallbackOnCorrectionFailure: false }
+            mockTileUrl, z, x, y, layerConfig, {}, false
           );
           return { threw: false };
         } catch (err) {
@@ -2022,7 +2031,7 @@ test.describe('TileFixer Package', () => {
         
         const result = await brokenCorrector.fetchAndFixTile(
           mockTileUrl, z, x, y, layerConfig, 
-          { tileSize: 256 } // fallbackOnCorrectionFailure defaults to true
+          {} // fallbackOnCorrectionFailure defaults to true
         );
         
         return {

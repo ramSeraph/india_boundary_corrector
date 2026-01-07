@@ -1,6 +1,6 @@
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs } from '@india-boundary-corrector/layer-configs';
-import { TileFixer } from '@india-boundary-corrector/tilefixer';
+import { TileFixer, buildFetchOptions } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
@@ -47,6 +47,11 @@ function extendLeaflet(L) {
     createTile: function (coords, done) {
       const tile = document.createElement('img');
       
+      // Set up abort controller for cancellation
+      const controller = new AbortController();
+      const signal = controller.signal;
+      tile.cancel = () => controller.abort();
+      
       tile.alt = '';
       
       if (this.options.crossOrigin || this.options.crossOrigin === '') {
@@ -69,8 +74,10 @@ function extendLeaflet(L) {
       const x = coords.x;
       const y = coords.y;
       const fallbackOnCorrectionFailure = this.options.fallbackOnCorrectionFailure;
+      const fetchOptions = buildFetchOptions(this.options.crossOrigin, this.options.referrerPolicy);
+      fetchOptions.signal = signal;
 
-      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, { fallbackOnCorrectionFailure })
+      this._tileFixer.fetchAndFixTile(tileUrl, z, x, y, this._layerConfig, fetchOptions, fallbackOnCorrectionFailure)
         .then(({ data, correctionsFailed, correctionsError }) => {
           if (correctionsFailed) {
             console.warn('[L.TileLayer.IndiaBoundaryCorrected] Corrections fetch failed:', correctionsError);
@@ -78,6 +85,7 @@ function extendLeaflet(L) {
           }
           const blob = new Blob([data]);
           tile.src = URL.createObjectURL(blob);
+          tile.cancel = undefined;
           tile.onload = () => {
             URL.revokeObjectURL(tile.src);
             done(null, tile);
@@ -88,11 +96,24 @@ function extendLeaflet(L) {
           };
         })
         .catch((err) => {
-          console.warn('[L.TileLayer.IndiaBoundaryCorrected] Tile fetch failed:', err);
-          done(err, tile);
+          if (err.name !== 'AbortError') {
+            console.warn('[L.TileLayer.IndiaBoundaryCorrected] Tile fetch failed:', err);
+            done(err, tile);
+          }
         });
 
       return tile;
+    },
+
+    _removeTile: function (key) {
+      const tile = this._tiles[key];
+      if (!tile) return;
+      
+      // Cancel in-flight request if tile has cancel method
+      if (tile.el.cancel) tile.el.cancel();
+      
+      // Call parent implementation
+      L.TileLayer.prototype._removeTile.call(this, key);
     },
 
     getTileFixer: function () {

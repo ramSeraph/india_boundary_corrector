@@ -17,7 +17,7 @@
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
     import * as tilefixerExports from '@india-boundary-corrector/tilefixer';
     const { TileFixer, getLineWidth, TileFetchError } = tilefixerExports;
-    import { layerConfigs } from '@india-boundary-corrector/layer-configs';
+    import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 
     // Create corrector instance
     const pmtilesUrl = getPmtilesUrl();
@@ -31,6 +31,9 @@
     
     // Expose all tilefixer exports for testing
     window.tilefixerExports = tilefixerExports;
+    
+    // Expose LayerConfig for tests
+    window.LayerConfig = LayerConfig;
 
     // Helper functions for tests
     const testHelpers = {

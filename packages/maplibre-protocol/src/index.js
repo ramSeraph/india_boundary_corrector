@@ -224,11 +224,19 @@ export class CorrectionProtocol {
         layerConfig = self._registry.detectFromTileUrls([tileUrl]);
       }
       
+      // Build fetch options from request parameters
+      // MapLibre's default is same-origin for credentials
+      const fetchOptions = {
+        signal: abortController?.signal,
+        credentials: params.credentials ?? 'same-origin',
+      };
+      // Set mode to cors if credentials are explicitly set to include
+      if (params.credentials === 'include') {
+        fetchOptions.mode = 'cors';
+      }
+      
       const { data, correctionsFailed, correctionsError } = await self._tileFixer.fetchAndFixTile(
-        tileUrl, z, x, y, layerConfig, { 
-          signal: abortController?.signal,
-          fallbackOnCorrectionFailure: self._fallbackOnCorrectionFailure
-        }
+        tileUrl, z, x, y, layerConfig, fetchOptions, self._fallbackOnCorrectionFailure
       );
       
       if (correctionsFailed && correctionsError?.name !== 'AbortError') {

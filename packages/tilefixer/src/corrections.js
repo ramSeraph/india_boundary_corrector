@@ -232,10 +232,11 @@ export class CorrectionsSource {
    * @param {number} z
    * @param {number} x
    * @param {number} y
+   * @param {AbortSignal} [signal] - Optional abort signal
    * @returns {Promise<Object<string, Array>>}
    * @private
    */
-  async _fetchTile(z, x, y) {
+  async _fetchTile(z, x, y, signal) {
     const idx = toIndex(z, x, y);
     
     return new Promise((resolve, reject) => {
@@ -259,7 +260,7 @@ export class CorrectionsSource {
       // Start new fetch
       this.inflight.set(idx, []);
       
-      this.pmtiles.getZxy(z, x, y)
+      this.pmtiles.getZxy(z, x, y, signal)
         .then((result) => {
           let data;
           if (result) {
@@ -311,9 +312,10 @@ export class CorrectionsSource {
    * @param {number} z - Zoom level
    * @param {number} x - Tile X coordinate
    * @param {number} y - Tile Y coordinate
+   * @param {AbortSignal} [signal] - Optional abort signal
    * @returns {Promise<Object<string, Array>>} Map of layer name to array of features
    */
-  async get(z, x, y) {
+  async get(z, x, y, signal) {
     const maxDataZoom = await this._getMaxDataZoom();
     
     // Handle overzoom: fetch parent tile and transform
@@ -329,13 +331,13 @@ export class CorrectionsSource {
       const offsetX = x % scale;
       const offsetY = y % scale;
       
-      const corrections = await this._fetchTile(maxDataZoom, parentX, parentY);
+      const corrections = await this._fetchTile(maxDataZoom, parentX, parentY, signal);
       if (Object.keys(corrections).length > 0) {
         return transformForOverzoom(corrections, scale, offsetX, offsetY);
       }
       return {};
     }
     
-    return await this._fetchTile(z, x, y);
+    return await this._fetchTile(z, x, y, signal);
   }
 }

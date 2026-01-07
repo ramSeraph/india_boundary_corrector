@@ -76,12 +76,176 @@ function templateToTemplateRegex(template) {
 }
 
 /**
+ * Check if a string is a valid CSS color using the browser's CSS parser.
+ * Falls back to a basic regex check in non-browser environments.
+ * @param {string} color
+ * @returns {boolean}
+ */
+function isValidColor(color) {
+  if (typeof color !== 'string' || !color.trim()) return false;
+  
+  // Use CSS.supports if available (modern browsers)
+  if (typeof CSS !== 'undefined' && CSS.supports) {
+    return CSS.supports('color', color);
+  }
+  
+  // Fallback: basic validation for common formats
+  const trimmed = color.trim().toLowerCase();
+  // Hex colors
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.test(trimmed)) return true;
+  // rgb/rgba/hsl/hsla functions
+  if (/^(rgb|hsl)a?\(/.test(trimmed)) return true;
+  // Named colors (just check it's alphabetic)
+  if (/^[a-z]+$/.test(trimmed)) return true;
+  return false;
+}
+
+/**
+ * Represents a line style for drawing boundaries.
+ */
+export class LineStyle {
+  /**
+   * Validate the color parameter
+   * @param {string} color
+   * @private
+   */
+  static _validateColor(color) {
+    if (!color || typeof color !== 'string') {
+      throw new Error('LineStyle: color must be a non-empty string');
+    }
+    if (!isValidColor(color)) {
+      throw new Error(`LineStyle: color "${color}" is not a valid CSS color`);
+    }
+  }
+
+  /**
+   * @param {Object} options
+   * @param {string} options.color - CSS color string
+   * @param {number} [options.widthFraction=1.0] - Multiplier for base line width
+   * @param {number[]} [options.dashArray] - Dash pattern for dashed lines
+   * @param {number} [options.alpha=1.0] - Opacity (0-1)
+   * @param {number} [options.startZoom] - Minimum zoom level for this style
+   * @param {number} [options.endZoom=Infinity] - Maximum zoom level for this style
+   */
+  constructor({ color, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom, endZoom = Infinity }) {
+    LineStyle._validateColor(color);
+    
+    this.color = color;
+    this.widthFraction = widthFraction;
+    this.dashArray = dashArray;
+    this.alpha = alpha;
+    this.startZoom = startZoom;
+    this.endZoom = endZoom;
+  }
+
+  /**
+   * Check if this style is active at the given zoom level.
+   * @param {number} z - Zoom level
+   * @returns {boolean}
+   */
+  isActiveAtZoom(z) {
+    return z >= this.startZoom && z <= this.endZoom;
+  }
+
+  /**
+   * Serialize to plain object.
+   * @returns {Object}
+   */
+  toJSON() {
+    const obj = { color: this.color };
+    if (this.widthFraction !== 1.0) obj.widthFraction = this.widthFraction;
+    if (this.dashArray) obj.dashArray = this.dashArray;
+    if (this.alpha !== 1.0) obj.alpha = this.alpha;
+    if (this.startZoom !== undefined) obj.startZoom = this.startZoom;
+    if (this.endZoom !== Infinity) obj.endZoom = this.endZoom;
+    return obj;
+  }
+
+  /**
+   * Create from plain object.
+   * @param {Object} obj
+   * @param {number} [defaultStartZoom=0] - Default startZoom if not specified
+   * @returns {LineStyle}
+   */
+  static fromJSON(obj, defaultStartZoom = 0) {
+    return new LineStyle({
+      ...obj,
+      startZoom: obj.startZoom ?? defaultStartZoom,
+    });
+  }
+}
+
+/**
  * Base class for layer configurations
  * 
  * Supports separate styling for NE (Natural Earth) data at low zoom levels
  * and OSM data at higher zoom levels, split by zoomThreshold.
  */
 export class LayerConfig {
+  /**
+   * Validate the id parameter
+   * @param {string} id
+   * @private
+   */
+  static _validateId(id) {
+    if (!id || typeof id !== 'string') {
+      throw new Error('LayerConfig requires a non-empty string id');
+    }
+    if (id.includes('/')) {
+      throw new Error(`LayerConfig id cannot contain slashes: "${id}"`);
+    }
+  }
+
+  /**
+   * Validate zoom parameters
+   * @param {string} id
+   * @param {number} startZoom
+   * @param {number} zoomThreshold
+   * @private
+   */
+  static _validateZoomParams(id, startZoom, zoomThreshold) {
+    if (startZoom > zoomThreshold) {
+      throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
+    }
+  }
+
+  /**
+   * Validate lineWidthStops parameter
+   * @param {string} id
+   * @param {Object} lineWidthStops
+   * @private
+   */
+  static _validateLineWidthStops(id, lineWidthStops) {
+    if (!lineWidthStops || typeof lineWidthStops !== 'object' || Array.isArray(lineWidthStops)) {
+      throw new Error(`LayerConfig "${id}": lineWidthStops must be an object`);
+    }
+    const stopKeys = Object.keys(lineWidthStops);
+    if (stopKeys.length < 2) {
+      throw new Error(`LayerConfig "${id}": lineWidthStops must have at least 2 entries`);
+    }
+    for (const key of stopKeys) {
+      const zoom = Number(key);
+      if (!Number.isInteger(zoom) || zoom < 0) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops keys must be non-negative integers, got "${key}"`);
+      }
+      if (typeof lineWidthStops[key] !== 'number' || lineWidthStops[key] <= 0) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops values must be positive numbers`);
+      }
+    }
+  }
+
+  /**
+   * Validate lineStyles parameter
+   * @param {string} id
+   * @param {Array} lineStyles
+   * @private
+   */
+  static _validateLineStyles(id, lineStyles) {
+    if (!Array.isArray(lineStyles) || lineStyles.length === 0) {
+      throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
+    }
+  }
+
   constructor({
     id,
     startZoom = 0,
@@ -104,20 +268,12 @@ export class LayerConfig {
     // Set to 0 to disable extension
     lineExtensionFactor = 0.5,
   }) {
-    if (!id || typeof id !== 'string') {
-      throw new Error('LayerConfig requires a non-empty string id');
-    }
-    if (id.includes('/')) {
-      throw new Error(`LayerConfig id cannot contain slashes: "${id}"`);
-    }
-
+    LayerConfig._validateId(id);
     this.id = id;
     this.startZoom = startZoom;
     this.zoomThreshold = zoomThreshold;
 
-    if (startZoom > zoomThreshold) {
-      throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
-    }
+    LayerConfig._validateZoomParams(id, startZoom, zoomThreshold);
 
     // Normalize to array
     const templates = Array.isArray(tileUrlTemplates) ? tileUrlTemplates : 
@@ -130,45 +286,15 @@ export class LayerConfig {
     // Pre-compile regex patterns for matching template URLs (with {z}/{x}/{y} placeholders)
     this._templatePatterns = templates.map(t => templateToTemplateRegex(t));
 
-    // Validate lineWidthStops
-    if (!lineWidthStops || typeof lineWidthStops !== 'object' || Array.isArray(lineWidthStops)) {
-      throw new Error(`LayerConfig "${id}": lineWidthStops must be an object`);
-    }
-    const stopKeys = Object.keys(lineWidthStops);
-    if (stopKeys.length < 2) {
-      throw new Error(`LayerConfig "${id}": lineWidthStops must have at least 2 entries`);
-    }
-    for (const key of stopKeys) {
-      const zoom = Number(key);
-      if (!Number.isInteger(zoom) || zoom < 0) {
-        throw new Error(`LayerConfig "${id}": lineWidthStops keys must be non-negative integers, got "${key}"`);
-      }
-      if (typeof lineWidthStops[key] !== 'number' || lineWidthStops[key] <= 0) {
-        throw new Error(`LayerConfig "${id}": lineWidthStops values must be positive numbers`);
-      }
-    }
+    LayerConfig._validateLineWidthStops(id, lineWidthStops);
     this.lineWidthStops = lineWidthStops;
 
-    // Validate lineStyles
-    if (!Array.isArray(lineStyles) || lineStyles.length === 0) {
-      throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
-    }
-    for (let i = 0; i < lineStyles.length; i++) {
-      const style = lineStyles[i];
-      if (!style || typeof style !== 'object') {
-        throw new Error(`LayerConfig "${id}": lineStyles[${i}] must be an object`);
-      }
-      if (!style.color || typeof style.color !== 'string') {
-        throw new Error(`LayerConfig "${id}": lineStyles[${i}].color must be a non-empty string`);
-      }
-    }
+    LayerConfig._validateLineStyles(id, lineStyles);
     
-    // Line styles - normalize startZoom/endZoom defaults
-    this.lineStyles = lineStyles.map(style => ({
-      ...style,
-      startZoom: style.startZoom ?? startZoom,
-      endZoom: style.endZoom ?? Infinity,
-    }));
+    // Convert to LineStyle instances with defaults
+    this.lineStyles = lineStyles.map(style => 
+      style instanceof LineStyle ? style : LineStyle.fromJSON(style, startZoom)
+    );
     
     // Deletion width factor
     this.delWidthFactor = delWidthFactor;
@@ -180,10 +306,10 @@ export class LayerConfig {
   /**
    * Get line styles active at a given zoom level
    * @param {number} z - Zoom level
-   * @returns {Array<{color: string, widthFraction?: number, dashArray?: number[]}>}
+   * @returns {LineStyle[]}
    */
   getLineStylesForZoom(z) {
-    return this.lineStyles.filter(style => z >= style.startZoom && z <= style.endZoom);
+    return this.lineStyles.filter(style => style.isActiveAtZoom(z));
   }
 
   /**
@@ -254,7 +380,7 @@ export class LayerConfig {
       zoomThreshold: this.zoomThreshold,
       tileUrlTemplates: this.tileUrlTemplates,
       lineWidthStops: this.lineWidthStops,
-      lineStyles: this.lineStyles,
+      lineStyles: this.lineStyles.map(s => s.toJSON()),
       delWidthFactor: this.delWidthFactor,
       lineExtensionFactor: this.lineExtensionFactor,
     };

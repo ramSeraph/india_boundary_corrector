@@ -1,95 +1,55 @@
 import TileLayer from 'ol/layer/Tile.js';
-import XYZ from 'ol/source/XYZ.js';
+import ImageTile from 'ol/source/ImageTile.js';
 import { getPmtilesUrl } from '@india-boundary-corrector/data';
 import { layerConfigs } from '@india-boundary-corrector/layer-configs';
-import { TileFixer } from '@india-boundary-corrector/tilefixer';
+import { TileFixer, buildFetchOptions } from '@india-boundary-corrector/tilefixer';
 
 // Re-export for convenience
 export { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 export { getPmtilesUrl } from '@india-boundary-corrector/data';
 
 /**
- * Derive fetch options from crossOrigin attribute (matches OpenLayers behavior).
- * @param {string|null} crossOrigin - The crossOrigin attribute value
- * @returns {{mode: RequestMode, credentials: RequestCredentials}}
- */
-function getFetchOptionsFromCrossOrigin(crossOrigin) {
-  if (crossOrigin === 'anonymous' || crossOrigin === '') {
-    return { mode: 'cors', credentials: 'omit' };
-  } else if (crossOrigin === 'use-credentials') {
-    return { mode: 'cors', credentials: 'include' };
-  }
-  return { mode: 'same-origin', credentials: 'same-origin' };
-}
-
-/**
- * Create a custom tileLoadFunction that applies boundary corrections.
+ * Create a tile loader function that applies boundary corrections.
+ * Uses the modern OpenLayers loader API with abort signal support.
+ * @param {string} urlTemplate - URL template with {x}, {y}, {z} placeholders
  * @param {TileFixer} tileFixer - The TileFixer instance
  * @param {Object} layerConfig - The layer configuration
- * @param {IndiaBoundaryCorrectedTileLayer} layer - The layer instance for event dispatching
+ * @param {{current: IndiaBoundaryCorrectedTileLayer}} layerRef - Reference to layer instance for event dispatching
  * @param {Object} fetchOptions - Fetch options (mode, credentials)
  * @param {boolean} fallbackOnCorrectionFailure - Whether to return original tile if corrections fail
- * @returns {Function} Custom tile load function
+ * @returns {Function} Tile loader function
  */
-function createCorrectedTileLoadFunction(tileFixer, layerConfig, layer, fetchOptions, fallbackOnCorrectionFailure) {
-  return async function(imageTile, src) {
-    const tileCoord = imageTile.getTileCoord();
-    const z = tileCoord[0];
-    const x = tileCoord[1];
-    const y = tileCoord[2];
+function createCorrectedTileLoader(urlTemplate, tileFixer, layerConfig, layerRef, fetchOptions, fallbackOnCorrectionFailure) {
+  return async function(z, x, y, { signal }) {
+    const src = urlTemplate
+      .replace('{z}', z)
+      .replace('{x}', x)
+      .replace('{y}', y);
 
     try {
       const { data, correctionsFailed, correctionsError } = await tileFixer.fetchAndFixTile(
-        src, z, x, y, layerConfig, { fallbackOnCorrectionFailure, ...fetchOptions }
+        src, z, x, y, layerConfig, { signal, ...fetchOptions }, fallbackOnCorrectionFailure
       );
 
-      if (correctionsFailed) {
+      if (correctionsFailed && layerRef.current) {
         console.warn('[IndiaBoundaryCorrectedTileLayer] Corrections fetch failed:', correctionsError);
-        layer.dispatchEvent({ type: 'correctionerror', error: correctionsError, coords: { z, x, y }, tileUrl: src });
+        layerRef.current.dispatchEvent({ type: 'correctionerror', error: correctionsError, coords: { z, x, y }, tileUrl: src });
       }
 
       const blob = new Blob([data]);
-      const image = imageTile.getImage();
-      
-      // Check if image is a canvas (OffscreenCanvas) or HTMLImageElement
-      if (typeof image.getContext === 'function') {
-        // OffscreenCanvas path
-        const imageBitmap = await createImageBitmap(blob);
-        image.width = imageBitmap.width;
-        image.height = imageBitmap.height;
-        const ctx = image.getContext('2d');
-        ctx.drawImage(imageBitmap, 0, 0);
-        imageBitmap.close?.();
-        image.dispatchEvent(new Event('load'));
-      } else {
-        // HTMLImageElement path - use blob URL
-        const blobUrl = URL.createObjectURL(blob);
-        image.onload = () => {
-          URL.revokeObjectURL(blobUrl);
-        };
-        image.onerror = () => {
-          URL.revokeObjectURL(blobUrl);
-        };
-        image.src = blobUrl;
-      }
+      return createImageBitmap(blob);
     } catch (err) {
-      console.warn('[IndiaBoundaryCorrectedTileLayer] Tile fetch failed:', err);
-      // Fall back to original tile
-      const image = imageTile.getImage();
-      if (typeof image.src !== 'undefined') {
-        // HTMLImageElement - load original tile
-        image.src = src;
-      } else if (typeof image.dispatchEvent === 'function') {
-        // OffscreenCanvas - can't fall back, signal error
-        image.dispatchEvent(new Event('error'));
+      if (err.name !== 'AbortError') {
+        console.warn('[IndiaBoundaryCorrectedTileLayer] Tile fetch failed:', err);
       }
+      throw err;
     }
   };
 }
 
 /**
  * Extended OpenLayers TileLayer with India boundary corrections.
- * Extends ol/layer/Tile with a custom XYZ source that applies corrections.
+ * Uses ol/source/ImageTile with a custom loader that applies corrections.
  */
 export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
   /**
@@ -100,7 +60,9 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
    * @param {Object[]} [options.extraLayerConfigs] - Additional LayerConfigs for matching
    * @param {number} [options.tileSize=256] - Tile size in pixels (for OpenLayers source)
    * @param {boolean} [options.fallbackOnCorrectionFailure=true] - Return original tile if corrections fail
-   * @param {Object} [options.sourceOptions] - Additional options for XYZ source
+   * @param {Object} [options.sourceOptions] - Additional options for ImageTile source
+   * @param {string} [options.sourceOptions.crossOrigin] - Cross-origin attribute ('anonymous' or 'use-credentials')
+   * @param {string} [options.sourceOptions.referrerPolicy] - Referrer policy for fetch requests
    * @param {Object} [options.layerOptions] - Additional options for TileLayer
    */
   constructor(options) {
@@ -131,31 +93,36 @@ export class IndiaBoundaryCorrectedTileLayer extends TileLayer {
     // Create TileFixer
     const tileFixer = TileFixer.getOrCreate(pmtilesUrl ?? getPmtilesUrl());
 
-    // Create XYZ source
-    const source = new XYZ({
-      url,
-      tileSize,
-      crossOrigin: 'anonymous',
-      ...sourceOptions,
-    });
-
     // Derive fetch options from crossOrigin (matches OpenLayers behavior)
     // Default to 'anonymous' if not specified in sourceOptions
-    const fetchOptions = getFetchOptionsFromCrossOrigin(sourceOptions.crossOrigin ?? 'anonymous');
+    const crossOrigin = sourceOptions.crossOrigin ?? 'anonymous';
+    const fetchOptions = buildFetchOptions(crossOrigin, sourceOptions.referrerPolicy);
+
+    // Create a placeholder for the layer instance (needed for event dispatching in loader)
+    const layerRef = { current: null };
+
+    // Create ImageTile source with loader (supports abort signals)
+    const source = new ImageTile({
+      tileSize,
+      crossOrigin,
+      ...sourceOptions,
+      loader: resolvedConfig
+        ? createCorrectedTileLoader(url, tileFixer, resolvedConfig, layerRef, fetchOptions, fallbackOnCorrectionFailure)
+        : undefined,
+      url: resolvedConfig ? undefined : url,
+    });
 
     super({
       source,
       ...layerOptions
     });
 
+    // Set the layer reference for event dispatching
+    layerRef.current = this;
+
     this._tileFixer = tileFixer;
     this._layerConfig = resolvedConfig;
     this._registry = registry;
-
-    // Set tileLoadFunction after super() so we can pass 'this' for event dispatching
-    if (resolvedConfig) {
-      source.setTileLoadFunction(createCorrectedTileLoadFunction(tileFixer, resolvedConfig, this, fetchOptions, fallbackOnCorrectionFailure));
-    }
 
     if (!resolvedConfig) {
       console.warn('[IndiaBoundaryCorrectedTileLayer] Could not detect layer config from URL. Corrections will not be applied.');

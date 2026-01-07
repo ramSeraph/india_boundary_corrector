@@ -100,11 +100,21 @@ async function applyCorrectedTile(request, layerConfig, coords, settings) {
   const { z, x, y } = coords;
   const fixer = getTileFixer(settings.pmtilesUrl);
   
+  // Create a new AbortController and forward abort from request.signal
+  // (request.signal doesn't propagate automatically in service workers)
+  const controller = new AbortController();
+  if (request.signal) {
+    request.signal.addEventListener('abort', () => controller.abort());
+  }
+  
+  // Use cors mode since we need to read the tile response.
+  const fetchOptions = {
+    signal: controller.signal,
+    mode: 'cors',
+  };
+  
   const { data, wasFixed, correctionsFailed, correctionsError } = await fixer.fetchAndFixTile(
-    request.url, z, x, y, layerConfig, { 
-      mode: 'cors', 
-      fallbackOnCorrectionFailure: settings.fallbackOnCorrectionFailure 
-    }
+    request.url, z, x, y, layerConfig, fetchOptions, settings.fallbackOnCorrectionFailure
   );
   
   if (correctionsFailed) {
@@ -145,6 +155,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       applyCorrectedTile(event.request, intercept.layerConfig, intercept.coords, settings)
         .catch((error) => {
+          // Don't log abort errors - they're intentional cancellations
+          if (error.name === 'AbortError') {
+            throw error;
+          }
           const status = error instanceof TileFetchError ? error.status : 502;
           const body = error instanceof TileFetchError ? error.body : null;
           return new Response(body, { status, statusText: error.message });

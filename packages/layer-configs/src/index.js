@@ -1,7 +1,7 @@
 import configsJson from './configs.json' with { type: 'json' };
-import { LayerConfig } from './layerconfig.js';
+import { LayerConfig, LineStyle } from './layerconfig.js';
 
-export { LayerConfig } from './layerconfig.js';
+export { LayerConfig, LineStyle } from './layerconfig.js';
 
 /**
  * Layer configuration registry

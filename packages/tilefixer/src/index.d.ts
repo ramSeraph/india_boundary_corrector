@@ -26,6 +26,22 @@ export declare class TileFetchError extends Error {
 export const MIN_LINE_WIDTH: number;
 
 /**
+ * Build fetch options from HTML image element attributes.
+ * Maps crossorigin and referrerpolicy attribute values to fetch() options.
+ * @param crossOrigin - The crossOrigin attribute value
+ * @param referrerPolicy - The referrerPolicy attribute value
+ * @returns Object with mode, credentials, and optionally referrerPolicy for fetch()
+ */
+export function buildFetchOptions(
+  crossOrigin: string | boolean | null | undefined,
+  referrerPolicy?: string
+): {
+  mode: RequestMode;
+  credentials: RequestCredentials;
+  referrerPolicy?: ReferrerPolicy;
+};
+
+/**
  * Interpolate or extrapolate line width from a zoom-to-width map.
  * @param zoom - Zoom level
  * @param lineWidthStops - Map of zoom level to line width (at least 2 entries)
@@ -150,7 +166,8 @@ export declare class TileFixer {
    * @param x - Tile X coordinate
    * @param y - Tile Y coordinate
    * @param layerConfig - Layer configuration with colors and styles
-   * @param options - Fetch options
+   * @param fetchOptions - Fetch options passed to fetch()
+   * @param fallbackOnCorrectionFailure - Return original tile if corrections fail (default: true)
    * @returns The tile data and whether corrections were applied
    */
   fetchAndFixTile(
@@ -159,20 +176,25 @@ export declare class TileFixer {
     x: number,
     y: number,
     layerConfig: LayerConfig,
-    options?: FetchAndFixTileOptions
+    fetchOptions?: FetchAndFixTileFetchOptions,
+    fallbackOnCorrectionFailure?: boolean
   ): Promise<FetchAndFixTileResult>;
 }
 
 /**
- * Options for fetchAndFixTile method.
+ * Fetch options for fetchAndFixTile method (passed directly to fetch()).
  */
-export interface FetchAndFixTileOptions {
+export interface FetchAndFixTileFetchOptions {
   /** Abort signal for fetch */
   signal?: AbortSignal;
   /** Fetch mode (e.g., 'cors') */
   mode?: RequestMode;
-  /** Return original tile if corrections fail (default: true) */
-  fallbackOnCorrectionFailure?: boolean;
+  /** Fetch credentials (e.g., 'omit', 'include') */
+  credentials?: RequestCredentials;
+  /** Referrer URL or empty string for none */
+  referrer?: string;
+  /** Referrer policy (e.g., 'no-referrer', 'origin') */
+  referrerPolicy?: ReferrerPolicy;
 }
 
 /**

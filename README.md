@@ -189,6 +189,8 @@ Custom configurations can be created for other tile providers using `LayerConfig
 
 This solution was originally conceived by [@planemad](https://github.com/planemad) in [osm-in/osm-in.github.io#38](https://github.com/osm-in/osm-in.github.io/issues/38#issuecomment-706880270).
 
+[@bdon](https://github.com/bdon)'s [PMTiles](https://github.com/protomaps/PMTiles) and [protomaps-leaflet](https://github.com/protomaps/protomaps-leaflet) repositories were used as reference for the map library integrations.
+
 ## License
 
 Code: [Unlicense](https://unlicense.org/)
