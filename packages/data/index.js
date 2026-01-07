@@ -60,12 +60,7 @@ function detectPmtilesUrl() {
   }
 
   if (scriptUrl) {
-    const moduleUrl = new URL('.', scriptUrl);
-    // JS-only CDNs don't serve static files, fall back to default
-    if (FALLBACK_CDNS.has(moduleUrl.hostname)) {
-      return DEFAULT_CDN_URL;
-    }
-    return new URL(PMTILES_FILENAME, moduleUrl).href;
+    return resolvePmtilesUrl(scriptUrl);
   }
 
   // Fallback to CDN with pinned version
