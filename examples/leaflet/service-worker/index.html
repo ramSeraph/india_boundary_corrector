@@ -133,7 +133,7 @@
         const swPath = isProd ? './sw-prod.js' : './sw.js';
         const options = { forceReregister: true };
         if (!isProd) {
-          options.pmtilesUrl = '../../../packages/service-worker/dist/india_boundary_corrections.pmtiles';
+          options.pmtilesUrl = '../../../packages/service-worker/dist/india_boundary_corrections.pmtiles.gz';
         }
         const sw = await registerCorrectionServiceWorker(swPath, options);
 

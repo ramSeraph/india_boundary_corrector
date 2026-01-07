@@ -26,5 +26,9 @@ tippecanoe -A '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStre
 cp data/${fname} ../${fname}
 cp data/version.js ../version.js
 
+# Create .gz copy for CDN workaround (see pmtiles-filename-note.md)
+cp ../${fname} ../${fname}.gz
+
 echo "Generated ${fname} and version.js, copied to package root"
+echo "Created ${fname}.gz for CDN workaround (see pmtiles-filename-note.md)"
 

@@ -30,6 +30,7 @@ export default defineConfig([
     globalName: 'IndiaBoundaryCorrector',
     platform: 'browser',
     target: 'es2020',
-    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles dist/',
+    // Copy both pmtiles files - .gz is for CDN workaround (see packages/data/pmtiles-filename-note.md)
+    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles ../data/india_boundary_corrections.pmtiles.gz dist/',
   }
 ]);

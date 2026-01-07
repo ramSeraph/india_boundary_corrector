@@ -23,6 +23,7 @@ export default defineConfig([
     globalName: 'IndiaBoundaryCorrector',
     external: ['leaflet'],
     noExternal: ['@india-boundary-corrector/tilefixer', '@india-boundary-corrector/layer-configs'],
-    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles dist/',
+    // Copy both pmtiles files - .gz is for CDN workaround (see packages/data/pmtiles-filename-note.md)
+    onSuccess: 'cp ../data/india_boundary_corrections.pmtiles ../data/india_boundary_corrections.pmtiles.gz dist/',
   },
 ]);

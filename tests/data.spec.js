@@ -98,7 +98,7 @@ test.describe('Data Package', () => {
       const result = await page.evaluate(() => 
         window.dataPackage.resolvePmtilesUrl('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/data@0.0.3/index.js')
       );
-      expect(result).toBe('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/data@0.0.3/india_boundary_corrections.pmtiles');
+      expect(result).toBe('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/data@0.0.3/india_boundary_corrections.pmtiles.gz');
     });
 
     test('falls back to default CDN for unpkg URL', async ({ page }) => {
@@ -139,7 +139,7 @@ test.describe('Data Package', () => {
       const result = await page.evaluate(() => 
         window.dataPackage.resolvePmtilesUrl('http://localhost:8080/packages/data/index.js')
       );
-      expect(result).toBe('http://localhost:8080/packages/data/india_boundary_corrections.pmtiles');
+      expect(result).toBe('http://localhost:8080/packages/data/india_boundary_corrections.pmtiles.gz');
     });
   });
 

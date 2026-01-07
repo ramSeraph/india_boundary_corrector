@@ -10,14 +10,16 @@
       "import": "./index.js",
       "types": "./index.d.ts"
     },
-    "./pmtiles": "./india_boundary_corrections.pmtiles"
+    "./pmtiles": "./india_boundary_corrections.pmtiles",
+    "./pmtiles-gz": "./india_boundary_corrections.pmtiles.gz"
   },
   "files": [
     "index.js",
     "index.d.ts",
     "version.js",
     "data_version.js",
-    "india_boundary_corrections.pmtiles"
+    "india_boundary_corrections.pmtiles",
+    "india_boundary_corrections.pmtiles.gz"
   ],
   "scripts": {
     "build": "node scripts/generate-version.js",

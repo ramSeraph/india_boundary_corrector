@@ -3,7 +3,12 @@ import { packageVersion } from './version.js';
 
 // Package info for CDN URL construction
 const PACKAGE_NAME = '@india-boundary-corrector/data';
-const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles';
+
+// Use .gz suffix for CDN to work around transparent compression issues
+// See pmtiles-filename-note.md for details
+const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles.gz';
+// Original filename (for local use where CDN issues don't apply):
+// const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles';
 
 /**
  * CDNs that need fallback to jsDelivr:

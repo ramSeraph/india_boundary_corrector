@@ -133,6 +133,10 @@ const sw = await registerCorrectionServiceWorker('./sw.js', {
 });
 ```
 
+## CDN Filename Note
+
+The PMTiles file is published with a `.pmtiles.gz` suffix. This is a workaround for CDN transparent compression issues—see [`pmtiles-filename-note.md`](./pmtiles-filename-note.md) for details.
+
 ## Server Requirements
 
 The PMTiles file is approximately 2MB, but the entire file is **never downloaded at once**. PMTiles uses HTTP Range Requests to fetch only the specific tile data needed for the current map view—typically just a few KB per tile request.
