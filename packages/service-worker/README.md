@@ -148,6 +148,18 @@ Register the service worker and wait for it to take control.
 
 Returns: `Promise<CorrectionServiceWorker>`
 
+#### PMTiles URL
+
+**Important:** The service worker cannot auto-detect the PMTiles URL from `import.meta.url` or `document.currentScript` since it runs in a worker context. If you don't specify `pmtilesUrl`, it will default to fetching from the jsDelivr CDN.
+
+For local development or self-hosted deployments, always specify the PMTiles URL:
+
+```javascript
+const sw = await registerCorrectionServiceWorker('./sw.js', {
+  pmtilesUrl: '/path/to/india_boundary_corrections.pmtiles'
+});
+```
+
 #### Development Mode
 
 Use `forceReinstall: true` during development to ensure you always get a fresh service worker:

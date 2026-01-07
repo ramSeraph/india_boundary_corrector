@@ -136,7 +136,13 @@
         updateStatus('Registering service worker...');
 
         // forceReregister: true is only for ease of testing - not needed in production
-        const sw = await registerCorrectionServiceWorker(isProd ? './sw-prod.js' : './sw.js', { forceReregister: true });
+        // In dev mode, use local PMTiles file (bundled next to worker script)
+        const swPath = isProd ? './sw-prod.js' : './sw.js';
+        const options = { forceReregister: true };
+        if (!isProd) {
+          options.pmtilesUrl = '../../../packages/service-worker/dist/india_boundary_corrections.pmtiles';
+        }
+        const sw = await registerCorrectionServiceWorker(swPath, options);
 
         if (!sw.isControlling()) {
           updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
