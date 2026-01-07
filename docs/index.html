@@ -345,10 +345,12 @@
     function parseConfig() {
       try {
         const config = JSON.parse(configEditor.value);
-        configStatus.innerHTML = '<span class="success">✓ Valid JSON</span>';
+        // Validate the config using LayerConfig.validateJSON
+        LayerConfig.validateJSON(config);
+        configStatus.innerHTML = '<span class="success">✓ Valid configuration</span>';
         return config;
       } catch (e) {
-        configStatus.innerHTML = `<span class="error">✗ Invalid JSON: ${e.message}</span>`;
+        configStatus.innerHTML = `<span class="error">✗ ${e.message}</span>`;
         return null;
       }
     }
@@ -380,7 +382,7 @@
         }
 
         try {
-          const layerConfig = new LayerConfig(configObj);
+          const layerConfig = LayerConfig.fromJSON(configObj);
 
           // Create corrected tile layer
           currentLayer = L.tileLayer.indiaBoundaryCorrected(tileUrl, {

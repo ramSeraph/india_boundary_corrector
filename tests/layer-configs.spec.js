@@ -6,6 +6,29 @@ test.describe('Layer Configs Package', () => {
     await page.waitForFunction(() => window.layerConfigsLoaded === true, { timeout: 10000 });
   });
 
+  test.describe('configs.json validation', () => {
+    test('all configs in configs.json are valid', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const errors = [];
+        const configsJson = window.layerConfigsPackage.configsJson;
+        
+        for (let i = 0; i < configsJson.length; i++) {
+          const config = configsJson[i];
+          try {
+            window.layerConfigsPackage.LayerConfig.validateJSON(config);
+          } catch (e) {
+            errors.push({ index: i, id: config.id, error: e.message });
+          }
+        }
+        
+        return { count: configsJson.length, errors };
+      });
+      
+      expect(result.errors).toEqual([]);
+      expect(result.count).toBeGreaterThan(0);
+    });
+  });
+
   test.describe('cartoDbDark config', () => {
     // Various URL formats used for CartoDB dark tiles
     const validDarkUrls = [
@@ -367,10 +390,10 @@ test.describe('Layer Configs Package', () => {
       expect(config.lineStyles[0].color).toBe('#ff0000');
     });
 
-    test('throws error when startZoom > zoomThreshold', async ({ page }) => {
+    test('fromJSON throws error when startZoom > zoomThreshold', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'invalid-config',
             startZoom: 10,
             zoomThreshold: 5,
@@ -385,46 +408,46 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('zoomThreshold');
     });
 
-    test('throws error when id is missing', async ({ page }) => {
+    test('fromJSON throws error when id is missing', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({});
+          window.layerConfigsPackage.LayerConfig.fromJSON({});
           return null;
         } catch (e) {
           return e.message;
         }
       });
-      expect(error).toContain('non-empty string id');
+      expect(error).toContain('non-empty string');
     });
 
-    test('throws error when id is empty string', async ({ page }) => {
+    test('fromJSON throws error when id is empty string', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({ id: '' });
+          window.layerConfigsPackage.LayerConfig.fromJSON({ id: '' });
           return null;
         } catch (e) {
           return e.message;
         }
       });
-      expect(error).toContain('non-empty string id');
+      expect(error).toContain('non-empty string');
     });
 
-    test('throws error when id is not a string', async ({ page }) => {
+    test('fromJSON throws error when id is not a string', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({ id: 123 });
+          window.layerConfigsPackage.LayerConfig.fromJSON({ id: 123 });
           return null;
         } catch (e) {
           return e.message;
         }
       });
-      expect(error).toContain('non-empty string id');
+      expect(error).toContain('non-empty string');
     });
 
-    test('throws error when id contains slashes', async ({ page }) => {
+    test('fromJSON throws error when id contains slashes', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({ id: 'my/custom/config' });
+          window.layerConfigsPackage.LayerConfig.fromJSON({ id: 'my/custom/config' });
           return null;
         } catch (e) {
           return e.message;
@@ -433,10 +456,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('cannot contain slashes');
     });
 
-    test('throws error when lineWidthStops is not an object', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops is not an object', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: 'invalid',
           });
@@ -448,10 +471,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('lineWidthStops must be an object');
     });
 
-    test('throws error when lineWidthStops is an array', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops is an array', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: [1, 2],
           });
@@ -463,10 +486,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('lineWidthStops must be an object');
     });
 
-    test('throws error when lineWidthStops has fewer than 2 entries', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops has fewer than 2 entries', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: { 1: 0.5 },
           });
@@ -478,10 +501,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('at least 2 entries');
     });
 
-    test('throws error when lineWidthStops has non-integer key', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops has non-integer key', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: { 'abc': 0.5, 10: 2.5 },
           });
@@ -493,10 +516,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('non-negative integers');
     });
 
-    test('throws error when lineWidthStops has negative key', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops has negative key', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: { '-1': 0.5, 10: 2.5 },
           });
@@ -508,10 +531,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('non-negative integers');
     });
 
-    test('throws error when lineWidthStops has non-positive value', async ({ page }) => {
+    test('fromJSON throws error when lineWidthStops has non-positive value', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineWidthStops: { 1: 0, 10: 2.5 },
           });
@@ -523,10 +546,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('positive numbers');
     });
 
-    test('throws error when lineStyles is not an array', async ({ page }) => {
+    test('fromJSON throws error when lineStyles is not an array', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineStyles: { color: 'red' },
           });
@@ -538,10 +561,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('non-empty array');
     });
 
-    test('throws error when lineStyles is empty array', async ({ page }) => {
+    test('fromJSON throws error when lineStyles is empty array', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineStyles: [],
           });
@@ -553,10 +576,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('non-empty array');
     });
 
-    test('throws error when lineStyles entry is not an object', async ({ page }) => {
+    test('fromJSON throws error when lineStyles entry is not an object', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineStyles: ['red'],
           });
@@ -565,14 +588,13 @@ test.describe('Layer Configs Package', () => {
           return e.message;
         }
       });
-      // When a string is passed, it gets spread and color is undefined
-      expect(error).toContain('color must be a non-empty string');
+      expect(error).toContain('must be an object');
     });
 
-    test('throws error when lineStyles entry has no color', async ({ page }) => {
+    test('fromJSON throws error when lineStyles entry has no color', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineStyles: [{ widthFraction: 1.0 }],
           });
@@ -584,10 +606,10 @@ test.describe('Layer Configs Package', () => {
       expect(error).toContain('color must be a non-empty string');
     });
 
-    test('throws error when lineStyles entry has empty color', async ({ page }) => {
+    test('fromJSON throws error when lineStyles entry has empty color', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
-          new window.layerConfigsPackage.LayerConfig({
+          window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'test',
             lineStyles: [{ color: '' }],
           });
@@ -842,10 +864,10 @@ test.describe('Layer Configs Package', () => {
       ];
 
       for (const color of validColors) {
-        test(`accepts valid color: ${color}`, async ({ page }) => {
+        test(`fromJSON accepts valid color: ${color}`, async ({ page }) => {
           const result = await page.evaluate((testColor) => {
             try {
-              new window.layerConfigsPackage.LayerConfig({
+              window.layerConfigsPackage.LayerConfig.fromJSON({
                 id: 'color-test',
                 lineStyles: [{ color: testColor }],
               });
@@ -859,10 +881,10 @@ test.describe('Layer Configs Package', () => {
       }
 
       for (const color of invalidColors) {
-        test(`rejects invalid color: "${color}"`, async ({ page }) => {
+        test(`fromJSON rejects invalid color: "${color}"`, async ({ page }) => {
           const error = await page.evaluate((testColor) => {
             try {
-              new window.layerConfigsPackage.LayerConfig({
+              window.layerConfigsPackage.LayerConfig.fromJSON({
                 id: 'color-test',
                 lineStyles: [{ color: testColor }],
               });
@@ -875,10 +897,10 @@ test.describe('Layer Configs Package', () => {
         });
       }
 
-      test('rejects empty string color', async ({ page }) => {
+      test('fromJSON rejects empty string color', async ({ page }) => {
         const error = await page.evaluate(() => {
           try {
-            new window.layerConfigsPackage.LayerConfig({
+            window.layerConfigsPackage.LayerConfig.fromJSON({
               id: 'color-test',
               lineStyles: [{ color: '' }],
             });
@@ -890,10 +912,10 @@ test.describe('Layer Configs Package', () => {
         expect(error).toContain('color must be a non-empty string');
       });
 
-      test('rejects whitespace-only color', async ({ page }) => {
+      test('fromJSON rejects whitespace-only color', async ({ page }) => {
         const error = await page.evaluate(() => {
           try {
-            new window.layerConfigsPackage.LayerConfig({
+            window.layerConfigsPackage.LayerConfig.fromJSON({
               id: 'color-test',
               lineStyles: [{ color: '   ' }],
             });

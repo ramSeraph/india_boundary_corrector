@@ -3,6 +3,9 @@ import { LayerConfig, LineStyle } from './layerconfig.js';
 
 export { LayerConfig, LineStyle } from './layerconfig.js';
 
+// Export raw configs for testing/inspection
+export { configsJson };
+
 /**
  * Layer configuration registry
  */

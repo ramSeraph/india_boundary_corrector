@@ -105,16 +105,44 @@ function isValidColor(color) {
  */
 export class LineStyle {
   /**
-   * Validate the color parameter
-   * @param {string} color
-   * @private
+   * Validate a LineStyle configuration object.
+   * @param {Object} obj - The object to validate
+   * @param {number} [index] - Optional index for error messages (when validating in an array)
+   * @throws {Error} If validation fails
    */
-  static _validateColor(color) {
-    if (!color || typeof color !== 'string') {
-      throw new Error('LineStyle: color must be a non-empty string');
+  static validateJSON(obj, index) {
+    const prefix = index !== undefined ? `lineStyles[${index}]` : 'LineStyle';
+    
+    if (!obj || typeof obj !== 'object') {
+      throw new Error(`${prefix}: must be an object`);
     }
-    if (!isValidColor(color)) {
-      throw new Error(`LineStyle: color "${color}" is not a valid CSS color`);
+    
+    if (!obj.color || typeof obj.color !== 'string') {
+      throw new Error(`${prefix}: color must be a non-empty string`);
+    }
+    
+    if (!isValidColor(obj.color)) {
+      throw new Error(`${prefix}: color "${obj.color}" is not a valid CSS color`);
+    }
+    
+    if (obj.widthFraction !== undefined && (typeof obj.widthFraction !== 'number' || obj.widthFraction <= 0)) {
+      throw new Error(`${prefix}: widthFraction must be a positive number`);
+    }
+    
+    if (obj.dashArray !== undefined && !Array.isArray(obj.dashArray)) {
+      throw new Error(`${prefix}: dashArray must be an array`);
+    }
+    
+    if (obj.alpha !== undefined && (typeof obj.alpha !== 'number' || obj.alpha < 0 || obj.alpha > 1)) {
+      throw new Error(`${prefix}: alpha must be a number between 0 and 1`);
+    }
+    
+    if (obj.startZoom !== undefined && (typeof obj.startZoom !== 'number' || obj.startZoom < 0)) {
+      throw new Error(`${prefix}: startZoom must be a non-negative number`);
+    }
+    
+    if (obj.endZoom !== undefined && (typeof obj.endZoom !== 'number' || obj.endZoom < 0)) {
+      throw new Error(`${prefix}: endZoom must be a non-negative number`);
     }
   }
 
@@ -128,8 +156,6 @@ export class LineStyle {
    * @param {number} [options.endZoom=Infinity] - Maximum zoom level for this style
    */
   constructor({ color, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom, endZoom = Infinity }) {
-    LineStyle._validateColor(color);
-    
     this.color = color;
     this.widthFraction = widthFraction;
     this.dashArray = dashArray;
@@ -162,12 +188,14 @@ export class LineStyle {
   }
 
   /**
-   * Create from plain object.
+   * Create from plain object with validation.
    * @param {Object} obj
    * @param {number} [defaultStartZoom=0] - Default startZoom if not specified
+   * @param {number} [index] - Optional index for error messages
    * @returns {LineStyle}
    */
-  static fromJSON(obj, defaultStartZoom = 0) {
+  static fromJSON(obj, defaultStartZoom = 0, index) {
+    LineStyle.validateJSON(obj, index);
     return new LineStyle({
       ...obj,
       startZoom: obj.startZoom ?? defaultStartZoom,
@@ -183,66 +211,77 @@ export class LineStyle {
  */
 export class LayerConfig {
   /**
-   * Validate the id parameter
-   * @param {string} id
-   * @private
+   * Validate a LayerConfig configuration object.
+   * Also validates all lineStyles within the config.
+   * @param {Object} obj - The object to validate
+   * @throws {Error} If validation fails
    */
-  static _validateId(id) {
-    if (!id || typeof id !== 'string') {
-      throw new Error('LayerConfig requires a non-empty string id');
+  static validateJSON(obj) {
+    if (!obj || typeof obj !== 'object') {
+      throw new Error('LayerConfig: must be an object');
     }
-    if (id.includes('/')) {
-      throw new Error(`LayerConfig id cannot contain slashes: "${id}"`);
+    
+    // Validate id (required)
+    if (!obj.id || typeof obj.id !== 'string') {
+      throw new Error('LayerConfig: id must be a non-empty string');
     }
-  }
-
-  /**
-   * Validate zoom parameters
-   * @param {string} id
-   * @param {number} startZoom
-   * @param {number} zoomThreshold
-   * @private
-   */
-  static _validateZoomParams(id, startZoom, zoomThreshold) {
+    if (obj.id.includes('/')) {
+      throw new Error(`LayerConfig: id cannot contain slashes: "${obj.id}"`);
+    }
+    
+    const id = obj.id;
+    
+    // Validate zoom parameters (optional, but if provided must be valid)
+    if (obj.startZoom !== undefined && (typeof obj.startZoom !== 'number' || obj.startZoom < 0)) {
+      throw new Error(`LayerConfig "${id}": startZoom must be a non-negative number`);
+    }
+    if (obj.zoomThreshold !== undefined && (typeof obj.zoomThreshold !== 'number' || obj.zoomThreshold < 0)) {
+      throw new Error(`LayerConfig "${id}": zoomThreshold must be a non-negative number`);
+    }
+    // Check startZoom <= zoomThreshold (using defaults if not provided)
+    const startZoom = obj.startZoom ?? 0;
+    const zoomThreshold = obj.zoomThreshold ?? 5;
     if (startZoom > zoomThreshold) {
       throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
     }
-  }
-
-  /**
-   * Validate lineWidthStops parameter
-   * @param {string} id
-   * @param {Object} lineWidthStops
-   * @private
-   */
-  static _validateLineWidthStops(id, lineWidthStops) {
-    if (!lineWidthStops || typeof lineWidthStops !== 'object' || Array.isArray(lineWidthStops)) {
-      throw new Error(`LayerConfig "${id}": lineWidthStops must be an object`);
-    }
-    const stopKeys = Object.keys(lineWidthStops);
-    if (stopKeys.length < 2) {
-      throw new Error(`LayerConfig "${id}": lineWidthStops must have at least 2 entries`);
-    }
-    for (const key of stopKeys) {
-      const zoom = Number(key);
-      if (!Number.isInteger(zoom) || zoom < 0) {
-        throw new Error(`LayerConfig "${id}": lineWidthStops keys must be non-negative integers, got "${key}"`);
+    
+    // Validate lineWidthStops (optional, but if provided must be valid)
+    if (obj.lineWidthStops !== undefined) {
+      if (!obj.lineWidthStops || typeof obj.lineWidthStops !== 'object' || Array.isArray(obj.lineWidthStops)) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops must be an object`);
       }
-      if (typeof lineWidthStops[key] !== 'number' || lineWidthStops[key] <= 0) {
-        throw new Error(`LayerConfig "${id}": lineWidthStops values must be positive numbers`);
+      const stopKeys = Object.keys(obj.lineWidthStops);
+      if (stopKeys.length < 2) {
+        throw new Error(`LayerConfig "${id}": lineWidthStops must have at least 2 entries`);
+      }
+      for (const key of stopKeys) {
+        const zoom = Number(key);
+        if (!Number.isInteger(zoom) || zoom < 0) {
+          throw new Error(`LayerConfig "${id}": lineWidthStops keys must be non-negative integers, got "${key}"`);
+        }
+        if (typeof obj.lineWidthStops[key] !== 'number' || obj.lineWidthStops[key] <= 0) {
+          throw new Error(`LayerConfig "${id}": lineWidthStops values must be positive numbers`);
+        }
       }
     }
-  }
-
-  /**
-   * Validate lineStyles parameter
-   * @param {string} id
-   * @param {Array} lineStyles
-   * @private
-   */
-  static _validateLineStyles(id, lineStyles) {
-    if (!Array.isArray(lineStyles) || lineStyles.length === 0) {
-      throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
+    
+    // Validate lineStyles (optional, but if provided must be valid)
+    if (obj.lineStyles !== undefined) {
+      if (!Array.isArray(obj.lineStyles) || obj.lineStyles.length === 0) {
+        throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
+      }
+      // Validate each lineStyle
+      for (let i = 0; i < obj.lineStyles.length; i++) {
+        LineStyle.validateJSON(obj.lineStyles[i], i);
+      }
+    }
+    
+    // Validate optional numeric fields
+    if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor <= 0)) {
+      throw new Error(`LayerConfig "${id}": delWidthFactor must be a positive number`);
+    }
+    if (obj.lineExtensionFactor !== undefined && (typeof obj.lineExtensionFactor !== 'number' || obj.lineExtensionFactor < 0)) {
+      throw new Error(`LayerConfig "${id}": lineExtensionFactor must be a non-negative number`);
     }
   }
 
@@ -268,12 +307,9 @@ export class LayerConfig {
     // Set to 0 to disable extension
     lineExtensionFactor = 0.5,
   }) {
-    LayerConfig._validateId(id);
     this.id = id;
     this.startZoom = startZoom;
     this.zoomThreshold = zoomThreshold;
-
-    LayerConfig._validateZoomParams(id, startZoom, zoomThreshold);
 
     // Normalize to array
     const templates = Array.isArray(tileUrlTemplates) ? tileUrlTemplates : 
@@ -286,14 +322,14 @@ export class LayerConfig {
     // Pre-compile regex patterns for matching template URLs (with {z}/{x}/{y} placeholders)
     this._templatePatterns = templates.map(t => templateToTemplateRegex(t));
 
-    LayerConfig._validateLineWidthStops(id, lineWidthStops);
     this.lineWidthStops = lineWidthStops;
-
-    LayerConfig._validateLineStyles(id, lineStyles);
     
     // Convert to LineStyle instances with defaults
     this.lineStyles = lineStyles.map(style => 
-      style instanceof LineStyle ? style : LineStyle.fromJSON(style, startZoom)
+      style instanceof LineStyle ? style : new LineStyle({
+        ...style,
+        startZoom: style.startZoom ?? startZoom,
+      })
     );
     
     // Deletion width factor
@@ -387,11 +423,13 @@ export class LayerConfig {
   }
 
   /**
-   * Create a LayerConfig from a plain object (e.g., from postMessage)
+   * Create a LayerConfig from a plain object with validation.
    * @param {Object} obj
    * @returns {LayerConfig}
+   * @throws {Error} If validation fails
    */
   static fromJSON(obj) {
+    LayerConfig.validateJSON(obj);
     return new LayerConfig(obj);
   }
 }
