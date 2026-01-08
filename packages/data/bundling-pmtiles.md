@@ -2,6 +2,17 @@
 
 When using a bundler (Rollup, Webpack, Vite, tsup, etc.) to build your application, the PMTiles file containing India boundary corrections needs special handling.
 
+## PMTiles Filename Note
+
+This package includes two versions of the same PMTiles file:
+
+- `india_boundary_corrections.pmtiles` - Original file
+- `india_boundary_corrections.pmtiles.gz` - Same file with `.gz` suffix (not actually gzipped)
+
+The `.gz` suffixed version exists to work around CDN transparent compression issues. Use the `.gz` file when serving from CDNs that apply transparent compression (like jsDelivr, GitHub Pages, Cloudflare, etc.), as this prevents the CDN from re-compressing the file and breaking range requests. For local development or servers where you control compression settings, use the original `.pmtiles` file.
+
+See [`pmtiles-filename-note.md`](./pmtiles-filename-note.md) for more details on this issue.
+
 ## Why This Is Needed
 
 The `@india-boundary-corrector/data` package includes a ~2MB PMTiles file (`india_boundary_corrections.pmtiles`). By default, the library auto-detects the PMTiles URL from `import.meta.url`, which works well for:
@@ -132,10 +143,6 @@ const sw = await registerCorrectionServiceWorker('./sw.js', {
   pmtilesUrl: '/assets/india_boundary_corrections.pmtiles'
 });
 ```
-
-## CDN Filename Note
-
-The PMTiles file is published with a `.pmtiles.gz` suffix. This is a workaround for CDN transparent compression issues—see [`pmtiles-filename-note.md`](./pmtiles-filename-note.md) for details.
 
 ## Server Requirements
 

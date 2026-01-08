@@ -48,6 +48,7 @@ jobs:
           cp packages/data/version.js docs/packages/data/
           cp packages/data/data_version.js docs/packages/data/
           cp packages/data/india_boundary_corrections.pmtiles docs/packages/data/
+          cp packages/data/india_boundary_corrections.pmtiles.gz docs/packages/data/
           
           # Copy layer-configs dist
           cp -r packages/layer-configs/dist/* docs/packages/layer-configs/dist/
