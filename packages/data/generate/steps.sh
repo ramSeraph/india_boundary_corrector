@@ -24,7 +24,7 @@ tippecanoe -A '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStre
 
 # Copy generated files to package root for npm publishing
 cp data/${fname} ../${fname}
-cp data/version.js ../version.js
+cp data/version.js ../data_version.js
 
 # Create .gz copy for CDN workaround (see pmtiles-filename-note.md)
 cp ../${fname} ../${fname}.gz
