@@ -33,11 +33,12 @@
       "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png",
       "https://basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
     ],
-    "lineWidthStops": { "1": 0.25, "2": 0.25, "3": 0.5, "4": 0.75, "5": 1.0 },
+    "lineWidthStops": { "1": 0.25, "2": 0.25, "3": 0.5, "4": 0.75, "5": 1.0, "7": 1.5, "16": 2.5 },
     "lineStyles": [
-      { "color": "rgb(235, 214, 214)", "alpha": 0.2, "startZoom": 6, "widthFraction": 5 },
+      { "color": "rgb(235, 214, 214)", "alpha": 0.2, "startZoom": 6, "widthFraction": 3 },
       { "color": "rgb(235, 214, 214)" }
-    ]
+    ],
+    "lineExtensionFactor": 0.1
   },
   {
     "id": "open-topo",
@@ -80,6 +81,7 @@
     "lineStyles": [
       { "color": "rgb(149, 175, 180)" },
       { "color": "rgb(89, 117, 123)", "widthFraction": 0.33 }
-    ]
+    ],
+    "lineExtensionFactor": 0.25
   }
 ]
