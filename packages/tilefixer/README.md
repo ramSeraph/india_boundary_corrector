@@ -22,7 +22,9 @@ const corrector = new TileFixer(getPmtilesUrl());
 
 // Get corrections for a tile
 const corrections = await corrector.getCorrections(z, x, y);
-// Returns: { 'to-add-osm': [...], 'to-del-osm': [...], 'to-add-ne': [...], 'to-del-ne': [...] }
+// Returns: { 'to-add-osm': [...], 'to-del-osm': [...], 'to-add-ne': [...], 'to-del-ne': [...], 
+//            'to-add-osm-disp': [...], 'to-del-osm-disp': [...], 'to-add-ne-disp': [...], 'to-del-ne-disp': [...],
+//            'to-add-osm-internal': [...], 'to-del-osm-internal': [...] }
 
 // Apply corrections to a raster tile
 const layerConfig = layerConfigs.get('osm-carto');

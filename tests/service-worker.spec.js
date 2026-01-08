@@ -206,7 +206,7 @@ test.describe('Service Worker Package', () => {
         
         return {
           isFunction: typeof LayerConfig === 'function',
-          canConstruct: !!new LayerConfig({ id: 'test', zoomThreshold: 5, tileUrlTemplates: ['https://test.com/{z}/{x}/{y}.png'] }),
+          canConstruct: !!new LayerConfig({ id: 'test', tileUrlTemplates: ['https://test.com/{z}/{x}/{y}.png'], lineStyles: [{ color: 'red', layerSuffix: 'osm' }] }),
         };
       });
 
@@ -219,8 +219,8 @@ test.describe('Service Worker Package', () => {
         const { LayerConfig } = window;
         const config = new LayerConfig({ 
           id: 'test-id', 
-          zoomThreshold: 7, 
-          tileUrlTemplates: ['https://example.com/{z}/{x}/{y}.png'] 
+          tileUrlTemplates: ['https://example.com/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }]
         });
         
         return {
@@ -231,7 +231,7 @@ test.describe('Service Worker Package', () => {
 
       expect(result.hasToJSON).toBe(true);
       expect(result.json).toHaveProperty('id', 'test-id');
-      expect(result.json).toHaveProperty('zoomThreshold', 7);
+      expect(result.json).toHaveProperty('lineStyles');
     });
   });
 
@@ -354,8 +354,8 @@ test.describe('Service Worker Package', () => {
         
         await sw.addLayerConfig(new LayerConfig({
           id: 'custom-test-config',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://custom.test.com/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
         
         const statusAfter = await sw.getStatus();
@@ -381,8 +381,8 @@ test.describe('Service Worker Package', () => {
         // Add a config first
         await sw.addLayerConfig(new LayerConfig({
           id: 'to-be-removed',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://remove.test.com/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
         
         const statusBefore = await sw.getStatus();
@@ -412,8 +412,8 @@ test.describe('Service Worker Package', () => {
         // Add custom config
         await sw.addLayerConfig(new LayerConfig({
           id: 'custom-config',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://custom.com/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
         
         // Remove a default config
@@ -620,8 +620,8 @@ test.describe('Service Worker Package', () => {
         // Add custom config for CartoDB dark tiles
         await sw.addLayerConfig(new LayerConfig({
           id: 'custom-carto',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
         
         // Fetch a tile matching the custom config
@@ -720,8 +720,8 @@ test.describe('Service Worker Package', () => {
         // Add a custom config to prove state is reset
         await sw.addLayerConfig(new LayerConfig({
           id: 'pre-reinstall-config',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://pre-reinstall.test/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
       });
 
@@ -770,8 +770,8 @@ test.describe('Service Worker Package', () => {
         // Add config only in this client
         await sw.addLayerConfig(new LayerConfig({
           id: 'client1-only-config',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://client1.test/{z}/{x}/{y}.png'],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         }));
       });
 

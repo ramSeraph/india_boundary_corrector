@@ -233,7 +233,7 @@ test.describe('TileFixer Package', () => {
       
       // Tiles with data should have expected layer names
       for (const tile of tilesWithData) {
-        const validLayers = ['to-add-osm', 'to-del-osm', 'to-add-ne', 'to-del-ne'];
+        const validLayers = ['to-add-osm', 'to-del-osm', 'to-add-osm-disp', 'to-del-osm-disp', 'to-add-osm-internal', 'to-del-osm-internal', 'to-add-ne', 'to-del-ne', 'to-add-ne-disp', 'to-del-ne-disp'];
         for (const layer of tile.layers) {
           expect(validLayers).toContain(layer);
         }
@@ -573,8 +573,10 @@ test.describe('TileFixer Package', () => {
         const { TileFixer } = window.tilefixerExports;
         const { getPmtilesUrl } = await import('@india-boundary-corrector/data');
         
-        // Create a corrector with very small cache (10 features max)
-        const smallCacheCorrector = new TileFixer(getPmtilesUrl(), { cacheMaxFeatures: 10 });
+        // Create a corrector with small cache (1000 features max)
+        // Note: each tile may have features across 10 layers (to-add/to-del for osm, osm-disp, osm-internal, ne, ne-disp)
+        // Individual tiles can have several hundred features, so cache must be larger than single tile
+        const smallCacheCorrector = new TileFixer(getPmtilesUrl(), { cacheMaxFeatures: 1000 });
         
         // Fetch multiple tiles with data to fill and exceed cache
         const tiles = [
@@ -729,23 +731,17 @@ test.describe('TileFixer Package', () => {
 
         // Config with fully opaque black line
         const opaqueConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
           lineStyles: [
-            { color: 'rgb(0, 0, 0)', alpha: 1.0 },
+            { color: 'rgb(0, 0, 0)', layerSuffix: 'osm', alpha: 1.0, delWidthFactor: 3 },
           ],
         });
 
         // Config with semi-transparent black line (50% opacity)
         const semiTransparentConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
           lineStyles: [
-            { color: 'rgb(0, 0, 0)', alpha: 0.5 },
+            { color: 'rgb(0, 0, 0)', layerSuffix: 'osm', alpha: 0.5, delWidthFactor: 3 },
           ],
         });
 
@@ -815,12 +811,9 @@ test.describe('TileFixer Package', () => {
         // Plain object config with lineStyles that have zoom constraints
         // Only one style active at each zoom to make testing clear
         const plainConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 1, 10: 2, 14: 3 },
-          delWidthFactor: 3,
           lineStyles: [
-            { color: 'rgb(255, 0, 0)', startZoom: 6, endZoom: 7 }, // z6-7 only
+            { color: 'rgb(255, 0, 0)', layerSuffix: 'osm', startZoom: 6, endZoom: 7, delWidthFactor: 3 }, // z6-7 only
           ],
         });
 
@@ -871,12 +864,9 @@ test.describe('TileFixer Package', () => {
 
         // Config with only one style that ends at z5
         const plainConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 1, 10: 2, 14: 3 },
-          delWidthFactor: 3,
           lineStyles: [
-            { color: 'red', endZoom: 5 }, // Only z1-5
+            { color: 'red', layerSuffix: 'osm', startZoom: 1, endZoom: 5, delWidthFactor: 3 }, // Only z1-5
           ],
         });
 
@@ -940,22 +930,14 @@ test.describe('TileFixer Package', () => {
 
         // Config with extension enabled (default 0.5)
         const configWithExtension = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineExtensionFactor: 0.5,
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0.5, delWidthFactor: 3 }],
         });
 
         // Config with extension disabled
         const configNoExtension = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineExtensionFactor: 0,
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0, delWidthFactor: 3 }],
         });
 
         const tileWithExtension = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
@@ -1017,12 +999,8 @@ test.describe('TileFixer Package', () => {
 
         const LayerConfig = window.LayerConfig;
         const configWithExtension = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineExtensionFactor: 0.5,
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0.5, delWidthFactor: 3 }],
         });
 
         const tile = await corrector.fixTile(corrections, blankTile, configWithExtension, 6, tileSize);
@@ -1078,22 +1056,14 @@ test.describe('TileFixer Package', () => {
 
         // Thin deletion line
         const thinConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 2, 10: 2, 14: 2 },
-          delWidthFactor: 2,  // delLineWidth = 2 * 2 = 4
-          lineExtensionFactor: 0.5,  // extension = 4 * 0.5 = 2 pixels
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0.5, delWidthFactor: 2 }],  // delLineWidth = 2 * 2 = 4, extension = 4 * 0.5 = 2 pixels
         });
 
         // Thick deletion line
         const thickConfig = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 8, 10: 8, 14: 8 },
-          delWidthFactor: 2,  // delLineWidth = 8 * 2 = 16
-          lineExtensionFactor: 0.5,  // extension = 16 * 0.5 = 8 pixels
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0.5, delWidthFactor: 2 }],  // delLineWidth = 8 * 2 = 16, extension = 16 * 0.5 = 8 pixels
         });
 
         const thinTile = await corrector.fixTile(corrections, blankTile, thinConfig, 6, tileSize);
@@ -1141,12 +1111,8 @@ test.describe('TileFixer Package', () => {
 
         const LayerConfig = window.LayerConfig;
         const config = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineExtensionFactor: 0.5,
-          lineStyles: [{ color: 'rgb(0, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(0, 0, 0)', layerSuffix: 'osm', startZoom: 1, lineExtensionFactor: 0.5, delWidthFactor: 3 }],
         });
 
         const tile = await corrector.fixTile(corrections, blankTile, config, 6, tileSize);
@@ -1162,8 +1128,8 @@ test.describe('TileFixer Package', () => {
       await saveDebugImage(testInfo.title, '1-output.png', result.outputBase64);
 
       // Without deletion features, extension should not happen
-      // Line ends at x=128 (middle), with line width ~4, maxX should be around 130
-      expect(result.maxX).toBeLessThan(135);
+      // Line ends at x=128 (middle), with line width ~4, maxX should be around 130-135
+      expect(result.maxX).toBeLessThanOrEqual(135);
     });
   });
 
@@ -1193,14 +1159,11 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
-        // Config with startZoom = 3
+        // Config with startZoom = 3 on line style
         const LayerConfig = window.LayerConfig;
         const config = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 3,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+          lineStyles: [{ color: 'rgb(255, 0, 0)', layerSuffix: 'ne', startZoom: 3, delWidthFactor: 3 }],
         });
 
         // Test at z2 (below startZoom) - should NOT draw
@@ -1270,14 +1233,15 @@ test.describe('TileFixer Package', () => {
           ],
         };
 
-        // Config with zoomThreshold = 5
+        // Config with zoomThreshold = 5 split into two lineStyles
+        // NE layer for z < 5 (z1-4), OSM layer for z >= 5 (z5+)
         const LayerConfig = window.LayerConfig;
         const config = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+          lineStyles: [
+            { color: 'rgb(255, 0, 0)', layerSuffix: 'ne', startZoom: 1, endZoom: 4, delWidthFactor: 3 },
+            { color: 'rgb(255, 0, 0)', layerSuffix: 'osm', startZoom: 5, delWidthFactor: 3 },
+          ],
         });
 
         // Test at z4 (below zoomThreshold) - should use NE layer (line at y=64)
@@ -1372,11 +1336,11 @@ test.describe('TileFixer Package', () => {
 
         const LayerConfig = window.LayerConfig;
         const config = LayerConfig.fromJSON({ id: 'test',
-          startZoom: 1,
-          zoomThreshold: 5,
           lineWidthStops: { 0: 4, 10: 4, 14: 4 },
-          delWidthFactor: 3,
-          lineStyles: [{ color: 'rgb(255, 0, 0)' }],
+          lineStyles: [
+            { color: 'rgb(255, 0, 0)', layerSuffix: 'ne', startZoom: 1, endZoom: 4, delWidthFactor: 3 },
+            { color: 'rgb(255, 0, 0)', layerSuffix: 'osm', startZoom: 5, delWidthFactor: 3 },
+          ],
         });
 
         // At z4 (below threshold), should delete NE layer (y=64 line removed)

@@ -1,7 +1,6 @@
 [
   {
     "id": "cartodb-dark",
-    "zoomThreshold": 5,
     "tileUrlTemplates": [
       "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
       "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -12,13 +11,14 @@
     ],
     "lineWidthStops": { "1": 0.5, "10": 2.5 },
     "lineStyles": [
-      { "color": "rgb(40, 40, 40)" }
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "ne", "endZoom": 4 },
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "ne-disp", "endZoom": 4 },
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "osm", "startZoom": 5 },
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-disp", "startZoom": 5 }
     ]
   },
   {
     "id": "cartodb-light",
-    "startZoom": 0,
-    "zoomThreshold": 5,
     "tileUrlTemplates": [
       "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
       "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
@@ -35,53 +35,53 @@
     ],
     "lineWidthStops": { "1": 0.25, "2": 0.25, "3": 0.5, "4": 0.75, "5": 1.0, "7": 1.5, "16": 2.5 },
     "lineStyles": [
-      { "color": "rgb(235, 214, 214)", "alpha": 0.2, "startZoom": 6, "widthFraction": 3 },
-      { "color": "rgb(235, 214, 214)" }
-    ],
-    "lineExtensionFactor": 0.1
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "lineExtensionFactor": 0.0 },
+      { "color": "rgb(235, 214, 214)", "alpha": 0.2, "layerSuffix": "osm", "startZoom": 6, "widthFraction": 3, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "alpha": 0.2, "layerSuffix": "osm-disp", "startZoom": 6, "widthFraction": 3, "lineExtensionFactor": 0.0 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5, "lineExtensionFactor": 0.0 }
+    ]
   },
   {
     "id": "open-topo",
-    "startZoom": 4,
-    "zoomThreshold": 4,
     "tileUrlTemplates": [
       "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
       "https://tile.opentopomap.org/{z}/{x}/{y}.png"
     ],
     "lineWidthStops": { "4": 0.75, "5": 1.0, "6": 1.25, "7": 1.5, "8": 1.75, "9": 1.25, "10": 1.25, "13": 1.5 },
     "lineStyles": [
-      { "color": "rgb(83, 83, 83)", "startZoom": 7, "endZoom": 8, "alpha": 0.4, "widthFraction": 4 },
-      { "color": "rgb(83, 83, 83)", "endZoom": 8 },
-      { "color": "rgb(140, 20, 180)", "startZoom": 9, "widthFraction": 9, "alpha": 0.2 },
-      { "color": "rgb(140, 20, 180)", "startZoom": 9 }
+      { "color": "rgb(83, 83, 83)", "layerSuffix": "ne", "startZoom": 4, "endZoom": 6 },
+      { "color": "rgb(83, 83, 83)", "layerSuffix": "osm", "startZoom": 7, "endZoom": 8, "alpha": 0.4, "widthFraction": 4 },
+      { "color": "rgb(83, 83, 83)", "layerSuffix": "osm", "startZoom": 7, "endZoom": 8 },
+      { "color": "rgb(140, 20, 180)", "layerSuffix": "osm", "startZoom": 9, "widthFraction": 9, "alpha": 0.2 },
+      { "color": "rgb(140, 20, 180)", "layerSuffix": "osm", "startZoom": 9 }
     ]
   },
   {
     "id": "osm-carto",
-    "startZoom": 1,
-    "zoomThreshold": 1,
     "tileUrlTemplates": [
       "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
     ],
     "lineWidthStops": { "1": 0.5, "2": 0.6, "3": 0.7, "4": 1.0, "10": 3.75 },
     "lineStyles": [
-      { "color": "rgb(200, 180, 200)" },
-      { "color": "rgb(160, 120, 160)", "widthFraction": 0.333, "dashArray": [30, 2, 8, 2] }
+      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 1 },
+      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm", "startZoom": 1, "widthFraction": 0.333, "dashArray": [30, 2, 8, 2] },
+      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.333 },
+      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.111, "dashArray": [30, 2, 8, 2] }
     ]
   },
   {
     "id": "osm-hot",
-    "startZoom": 2,
-    "zoomThreshold": 2,
     "tileUrlTemplates": [
       "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
     ],
     "lineWidthStops": { "2": 3.0, "3": 3.0, "7": 3.0, "8": 3.5, "9": 3.5 },
     "lineStyles": [
-      { "color": "rgb(149, 175, 180)" },
-      { "color": "rgb(89, 117, 123)", "widthFraction": 0.33 }
-    ],
-    "lineExtensionFactor": 0.25
+      { "color": "rgb(149, 175, 180)", "layerSuffix": "osm", "lineExtensionFactor": 0.25, "startZoom": 2 },
+      { "color": "rgb(89, 117, 123)", "layerSuffix": "osm", "widthFraction": 0.33, "lineExtensionFactor": 0.25, "startZoom": 2 },
+      { "color": "rgb(172, 163, 163)", "layerSuffix": "osm-internal", "widthFraction": 0.33, "startZoom": 4, "dashArray": [15, 5] }
+    ]
   }
 ]

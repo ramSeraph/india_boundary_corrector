@@ -5,32 +5,9 @@ import { test, expect } from '@playwright/test';
  * 
  * This package provides:
  * - The PMTiles file URL containing boundary correction vectors
- * - Layer name constants for accessing correction data
  * - Version information about the bundled data
  */
 test.describe('Data Package', () => {
-  /**
-   * Tests for the `layers` constant export.
-   * The layers object maps friendly names to actual layer names in the PMTiles file.
-   * These layer names are used by tilefixer to extract the correct features.
-   */
-  test.describe('layers constant', () => {
-    test('exports correct layer names', async ({ page }) => {
-      await page.goto('/tests/fixtures/data-test.html');
-      await page.waitForFunction(() => window.dataPackageLoaded === true, { timeout: 10000 });
-
-      const layers = await page.evaluate(() => window.dataPackage.layers);
-
-      // Four layers: add/delete for OSM data (high zoom) and Natural Earth data (low zoom)
-      expect(layers).toEqual({
-        toAddOsm: 'to-add-osm',
-        toDelOsm: 'to-del-osm',
-        toAddNe: 'to-add-ne',
-        toDelNe: 'to-del-ne',
-      });
-    });
-  });
-
   /**
    * Tests for getPmtilesUrl().
    * This function returns the URL to the bundled PMTiles file.

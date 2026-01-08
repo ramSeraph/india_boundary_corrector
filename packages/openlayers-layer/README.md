@@ -94,8 +94,9 @@ const osmDeConfig = new LayerConfig({
   tileUrlTemplates: ['https://tile.openstreetmap.de/{z}/{x}/{y}.png'],
   lineWidthStops: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 1.0, 10: 3.75 },
   lineStyles: [
-    { color: 'rgb(180, 200, 180)' },
-    { color: 'rgb(121, 146, 127)', widthFraction: 1/3, dashArray: [30, 2, 8, 2] },
+    // layerSuffix determines which PMTiles layer to use
+    { color: 'rgb(180, 200, 180)', layerSuffix: 'osm' },
+    { color: 'rgb(121, 146, 127)', layerSuffix: 'osm', widthFraction: 1/3, dashArray: [30, 2, 8, 2] },
   ],
 });
 

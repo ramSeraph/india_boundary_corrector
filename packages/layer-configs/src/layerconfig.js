@@ -1,4 +1,10 @@
 /**
+ * Constant representing no zoom limit (used for endZoom).
+ * Using -1 instead of Infinity for JSON serialization compatibility.
+ */
+export const INFINITY = -1;
+
+/**
  * Convert a tile URL template to a regex pattern and capture group names.
  * Supports {z}, {x}, {y}, {s} (Leaflet subdomain), {a-c}/{1-4} (OpenLayers subdomain), and {r} (retina) placeholders.
  * @param {string} template - URL template like "https://{s}.tile.example.com/{z}/{x}/{y}.png"
@@ -125,6 +131,10 @@ export class LineStyle {
       throw new Error(`${prefix}: color "${obj.color}" is not a valid CSS color`);
     }
     
+    if (!obj.layerSuffix || typeof obj.layerSuffix !== 'string') {
+      throw new Error(`${prefix}: layerSuffix must be a non-empty string`);
+    }
+    
     if (obj.widthFraction !== undefined && (typeof obj.widthFraction !== 'number' || obj.widthFraction <= 0)) {
       throw new Error(`${prefix}: widthFraction must be a positive number`);
     }
@@ -141,27 +151,41 @@ export class LineStyle {
       throw new Error(`${prefix}: startZoom must be a non-negative number`);
     }
     
-    if (obj.endZoom !== undefined && (typeof obj.endZoom !== 'number' || obj.endZoom < 0)) {
-      throw new Error(`${prefix}: endZoom must be a non-negative number`);
+    if (obj.endZoom !== undefined && (typeof obj.endZoom !== 'number' || (obj.endZoom < 0 && obj.endZoom !== INFINITY))) {
+      throw new Error(`${prefix}: endZoom must be a non-negative number or INFINITY (${INFINITY})`);
+    }
+    
+    if (obj.lineExtensionFactor !== undefined && (typeof obj.lineExtensionFactor !== 'number' || obj.lineExtensionFactor < 0)) {
+      throw new Error(`${prefix}: lineExtensionFactor must be a non-negative number`);
+    }
+    
+    if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor <= 0)) {
+      throw new Error(`${prefix}: delWidthFactor must be a positive number`);
     }
   }
 
   /**
    * @param {Object} options
    * @param {string} options.color - CSS color string
+   * @param {string} options.layerSuffix - Layer suffix (e.g., 'osm', 'ne', 'osm-disp')
    * @param {number} [options.widthFraction=1.0] - Multiplier for base line width
    * @param {number[]} [options.dashArray] - Dash pattern for dashed lines
    * @param {number} [options.alpha=1.0] - Opacity (0-1)
-   * @param {number} [options.startZoom] - Minimum zoom level for this style
-   * @param {number} [options.endZoom=Infinity] - Maximum zoom level for this style
+   * @param {number} [options.startZoom=0] - Minimum zoom level for this style
+   * @param {number} [options.endZoom=INFINITY] - Maximum zoom level for this style (INFINITY means no limit)
+   * @param {number} [options.lineExtensionFactor=0.5] - Factor to extend lines by (multiplied by deletion line width)
+   * @param {number} [options.delWidthFactor=1.5] - Factor to multiply line width for deletion blur
    */
-  constructor({ color, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom, endZoom = Infinity }) {
+  constructor({ color, layerSuffix, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom = 0, endZoom = INFINITY, lineExtensionFactor = 0.5, delWidthFactor = 1.5 }) {
     this.color = color;
+    this.layerSuffix = layerSuffix;
     this.widthFraction = widthFraction;
     this.dashArray = dashArray;
     this.alpha = alpha;
     this.startZoom = startZoom;
     this.endZoom = endZoom;
+    this.lineExtensionFactor = lineExtensionFactor;
+    this.delWidthFactor = delWidthFactor;
   }
 
   /**
@@ -170,7 +194,7 @@ export class LineStyle {
    * @returns {boolean}
    */
   isActiveAtZoom(z) {
-    return z >= this.startZoom && z <= this.endZoom;
+    return z >= this.startZoom && (this.endZoom === INFINITY || z <= this.endZoom);
   }
 
   /**
@@ -178,36 +202,36 @@ export class LineStyle {
    * @returns {Object}
    */
   toJSON() {
-    const obj = { color: this.color };
-    if (this.widthFraction !== 1.0) obj.widthFraction = this.widthFraction;
-    if (this.dashArray) obj.dashArray = this.dashArray;
-    if (this.alpha !== 1.0) obj.alpha = this.alpha;
-    if (this.startZoom !== undefined) obj.startZoom = this.startZoom;
-    if (this.endZoom !== Infinity) obj.endZoom = this.endZoom;
-    return obj;
+    return {
+      color: this.color,
+      layerSuffix: this.layerSuffix,
+      widthFraction: this.widthFraction,
+      dashArray: this.dashArray,
+      alpha: this.alpha,
+      startZoom: this.startZoom,
+      endZoom: this.endZoom,
+      lineExtensionFactor: this.lineExtensionFactor,
+      delWidthFactor: this.delWidthFactor,
+    };
   }
 
   /**
    * Create from plain object with validation.
    * @param {Object} obj
-   * @param {number} [defaultStartZoom=0] - Default startZoom if not specified
    * @param {number} [index] - Optional index for error messages
    * @returns {LineStyle}
    */
-  static fromJSON(obj, defaultStartZoom = 0, index) {
+  static fromJSON(obj, index) {
     LineStyle.validateJSON(obj, index);
-    return new LineStyle({
-      ...obj,
-      startZoom: obj.startZoom ?? defaultStartZoom,
-    });
+    return new LineStyle(obj);
   }
 }
 
 /**
  * Base class for layer configurations
  * 
- * Supports separate styling for NE (Natural Earth) data at low zoom levels
- * and OSM data at higher zoom levels, split by zoomThreshold.
+ * Each lineStyle specifies which data layer to use via layerSuffix (e.g., 'osm', 'ne', 'osm-disp').
+ * Layer names are derived as: to-add-{layerSuffix} and to-del-{layerSuffix}
  */
 export class LayerConfig {
   /**
@@ -231,20 +255,6 @@ export class LayerConfig {
     
     const id = obj.id;
     
-    // Validate zoom parameters (optional, but if provided must be valid)
-    if (obj.startZoom !== undefined && (typeof obj.startZoom !== 'number' || obj.startZoom < 0)) {
-      throw new Error(`LayerConfig "${id}": startZoom must be a non-negative number`);
-    }
-    if (obj.zoomThreshold !== undefined && (typeof obj.zoomThreshold !== 'number' || obj.zoomThreshold < 0)) {
-      throw new Error(`LayerConfig "${id}": zoomThreshold must be a non-negative number`);
-    }
-    // Check startZoom <= zoomThreshold (using defaults if not provided)
-    const startZoom = obj.startZoom ?? 0;
-    const zoomThreshold = obj.zoomThreshold ?? 5;
-    if (startZoom > zoomThreshold) {
-      throw new Error(`LayerConfig "${id}": startZoom (${startZoom}) must be <= zoomThreshold (${zoomThreshold})`);
-    }
-    
     // Validate lineWidthStops (optional, but if provided must be valid)
     if (obj.lineWidthStops !== undefined) {
       if (!obj.lineWidthStops || typeof obj.lineWidthStops !== 'object' || Array.isArray(obj.lineWidthStops)) {
@@ -265,51 +275,30 @@ export class LayerConfig {
       }
     }
     
-    // Validate lineStyles (optional, but if provided must be valid)
-    if (obj.lineStyles !== undefined) {
-      if (!Array.isArray(obj.lineStyles) || obj.lineStyles.length === 0) {
-        throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
-      }
-      // Validate each lineStyle
-      for (let i = 0; i < obj.lineStyles.length; i++) {
-        LineStyle.validateJSON(obj.lineStyles[i], i);
-      }
+    // Validate lineStyles (required)
+    if (!Array.isArray(obj.lineStyles) || obj.lineStyles.length === 0) {
+      throw new Error(`LayerConfig "${id}": lineStyles must be a non-empty array`);
     }
-    
-    // Validate optional numeric fields
-    if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor <= 0)) {
-      throw new Error(`LayerConfig "${id}": delWidthFactor must be a positive number`);
-    }
-    if (obj.lineExtensionFactor !== undefined && (typeof obj.lineExtensionFactor !== 'number' || obj.lineExtensionFactor < 0)) {
-      throw new Error(`LayerConfig "${id}": lineExtensionFactor must be a non-negative number`);
+    // Validate each lineStyle
+    for (let i = 0; i < obj.lineStyles.length; i++) {
+      LineStyle.validateJSON(obj.lineStyles[i], i);
     }
   }
 
   constructor({
     id,
-    startZoom = 0,
-    zoomThreshold = 5,
     // Tile URL templates for matching (e.g., "https://{s}.tile.example.com/{z}/{x}/{y}.png")
     tileUrlTemplates = [],
     // Line width stops: map of zoom level to line width (at least 2 entries)
     // Note: interpolated/extrapolated line width is capped at a minimum of 0.5
     lineWidthStops = { 1: 0.5, 10: 2.5 },
-    // Line styles array - each element describes a line to draw
-    // { color: string, widthFraction?: number, dashArray?: number[], startZoom?: number, endZoom?: number }
-    // Lines are drawn in array order. startZoom defaults to layerConfig startZoom, endZoom defaults to Infinity
-    lineStyles = [{ color: 'green', widthFraction: 1.0 }],
-    // Factor to multiply line width for deletion blur (default 1.5)
-    // Higher values leave gaps where wiped lines meet existing lines
-    // Lower values mean wiped lines show through
-    delWidthFactor = 1.5,
-    // Factor to extend add lines by (multiplied by deletion line width)
-    // Helps cover gaps where deleted lines meet the new boundary
-    // Set to 0 to disable extension
-    lineExtensionFactor = 0.5,
+    // Line styles array - each element describes a line to draw from a specific layer
+    // { color: string, layerSuffix: string, widthFraction?: number, dashArray?: number[], 
+    //   startZoom?: number, endZoom?: number, lineExtensionFactor?: number, delWidthFactor?: number }
+    // Lines are drawn in array order. layerSuffix determines which PMTiles layer to use.
+    lineStyles,
   }) {
     this.id = id;
-    this.startZoom = startZoom;
-    this.zoomThreshold = zoomThreshold;
 
     // Normalize to array
     const templates = Array.isArray(tileUrlTemplates) ? tileUrlTemplates : 
@@ -324,19 +313,10 @@ export class LayerConfig {
 
     this.lineWidthStops = lineWidthStops;
     
-    // Convert to LineStyle instances with defaults
+    // Convert to LineStyle instances
     this.lineStyles = lineStyles.map(style => 
-      style instanceof LineStyle ? style : new LineStyle({
-        ...style,
-        startZoom: style.startZoom ?? startZoom,
-      })
+      style instanceof LineStyle ? style : new LineStyle(style)
     );
-    
-    // Deletion width factor
-    this.delWidthFactor = delWidthFactor;
-    
-    // Line extension factor
-    this.lineExtensionFactor = lineExtensionFactor;
   }
 
   /**
@@ -346,6 +326,16 @@ export class LayerConfig {
    */
   getLineStylesForZoom(z) {
     return this.lineStyles.filter(style => style.isActiveAtZoom(z));
+  }
+
+  /**
+   * Get unique layer suffixes from styles active at a given zoom level
+   * @param {number} z - Zoom level
+   * @returns {string[]}
+   */
+  getLayerSuffixesForZoom(z) {
+    const activeStyles = this.getLineStylesForZoom(z);
+    return [...new Set(activeStyles.map(s => s.layerSuffix))];
   }
 
   /**
@@ -412,13 +402,9 @@ export class LayerConfig {
   toJSON() {
     return {
       id: this.id,
-      startZoom: this.startZoom,
-      zoomThreshold: this.zoomThreshold,
       tileUrlTemplates: this.tileUrlTemplates,
       lineWidthStops: this.lineWidthStops,
       lineStyles: this.lineStyles.map(s => s.toJSON()),
-      delWidthFactor: this.delWidthFactor,
-      lineExtensionFactor: this.lineExtensionFactor,
     };
   }
 

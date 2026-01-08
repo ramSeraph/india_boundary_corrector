@@ -45,15 +45,14 @@ console.log(layerConfigs.getAvailableIds());
 // Create and register a custom config
 const myConfig = new LayerConfig({
   id: 'my-custom-style',
-  startZoom: 0,
-  zoomThreshold: 5,
   tileUrlTemplates: ['https://mytiles.com/{z}/{x}/{y}.png'],
   // Zoom-to-width interpolation map
   lineWidthStops: { 1: 0.6, 10: 3 },
-  // Line styles - drawn in order
+  // Line styles - drawn in order. layerSuffix determines which PMTiles layer to use.
   lineStyles: [
-    { color: '#262626' },                                    // solid line
-    { color: '#262626', widthFraction: 0.5, dashArray: [30, 2, 8, 2] }, // dashed overlay
+    { color: '#262626', layerSuffix: 'ne', endZoom: 4 },           // Natural Earth at low zooms
+    { color: '#262626', layerSuffix: 'osm', startZoom: 5 },        // OSM data at higher zooms
+    { color: '#262626', layerSuffix: 'osm', widthFraction: 0.5, dashArray: [30, 2, 8, 2], startZoom: 5 }, // dashed overlay
   ],
 });
 layerConfigs.register(myConfig);
@@ -67,13 +66,9 @@ layerConfigs.remove('my-custom-style');
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `id` | string | required | Unique identifier for the config |
-| `startZoom` | number | 0 | Minimum zoom level to start rendering corrections |
-| `zoomThreshold` | number | 5 | Zoom level to switch between NE and OSM data |
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map. Interpolated/extrapolated values are capped at a minimum of 0.5. |
-| `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
-| `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
-| `lineExtensionFactor` | number | 0.5 | Factor to extend add lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
+| `lineStyles` | array | required | Array of line styles to draw (see below) |
 
 ### URL Template Placeholders
 
@@ -92,31 +87,41 @@ layerConfigs.remove('my-custom-style');
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `color` | string | required | Line color (CSS color string) |
+| `layerSuffix` | string | required | Data layer suffix (`osm`, `ne`, `osm-disp`, `ne-disp`). Determines which PMTiles layer to use (`to-add-{suffix}`, `to-del-{suffix}`). |
 | `widthFraction` | number | 1.0 | Width as fraction of base line width |
 | `dashArray` | number[] | - | Dash pattern array (omit for solid line) |
 | `alpha` | number | 1.0 | Opacity/alpha value from 0 (transparent) to 1 (opaque) |
-| `startZoom` | number | layerConfig.startZoom | Minimum zoom level for this style |
-| `endZoom` | number | Infinity | Maximum zoom level for this style |
+| `startZoom` | number | 0 | Minimum zoom level for this style |
+| `endZoom` | number | -1 (no limit) | Maximum zoom level for this style. Use -1 (INFINITY constant) for no limit. |
+| `lineExtensionFactor` | number | 0.5 | Factor to extend lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
+| `delWidthFactor` | number | 1.5 | Factor to multiply line width for deletion blur. Higher values leave gaps where wiped lines meet existing lines. Lower values mean wiped lines show through. |
 
 ### Zoom-Specific Line Styles
 
-Line styles can be active only at certain zoom levels:
+Line styles can be active only at certain zoom levels using `startZoom` and `endZoom`. The `layerSuffix` property determines which data layer to use:
+
+- `osm`: OpenStreetMap-derived boundaries (higher detail, for higher zooms)
+- `ne`: Natural Earth boundaries (lower detail, for lower zooms)  
+- `osm-disp`: Disputed boundary lines from OSM data
+- `ne-disp`: Disputed boundary lines from Natural Earth data
 
 ```javascript
 const config = new LayerConfig({
-  id: 'zoom-specific',
-  startZoom: 1,
+  id: 'my-config',
+  lineWidthStops: { 1: 0.5, 10: 2.5 },
   lineStyles: [
-    { color: 'red' },                              // Active at z1+ (all zooms)
-    { color: 'blue', startZoom: 5 },               // Active at z5+
-    { color: 'green', endZoom: 4 },                // Active at z1-4
-    { color: 'yellow', startZoom: 3, endZoom: 6 }, // Active at z3-6 only
+    // Natural Earth data at low zooms (z0-4)
+    { color: 'rgb(200, 180, 200)', layerSuffix: 'ne', endZoom: 4 },
+    // OSM data at higher zooms (z5+)
+    { color: 'rgb(200, 180, 200)', layerSuffix: 'osm', startZoom: 5 },
+    // Dashed overlay at all zooms using OSM data
+    { color: 'rgb(160, 120, 160)', layerSuffix: 'osm', widthFraction: 0.33, dashArray: [30, 2, 8, 2] },
   ],
 });
 
 // Get active styles for a specific zoom
-config.getLineStylesForZoom(3); // Returns styles: red, green, yellow
-config.getLineStylesForZoom(7); // Returns styles: red, blue
+config.getLineStylesForZoom(3); // Returns NE style only
+config.getLineStylesForZoom(7); // Returns OSM styles
 ```
 
 ### Line Width Calculation

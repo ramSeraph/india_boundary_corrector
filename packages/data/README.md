@@ -8,19 +8,29 @@ PMTiles data package for India boundary corrections.
 
 ## Layers
 
-The PMTiles file contains 4 layers:
+The PMTiles file contains 10 layers:
 
 | Layer | Description |
 |-------|-------------|
 | `to-add-osm` | Boundary lines to add over OSM-based tiles (higher zoom) |
 | `to-del-osm` | Boundary lines to mask/delete from OSM-based tiles |
+| `to-add-osm-disp` | Disputed boundary lines to add over OSM-based tiles |
+| `to-del-osm-disp` | Disputed boundary lines to delete from OSM-based tiles (same as add-disp) |
+| `to-add-osm-internal` | Internal state boundary lines to add (Indian states within claimed territory) |
+| `to-del-osm-internal` | Internal boundary lines to delete (Chinese state boundaries within India's claimed territory) |
 | `to-add-ne` | Boundary lines to add over Natural Earth tiles (lower zoom) |
 | `to-del-ne` | Boundary lines to mask/delete from Natural Earth tiles |
+| `to-add-ne-disp` | Disputed boundary lines to add over Natural Earth tiles |
+| `to-del-ne-disp` | Disputed boundary lines to delete from Natural Earth tiles (same as add-disp) |
+
+The `-disp` layers contain boundaries of disputed regions that fall on India's official boundary. These are boundaries that India claims but are disputed by China or Pakistan. The `to-del-*-disp` layers are identical to `to-add-*-disp` layers - they delete the original lines at the same location where the corrected disputed lines are drawn.
+
+The `-internal` layers handle internal state boundaries within India's claimed territory. `to-del-osm-internal` contains Chinese state boundaries (e.g., Tibet) that fall within India's claimed boundary. `to-add-osm-internal` contains Indian state boundaries (e.g., Ladakh, Jammu and Kashmir, Arunachal Pradesh) that overlap with the main deletion areas.
 
 ## Usage
 
 ```javascript
-import { layers, getPmtilesUrl, setPmtilesUrl, getDataVersion } from '@india-boundary-corrector/data';
+import { getPmtilesUrl, setPmtilesUrl, getDataVersion } from '@india-boundary-corrector/data';
 
 // Get URL to PMTiles file (auto-detected from environment)
 const url = getPmtilesUrl();

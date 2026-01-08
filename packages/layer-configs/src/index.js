@@ -1,7 +1,7 @@
 import configsJson from './configs.json' with { type: 'json' };
-import { LayerConfig, LineStyle } from './layerconfig.js';
+import { LayerConfig, LineStyle, INFINITY } from './layerconfig.js';
 
-export { LayerConfig, LineStyle } from './layerconfig.js';
+export { LayerConfig, LineStyle, INFINITY } from './layerconfig.js';
 
 // Export raw configs for testing/inspection
 export { configsJson };

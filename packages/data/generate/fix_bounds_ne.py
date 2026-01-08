@@ -39,6 +39,8 @@ def write_geojson(shapes, path):
 if __name__ == '__main__':
     base_shapefile = Path(f'{DATA_DIR}base/ne_10m_admin_0_countries.shp')
     ind_shapefile = Path(f'{DATA_DIR}ind/ne_10m_admin_0_countries_ind.shp')
+    chn_shapefile = Path(f'{DATA_DIR}chn/ne_10m_admin_0_countries_chn.shp')
+    pak_shapefile = Path(f'{DATA_DIR}pak/ne_10m_admin_0_countries_pak.shp')
     
     # Get shapes from base (standard Natural Earth)
     print("Reading from base shapefile...")
@@ -50,6 +52,12 @@ if __name__ == '__main__':
     # Get India shape from ind (India-perspective Natural Earth)
     print("Reading from ind shapefile...")
     india_official_shape = get_shape_from_shapefile(ind_shapefile, 'India')
+    
+    # Get China and Pakistan shapes from their perspective shapefiles
+    print("Reading from chn shapefile...")
+    china_chn = get_shape_from_shapefile(chn_shapefile, 'China')
+    print("Reading from pak shapefile...")
+    pakistan_pak = get_shape_from_shapefile(pak_shapefile, 'Pakistan')
     
     india_base_bound = india_base.boundary
     pakistan_base_bound = pakistan_base.boundary
@@ -75,4 +83,32 @@ if __name__ == '__main__':
     to_del.append(difference(siachen_intersect_official, india_official_shape_bound))
     write_geojson(to_del, Path(f'{DATA_DIR}to_del.geojson'))
     
-    print(f"Created {DATA_DIR}to_add.geojson and {DATA_DIR}to_del.geojson")
+    # Generate disputed area boundaries on India's official boundary
+    # These are parts of India's official boundary that fall completely within China or Pakistan's claimed territory
+    china_chn_shape = china_chn
+    pakistan_pak_shape = pakistan_pak
+    
+    to_add_disp = []
+    
+    # India's official boundary parts that are completely inside China's claimed territory
+    # (not on China's boundary, but fully within the polygon)
+    ind_bound_in_china = india_official_shape_bound.intersection(china_chn_shape)
+    # Remove parts that touch China's boundary (keep only parts fully inside)
+    ind_bound_in_china = difference(ind_bound_in_china, china_chn_shape.boundary)
+    # Remove parts already in to_add layer
+    ind_bound_in_china = difference(ind_bound_in_china, official_diff_shape_bound)
+    if not ind_bound_in_china.is_empty:
+        to_add_disp.append(ind_bound_in_china)
+    
+    # India's official boundary parts that are completely inside Pakistan's claimed territory
+    ind_bound_in_pakistan = india_official_shape_bound.intersection(pakistan_pak_shape)
+    # Remove parts that touch Pakistan's boundary (keep only parts fully inside)
+    ind_bound_in_pakistan = difference(ind_bound_in_pakistan, pakistan_pak_shape.boundary)
+    # Remove parts already in to_add layer
+    ind_bound_in_pakistan = difference(ind_bound_in_pakistan, official_diff_shape_bound)
+    if not ind_bound_in_pakistan.is_empty:
+        to_add_disp.append(ind_bound_in_pakistan)
+    
+    write_geojson(to_add_disp, Path(f'{DATA_DIR}to_add_disp.geojson'))
+    
+    print(f"Created {DATA_DIR}to_add.geojson, {DATA_DIR}to_del.geojson, and {DATA_DIR}to_add_disp.geojson")

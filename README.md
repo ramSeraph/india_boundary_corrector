@@ -17,6 +17,7 @@ This monorepo provides map library integrations that modify raster tiles directl
 The corrections use different data sources based on zoom level:
 - **Lower zoom (< threshold)**: Natural Earth data corrections (`to-add-ne`, `to-del-ne` layers)
 - **Higher zoom (≥ threshold)**: OpenStreetMap data corrections (`to-add-osm`, `to-del-osm` layers)
+- **Internal boundaries**: State boundaries within disputed areas (`to-add-osm-internal`, `to-del-osm-internal` layers)
 
 All boundary data is packaged in a single PMTiles file. Line widths scale dynamically with zoom level for consistent appearance.
 
@@ -151,12 +152,9 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `id` | string | required | Unique identifier |
-| `startZoom` | number | 0 | Minimum zoom to start rendering |
-| `zoomThreshold` | number | 5 | Zoom level to switch NE/OSM data |
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
 | `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map |
-| `lineStyles` | array | [{ color: 'green' }] | Array of line styles to draw |
-| `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
+| `lineStyles` | array | required | Array of line styles to draw (see below) |
 
 ### URL Template Placeholders
 
@@ -174,16 +172,19 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `color` | string | required | Line color (CSS color) |
+| `layerSuffix` | string | required | Data layer suffix (`osm`, `ne`, `osm-disp`, `ne-disp`) |
 | `widthFraction` | number | 1.0 | Width as fraction of base width |
 | `dashArray` | number[] | - | Dash pattern (omit for solid) |
 | `alpha` | number | 1.0 | Opacity (0 = transparent, 1 = opaque) |
-| `startZoom` | number | layerConfig.startZoom | Minimum zoom for this style |
-| `endZoom` | number | Infinity | Maximum zoom for this style |
+| `startZoom` | number | 0 | Minimum zoom for this style |
+| `endZoom` | number | -1 (no limit) | Maximum zoom for this style |
+| `lineExtensionFactor` | number | 0.5 | Factor to extend lines by (multiplied by deletion line width) |
+| `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
 
 ## Data Sources
 
 - **OpenStreetMap**: Boundary relations for India, Pakistan, and disputed territories
-- **Natural Earth**: Admin 0 Countries (standard and India-perspective versions)
+- **Natural Earth**: Admin 0 Countries (standard and per country perspective versions)
 
 ## Credits
 

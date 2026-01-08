@@ -23,16 +23,6 @@ export const DEFAULT_CDN_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}@${p
 const CURRENT_SCRIPT_URL = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || null;
 
 /**
- * Layer names in the PMTiles file
- */
-export const layers = {
-  toAddOsm: 'to-add-osm',
-  toDelOsm: 'to-del-osm',
-  toAddNe: 'to-add-ne',
-  toDelNe: 'to-del-ne',
-};
-
-/**
  * Detect the PMTiles URL from various sources:
  * 1. import.meta.url (for ESM bundlers - most reliable)
  * 2. document.currentScript.src (for IIFE/script tags, captured at load time)

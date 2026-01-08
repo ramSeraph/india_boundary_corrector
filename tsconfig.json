@@ -15,9 +15,11 @@
     "paths": {
       "@india-boundary-corrector/data": ["./packages/data/index.d.ts"],
       "@india-boundary-corrector/layer-configs": ["./packages/layer-configs/src/index.d.ts"],
-      "@india-boundary-corrector/maplibre": ["./packages/maplibre/src/index.d.ts"],
-      "@india-boundary-corrector/leaflet": ["./packages/leaflet/src/index.d.ts"],
-      "@india-boundary-corrector/openlayers": ["./packages/openlayers/src/index.d.ts"]
+      "@india-boundary-corrector/tilefixer": ["./packages/tilefixer/src/index.d.ts"],
+      "@india-boundary-corrector/leaflet-layer": ["./packages/leaflet-layer/src/index.d.ts"],
+      "@india-boundary-corrector/openlayers-layer": ["./packages/openlayers-layer/src/index.d.ts"],
+      "@india-boundary-corrector/maplibre-protocol": ["./packages/maplibre-protocol/src/index.d.ts"],
+      "@india-boundary-corrector/service-worker": ["./packages/service-worker/src/index.d.ts"]
     }
   },
   "include": [

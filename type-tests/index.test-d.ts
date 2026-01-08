@@ -17,7 +17,6 @@ import {
   setPmtilesUrl,
   getDataVersion,
   resolvePmtilesUrl,
-  layers,
   DEFAULT_CDN_URL,
 } from '@india-boundary-corrector/data';
 
@@ -40,12 +39,6 @@ expectTypeOf(resolvePmtilesUrl).returns.toBeString();
 
 // Exports
 expectTypeOf(DEFAULT_CDN_URL).toBeString();
-expectTypeOf(layers).toEqualTypeOf<{
-  toAddOsm: string;
-  toDelOsm: string;
-  toAddNe: string;
-  toDelNe: string;
-}>();
 
 // ============================================================================
 // @india-boundary-corrector/layer-configs
@@ -54,32 +47,36 @@ import {
   LayerConfig,
   LayerConfigRegistry,
   layerConfigs,
+  INFINITY,
   type LayerConfigOptions,
   type LineStyle,
   type TileCoords,
   type ParsedTileUrl,
 } from '@india-boundary-corrector/layer-configs';
 
+// INFINITY constant
+expectTypeOf(INFINITY).toEqualTypeOf<-1>();
+
 // LayerConfig class
 expectTypeOf(LayerConfig).toBeConstructibleWith({
   id: 'test',
-  lineWidthStops: { 1: 0.5, 10: 2.5 },
+  lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
 });
 
 // LayerConfig instance properties
 expectTypeOf<LayerConfig>().toHaveProperty('id').toBeString();
-expectTypeOf<LayerConfig>().toHaveProperty('startZoom').toBeNumber();
-expectTypeOf<LayerConfig>().toHaveProperty('zoomThreshold').toBeNumber();
 expectTypeOf<LayerConfig>().toHaveProperty('tileUrlTemplates').toEqualTypeOf<string[]>();
 expectTypeOf<LayerConfig>().toHaveProperty('lineWidthStops').toEqualTypeOf<Record<number, number>>();
 expectTypeOf<LayerConfig>().toHaveProperty('lineStyles').toEqualTypeOf<LineStyle[]>();
-expectTypeOf<LayerConfig>().toHaveProperty('delWidthFactor').toBeNumber();
-expectTypeOf<LayerConfig>().toHaveProperty('lineExtensionFactor').toBeNumber();
 
 // LayerConfig instance methods
 expectTypeOf<LayerConfig>().toHaveProperty('getLineStylesForZoom').toBeFunction();
 expectTypeOf<LayerConfig['getLineStylesForZoom']>().parameters.toEqualTypeOf<[z: number]>();
 expectTypeOf<LayerConfig['getLineStylesForZoom']>().returns.toEqualTypeOf<LineStyle[]>();
+
+expectTypeOf<LayerConfig>().toHaveProperty('getLayerSuffixesForZoom').toBeFunction();
+expectTypeOf<LayerConfig['getLayerSuffixesForZoom']>().parameters.toEqualTypeOf<[z: number]>();
+expectTypeOf<LayerConfig['getLayerSuffixesForZoom']>().returns.toEqualTypeOf<string[]>();
 
 expectTypeOf<LayerConfig>().toHaveProperty('matchTemplate').toBeFunction();
 expectTypeOf<LayerConfig['matchTemplate']>().parameters.toEqualTypeOf<[templates: string | string[]]>();
@@ -102,11 +99,13 @@ expectTypeOf(LayerConfig.fromJSON).returns.toEqualTypeOf<LayerConfig>();
 
 // LineStyle interface
 expectTypeOf<LineStyle>().toHaveProperty('color').toBeString();
+expectTypeOf<LineStyle>().toHaveProperty('layerSuffix').toBeString();
 expectTypeOf<LineStyle>().toHaveProperty('widthFraction').toEqualTypeOf<number | undefined>();
 expectTypeOf<LineStyle>().toHaveProperty('dashArray').toEqualTypeOf<number[] | undefined>();
 expectTypeOf<LineStyle>().toHaveProperty('alpha').toEqualTypeOf<number | undefined>();
 expectTypeOf<LineStyle>().toHaveProperty('startZoom').toEqualTypeOf<number | undefined>();
 expectTypeOf<LineStyle>().toHaveProperty('endZoom').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('lineExtensionFactor').toEqualTypeOf<number | undefined>();
 
 // TileCoords interface
 expectTypeOf<TileCoords>().toEqualTypeOf<{ z: number; x: number; y: number }>();
@@ -158,7 +157,7 @@ import {
   MIN_LINE_WIDTH,
   type CorrectionResult,
   type FetchAndFixTileResult,
-  type FetchAndFixTileOptions,
+  type FetchAndFixTileFetchOptions,
   type TileFixerOptions,
   type Feature,
 } from '@india-boundary-corrector/tilefixer';
@@ -203,7 +202,7 @@ expectTypeOf<TileFixer>().toHaveProperty('clearCache').toBeFunction();
 expectTypeOf<TileFixer['clearCache']>().returns.toBeVoid();
 
 expectTypeOf<TileFixer>().toHaveProperty('getCorrections').toBeFunction();
-expectTypeOf<TileFixer['getCorrections']>().parameters.toEqualTypeOf<[z: number, x: number, y: number]>();
+expectTypeOf<TileFixer['getCorrections']>().parameters.toEqualTypeOf<[z: number, x: number, y: number, signal?: AbortSignal]>();
 expectTypeOf<TileFixer['getCorrections']>().returns.toEqualTypeOf<Promise<CorrectionResult>>();
 
 expectTypeOf<TileFixer>().toHaveProperty('fixTile').toBeFunction();
@@ -218,10 +217,12 @@ expectTypeOf<FetchAndFixTileResult>().toHaveProperty('wasFixed').toBeBoolean();
 expectTypeOf<FetchAndFixTileResult>().toHaveProperty('correctionsFailed').toEqualTypeOf<boolean | undefined>();
 expectTypeOf<FetchAndFixTileResult>().toHaveProperty('correctionsError').toEqualTypeOf<Error | null | undefined>();
 
-// FetchAndFixTileOptions interface
-expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('signal').toEqualTypeOf<AbortSignal | undefined>();
-expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('mode').toEqualTypeOf<RequestMode | undefined>();
-expectTypeOf<FetchAndFixTileOptions>().toHaveProperty('fallbackOnCorrectionFailure').toEqualTypeOf<boolean | undefined>();
+// FetchAndFixTileFetchOptions interface
+expectTypeOf<FetchAndFixTileFetchOptions>().toHaveProperty('signal').toEqualTypeOf<AbortSignal | undefined>();
+expectTypeOf<FetchAndFixTileFetchOptions>().toHaveProperty('mode').toEqualTypeOf<RequestMode | undefined>();
+expectTypeOf<FetchAndFixTileFetchOptions>().toHaveProperty('credentials').toEqualTypeOf<RequestCredentials | undefined>();
+expectTypeOf<FetchAndFixTileFetchOptions>().toHaveProperty('referrer').toEqualTypeOf<string | undefined>();
+expectTypeOf<FetchAndFixTileFetchOptions>().toHaveProperty('referrerPolicy').toEqualTypeOf<ReferrerPolicy | undefined>();
 
 // TileFixerOptions interface
 expectTypeOf<TileFixerOptions>().toHaveProperty('cacheMaxFeatures').toEqualTypeOf<number | undefined>();

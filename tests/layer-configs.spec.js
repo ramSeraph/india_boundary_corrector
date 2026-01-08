@@ -101,14 +101,16 @@ test.describe('Layer Configs Package', () => {
         const c = window.layerConfigsPackage.cartoDbDark;
         return {
           id: c.id,
-          zoomThreshold: c.zoomThreshold,
-          osmAddLineColor: c.osmAddLineColor,
-          neAddLineColor: c.neAddLineColor,
+          lineStyles: c.lineStyles.map(s => ({ color: s.color, layerSuffix: s.layerSuffix })),
         };
       });
 
       expect(config.id).toBe('cartodb-dark');
-      expect(config.zoomThreshold).toBe(5);
+      expect(config.lineStyles.length).toBeGreaterThan(0);
+      // Should have both ne and osm layer suffixes
+      const suffixes = config.lineStyles.map(s => s.layerSuffix);
+      expect(suffixes).toContain('ne');
+      expect(suffixes).toContain('osm');
     });
   });
 
@@ -180,16 +182,15 @@ test.describe('Layer Configs Package', () => {
         const c = window.layerConfigsPackage.osmCarto;
         return {
           id: c.id,
-          zoomThreshold: c.zoomThreshold,
           lineWidthStops: c.lineWidthStops,
-          lineStyles: c.lineStyles,
+          lineStyles: c.lineStyles.map(s => ({ color: s.color, layerSuffix: s.layerSuffix, dashArray: s.dashArray })),
         };
       });
 
       expect(config.id).toBe('osm-carto');
-      expect(config.zoomThreshold).toBe(1);
       expect(config.lineStyles).toHaveLength(2);
       expect(config.lineStyles[0].color).toBe('rgb(200, 180, 200)');
+      expect(config.lineStyles[0].layerSuffix).toBe('osm');
       expect(config.lineStyles[1].dashArray).toEqual([30, 2, 8, 2]);
     });
   });
@@ -307,6 +308,7 @@ test.describe('Layer Configs Package', () => {
         const customConfig = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-merged',
           tileUrlTemplates: 'https://custom.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         const merged = window.layerConfigsPackage.layerConfigs.createMergedRegistry([customConfig]);
         return {
@@ -326,6 +328,7 @@ test.describe('Layer Configs Package', () => {
         const customConfig = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-should-not-appear',
           tileUrlTemplates: 'https://custom2.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'blue', layerSuffix: 'osm' }],
         });
         const original = window.layerConfigsPackage.layerConfigs;
         const merged = original.createMergedRegistry([customConfig]);
@@ -343,6 +346,7 @@ test.describe('Layer Configs Package', () => {
         const customConfig = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-detect',
           tileUrlTemplates: 'https://detect.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'green', layerSuffix: 'osm' }],
         });
         const merged = window.layerConfigsPackage.layerConfigs.createMergedRegistry([customConfig]);
         const detected = merged.detectFromTemplates('https://detect.example.com/{z}/{x}/{y}.png');
@@ -374,29 +378,25 @@ test.describe('Layer Configs Package', () => {
       const config = await page.evaluate(() => {
         const custom = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-test',
-          zoomThreshold: 7,
           tileUrlTemplates: ['https://example.com/tiles/{z}/{x}/{y}.png'],
-          lineStyles: [{ color: '#ff0000' }],
+          lineStyles: [{ color: '#ff0000', layerSuffix: 'osm' }],
         });
         return {
           id: custom.id,
-          zoomThreshold: custom.zoomThreshold,
-          lineStyles: custom.lineStyles,
+          lineStyles: custom.lineStyles.map(s => ({ color: s.color, layerSuffix: s.layerSuffix })),
         };
       });
 
       expect(config.id).toBe('custom-test');
-      expect(config.zoomThreshold).toBe(7);
       expect(config.lineStyles[0].color).toBe('#ff0000');
+      expect(config.lineStyles[0].layerSuffix).toBe('osm');
     });
 
-    test('fromJSON throws error when startZoom > zoomThreshold', async ({ page }) => {
+    test('fromJSON throws error when lineStyles is missing', async ({ page }) => {
       const error = await page.evaluate(() => {
         try {
           window.layerConfigsPackage.LayerConfig.fromJSON({
             id: 'invalid-config',
-            startZoom: 10,
-            zoomThreshold: 5,
           });
           return null;
         } catch (e) {
@@ -404,8 +404,7 @@ test.describe('Layer Configs Package', () => {
         }
       });
 
-      expect(error).toContain('startZoom');
-      expect(error).toContain('zoomThreshold');
+      expect(error).toContain('lineStyles');
     });
 
     test('fromJSON throws error when id is missing', async ({ page }) => {
@@ -626,6 +625,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test-s-placeholder',
           tileUrlTemplates: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png');
       });
@@ -637,6 +637,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test-ac-placeholder',
           tileUrlTemplates: 'https://{a-c}.tile.opentopomap.org/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png');
       });
@@ -648,6 +649,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test-s-actual',
           tileUrlTemplates: 'https://{s}.tile.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://a.tile.example.com/{z}/{x}/{y}.png');
       });
@@ -659,6 +661,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test-ac-actual',
           tileUrlTemplates: 'https://{a-c}.tile.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://b.tile.example.com/{z}/{x}/{y}.png');
       });
@@ -670,6 +673,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test-14-placeholder',
           tileUrlTemplates: 'https://tile{1-4}.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://tile{s}.example.com/{z}/{x}/{y}.png');
       });
@@ -680,6 +684,7 @@ test.describe('Layer Configs Package', () => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'no-pattern',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://example.com/tiles/{z}/{x}/{y}.png');
       });
@@ -690,6 +695,7 @@ test.describe('Layer Configs Package', () => {
       const matches = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'no-pattern',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTileUrl('https://example.com/tiles/5/10/15.png');
       });
@@ -701,6 +707,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'template-config',
           tileUrlTemplates: 'https://example.com/tiles/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTileUrl('https://example.com/tiles/5/10/15.png');
       });
@@ -712,6 +719,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'template-config',
           tileUrlTemplates: 'https://example.com/tiles/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.matchTemplate('https://example.com/tiles/{z}/{x}/{y}.png');
       });
@@ -720,35 +728,39 @@ test.describe('Layer Configs Package', () => {
 
     test('lineStyles get startZoom and endZoom defaults', async ({ page }) => {
       const result = await page.evaluate(() => {
+        const INFINITY = window.layerConfigsPackage.INFINITY;
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
-          startZoom: 2,
           lineStyles: [
-            { color: 'red' },
-            { color: 'blue', startZoom: 5 },
-            { color: 'green', endZoom: 8 },
-            { color: 'yellow', startZoom: 3, endZoom: 6 },
+            { color: 'red', layerSuffix: 'osm' },
+            { color: 'blue', layerSuffix: 'osm', startZoom: 5 },
+            { color: 'green', layerSuffix: 'osm', endZoom: 8 },
+            { color: 'yellow', layerSuffix: 'osm', startZoom: 3, endZoom: 6 },
           ],
         });
         // Use toJSON to get serialized form for comparison
-        return config.lineStyles.map(s => s.toJSON());
+        return {
+          styles: config.lineStyles.map(s => s.toJSON()),
+          INFINITY,
+        };
       });
-      expect(result[0]).toEqual({ color: 'red', startZoom: 2 });
-      expect(result[1]).toEqual({ color: 'blue', startZoom: 5 });
-      expect(result[2]).toEqual({ color: 'green', startZoom: 2, endZoom: 8 });
-      expect(result[3]).toEqual({ color: 'yellow', startZoom: 3, endZoom: 6 });
+      const { styles, INFINITY } = result;
+      // startZoom defaults to 0, endZoom defaults to INFINITY (-1), delWidthFactor defaults to 1.5
+      expect(styles[0]).toEqual({ color: 'red', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: INFINITY, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
+      expect(styles[1]).toEqual({ color: 'blue', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 5, endZoom: INFINITY, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
+      expect(styles[2]).toEqual({ color: 'green', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: 8, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
+      expect(styles[3]).toEqual({ color: 'yellow', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 3, endZoom: 6, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
     });
 
     test('getLineStylesForZoom returns active styles', async ({ page }) => {
       const result = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
-          startZoom: 1,
           lineStyles: [
-            { color: 'red' },                         // z1+
-            { color: 'blue', startZoom: 5 },          // z5+
-            { color: 'green', endZoom: 4 },           // z1-4
-            { color: 'yellow', startZoom: 3, endZoom: 6 }, // z3-6
+            { color: 'red', layerSuffix: 'osm', startZoom: 1 },           // z1+
+            { color: 'blue', layerSuffix: 'osm', startZoom: 5 },          // z5+
+            { color: 'green', layerSuffix: 'osm', startZoom: 1, endZoom: 4 },  // z1-4
+            { color: 'yellow', layerSuffix: 'osm', startZoom: 3, endZoom: 6 }, // z3-6
           ],
         });
         return {
@@ -768,16 +780,16 @@ test.describe('Layer Configs Package', () => {
       const result = await page.evaluate(() => {
         const original = new window.layerConfigsPackage.LayerConfig({
           id: 'roundtrip-test',
-          startZoom: 2,
-          zoomThreshold: 6,
           tileUrlTemplates: ['https://example.com/{z}/{x}/{y}.png'],
           lineWidthStops: { 1: 0.5, 10: 3.0 },
           lineStyles: [
-            { color: 'red' },
-            { color: 'blue', widthFraction: 0.5, dashArray: [10, 5] },
+            // Was: { color: 'red' } with startZoom:2, zoomThreshold:6, lineExtensionFactor:0.75
+            // Now split into ne (z2-5) and osm (z6+), with lineExtensionFactor and delWidthFactor on each
+            { color: 'red', layerSuffix: 'ne', startZoom: 2, endZoom: 5, lineExtensionFactor: 0.75, delWidthFactor: 2.0 },
+            { color: 'red', layerSuffix: 'osm', startZoom: 6, lineExtensionFactor: 0.75, delWidthFactor: 2.0 },
+            { color: 'blue', layerSuffix: 'ne', startZoom: 2, endZoom: 5, widthFraction: 0.5, dashArray: [10, 5], lineExtensionFactor: 0.75, delWidthFactor: 2.0 },
+            { color: 'blue', layerSuffix: 'osm', startZoom: 6, widthFraction: 0.5, dashArray: [10, 5], lineExtensionFactor: 0.75, delWidthFactor: 2.0 },
           ],
-          delWidthFactor: 2.0,
-          lineExtensionFactor: 0.75,
         });
 
         const json = original.toJSON();
@@ -786,23 +798,15 @@ test.describe('Layer Configs Package', () => {
         return {
           original: {
             id: original.id,
-            startZoom: original.startZoom,
-            zoomThreshold: original.zoomThreshold,
             tileUrlTemplates: original.tileUrlTemplates,
             lineWidthStops: original.lineWidthStops,
-            lineStyles: original.lineStyles,
-            delWidthFactor: original.delWidthFactor,
-            lineExtensionFactor: original.lineExtensionFactor,
+            lineStyles: original.lineStyles.map(s => s.toJSON()),
           },
           restored: {
             id: restored.id,
-            startZoom: restored.startZoom,
-            zoomThreshold: restored.zoomThreshold,
             tileUrlTemplates: restored.tileUrlTemplates,
             lineWidthStops: restored.lineWidthStops,
-            lineStyles: restored.lineStyles,
-            delWidthFactor: restored.delWidthFactor,
-            lineExtensionFactor: restored.lineExtensionFactor,
+            lineStyles: restored.lineStyles.map(s => s.toJSON()),
           },
           // Verify restored config still works
           matchesUrl: restored.matchTileUrl('https://example.com/5/10/15.png'),
@@ -819,12 +823,14 @@ test.describe('Layer Configs Package', () => {
       const result = await page.evaluate(() => {
         const plainObject = {
           id: 'from-plain',
-          startZoom: 1,
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://{s}.tiles.test.com/{z}/{x}/{y}.png'],
           lineWidthStops: { 1: 0.25, 8: 2.0 },
-          lineStyles: [{ color: 'green' }],
-          delWidthFactor: 1.5,
+          // Was: startZoom:1, zoomThreshold:5, lineStyles:[{color:'green'}]
+          // Now split into ne (z1-4) and osm (z5+)
+          lineStyles: [
+            { color: 'green', layerSuffix: 'ne', startZoom: 1, endZoom: 4 },
+            { color: 'green', layerSuffix: 'osm', startZoom: 5 },
+          ],
         };
 
         const config = window.layerConfigsPackage.LayerConfig.fromJSON(plainObject);
@@ -869,7 +875,7 @@ test.describe('Layer Configs Package', () => {
             try {
               window.layerConfigsPackage.LayerConfig.fromJSON({
                 id: 'color-test',
-                lineStyles: [{ color: testColor }],
+                lineStyles: [{ color: testColor, layerSuffix: 'osm' }],
               });
               return { success: true };
             } catch (e) {
@@ -886,7 +892,7 @@ test.describe('Layer Configs Package', () => {
             try {
               window.layerConfigsPackage.LayerConfig.fromJSON({
                 id: 'color-test',
-                lineStyles: [{ color: testColor }],
+                lineStyles: [{ color: testColor, layerSuffix: 'osm' }],
               });
               return null;
             } catch (e) {
@@ -902,7 +908,7 @@ test.describe('Layer Configs Package', () => {
           try {
             window.layerConfigsPackage.LayerConfig.fromJSON({
               id: 'color-test',
-              lineStyles: [{ color: '' }],
+              lineStyles: [{ color: '', layerSuffix: 'osm' }],
             });
             return null;
           } catch (e) {
@@ -917,7 +923,7 @@ test.describe('Layer Configs Package', () => {
           try {
             window.layerConfigsPackage.LayerConfig.fromJSON({
               id: 'color-test',
-              lineStyles: [{ color: '   ' }],
+              lineStyles: [{ color: '   ', layerSuffix: 'osm' }],
             });
             return null;
           } catch (e) {
@@ -935,6 +941,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           coords: config.extractCoords('https://tiles.example.com/5/15/12.png'),
@@ -950,6 +957,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://{s}.tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           coordsA: config.extractCoords('https://a.tiles.example.com/5/10/15.png'),
@@ -967,6 +975,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://{a-c}.tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           coordsA: config.extractCoords('https://a.tiles.example.com/5/10/15.png'),
@@ -984,6 +993,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tile{1-4}.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           coords1: config.extractCoords('https://tile1.example.com/5/10/15.png'),
@@ -999,6 +1009,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}{r}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           noRetina: config.extractCoords('https://tiles.example.com/5/10/15.png'),
@@ -1016,6 +1027,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return config.extractCoords('https://tiles.example.com/8/128/96.png?apikey=abc&v=1');
       });
@@ -1027,6 +1039,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           zoom0: config.extractCoords('https://tiles.example.com/0/0/0.png'),
@@ -1042,6 +1055,7 @@ test.describe('Layer Configs Package', () => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
           tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           https: config.extractCoords('https://tiles.example.com/5/10/15.png'),
@@ -1060,6 +1074,7 @@ test.describe('Layer Configs Package', () => {
             'https://{s}.tiles.example.com/{z}/{x}/{y}.png',
             'https://tiles.example.com/{z}/{x}/{y}.png',
           ],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         return {
           withSubdomain: config.extractCoords('https://a.tiles.example.com/5/10/15.png'),
@@ -1140,6 +1155,7 @@ test.describe('Layer Configs Package', () => {
         const customConfig = new window.layerConfigsPackage.LayerConfig({
           id: 'custom-tiles',
           tileUrlTemplates: 'https://custom.example.com/tiles/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         customRegistry.register(customConfig);
 

@@ -7,5 +7,23 @@
     "Demchok Eastern Sector": 7935425,
     "Gilgit Baltistan": 357995,
     "Shaksgam Tract": 7935380
+  },
+  "extras_in_control": {
+    "Shipki La": 2713485,
+    "Tripani Valley": 2713676,
+    "Samdu Valley": 2713483,
+    "Bara Hotii Valley": 2713484,
+    "Siachen Glacier": 13559521,
+    "Arunachal Pradesh": 2027346,
+    "Indian Controlled Jammu and Kashmir": 1943188,
+    "Indian Controlled Ladakh": 5515045
+  },
+  "indian_states": {
+    "Ladakh": [ "Indian Controlled Ladakh", "Siachen Glacier", "Eastern Ladakh", "Demchok Eastern Sector", "Gilgit Baltistan", "Shaksgam Tract" ],
+    "Jammu and Kashmir": [ "PoK", "Indian Controlled Jammu and Kashmir" ],
+    "Arunachal Pradesh": [ "Arunachal Pradesh" ]
+  },
+  "chinese_states": {
+    "Tibet": 153292
   }
 }

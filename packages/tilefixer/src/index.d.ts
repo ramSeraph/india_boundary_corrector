@@ -71,24 +71,30 @@ export type CorrectionResult = Record<string, Feature[]>;
 export interface LineStyle {
   /** Line color (CSS color string) */
   color: string;
+  /** Layer suffix (e.g., 'osm', 'ne', 'osm-disp') */
+  layerSuffix: string;
   /** Width as fraction of base line width (default: 1.0) */
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
   dashArray?: number[];
   /** Opacity/alpha value from 0 (transparent) to 1 (opaque) (default: 1.0) */
   alpha?: number;
+  /** Minimum zoom level for this style (default: 0) */
+  startZoom?: number;
+  /** Maximum zoom level for this style (default: -1 meaning no limit) */
+  endZoom?: number;
+  /** Factor to extend lines by (multiplied by deletion line width) (default: 0.5) */
+  lineExtensionFactor?: number;
+  /** Factor to multiply line width for deletion blur (default: 1.5) */
+  delWidthFactor?: number;
 }
 
 /**
  * Layer configuration for styling corrections.
  */
 export interface LayerConfig {
-  startZoom?: number;
-  zoomThreshold: number;
   lineWidthStops: Record<number, number>;
   lineStyles: LineStyle[];
-  delWidthFactor?: number;
-  lineExtensionFactor?: number;
 }
 
 /**
@@ -141,8 +147,9 @@ export declare class TileFixer {
    * @param z - Zoom level
    * @param x - Tile X coordinate
    * @param y - Tile Y coordinate
+   * @param signal - Optional abort signal
    */
-  getCorrections(z: number, x: number, y: number): Promise<CorrectionResult>;
+  getCorrections(z: number, x: number, y: number, signal?: AbortSignal): Promise<CorrectionResult>;
 
   /**
    * Apply corrections to a raster tile.

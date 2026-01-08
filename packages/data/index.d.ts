@@ -1,14 +1,4 @@
 /**
- * Layer names in the PMTiles file
- */
-export const layers: {
-  toAddOsm: string;
-  toDelOsm: string;
-  toAddNe: string;
-  toDelNe: string;
-};
-
-/**
  * Default CDN URL for the PMTiles file (jsDelivr with pinned version)
  */
 export const DEFAULT_CDN_URL: string;

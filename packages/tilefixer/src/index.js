@@ -1,4 +1,5 @@
 import { CorrectionsSource } from './corrections.js';
+import { INFINITY } from '@india-boundary-corrector/layer-configs';
 
 /**
  * Error thrown when tile fetch fails.
@@ -519,17 +520,7 @@ export class TileFixer {
    * @returns {Promise<ArrayBuffer>} The corrected tile as ArrayBuffer (PNG)
    */
   async fixTile(corrections, rasterTile, layerConfig, zoom) {
-    const {
-      startZoom = 0,
-      zoomThreshold,
-      lineWidthStops,
-      delWidthFactor,
-    } = layerConfig;
-
-    // Don't apply corrections below startZoom
-    if (zoom < startZoom) {
-      return rasterTile;
-    }
+    const { lineWidthStops } = layerConfig;
 
     // Get line styles active at this zoom level
     let activeLineStyles;
@@ -539,16 +530,19 @@ export class TileFixer {
       // Fallback for plain objects: filter by startZoom/endZoom
       const allStyles = layerConfig.lineStyles || [];
       activeLineStyles = allStyles.filter(style => {
-        const styleStart = style.startZoom ?? startZoom;
-        const styleEnd = style.endZoom ?? Infinity;
-        return zoom >= styleStart && zoom <= styleEnd;
+        const styleStart = style.startZoom ?? 0;
+        const styleEnd = style.endZoom ?? INFINITY;
+        return zoom >= styleStart && (styleEnd === INFINITY || zoom <= styleEnd);
       });
     }
 
-    // Determine which data source to use based on zoom
-    const useOsm = zoom >= zoomThreshold;
-    const addLayerName = useOsm ? 'to-add-osm' : 'to-add-ne';
-    const delLayerName = useOsm ? 'to-del-osm' : 'to-del-ne';
+    // No active styles at this zoom - return original tile
+    if (activeLineStyles.length === 0) {
+      return rasterTile;
+    }
+
+    // Get unique layer suffixes from active styles
+    const layerSuffixes = [...new Set(activeLineStyles.map(s => s.layerSuffix))];
 
     // Decode the raster tile to get dimensions
     const blob = new Blob([rasterTile]);
@@ -568,32 +562,40 @@ export class TileFixer {
     // Calculate base line width
     const baseLineWidth = getLineWidth(zoom, lineWidthStops);
 
-    // Calculate deletion width based on the thickest add line
-    const maxWidthFraction = activeLineStyles.length > 0
-      ? Math.max(...activeLineStyles.map(s => s.widthFraction))
-      : 1.0;
-    const delLineWidth = baseLineWidth * maxWidthFraction * delWidthFactor;
-
-    // Apply median blur along deletion paths to erase incorrect boundaries
-    const delFeatures = corrections[delLayerName] || [];
-    if (delFeatures.length > 0) {
-      // Get or create reusable mask canvas
-      if (!this._maskCanvas || this._maskCanvas.width !== tileSize) {
-        this._maskCanvas = new OffscreenCanvas(tileSize, tileSize);
-      }
-      applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize, this._maskCanvas);
+    // Calculate deletion width per layer suffix based on styles using that suffix
+    // For each suffix, use the maximum widthFraction * delWidthFactor among styles using it
+    const delLineWidthBySuffix = {};
+    for (const suffix of layerSuffixes) {
+      const stylesForSuffix = activeLineStyles.filter(s => s.layerSuffix === suffix);
+      const maxProduct = Math.max(...stylesForSuffix.map(s => s.widthFraction * s.delWidthFactor));
+      delLineWidthBySuffix[suffix] = baseLineWidth * maxProduct;
     }
 
-    // Draw addition lines using active lineStyles (in order)
-    let addFeatures = corrections[addLayerName] || [];
-    if (addFeatures.length > 0 && activeLineStyles.length > 0) {
-      // Extend add lines if there are deletion features
+    // PHASE 1: Apply all deletions first (median blur)
+    for (const suffix of layerSuffixes) {
+      const delLayerName = `to-del-${suffix}`;
+      const delFeatures = corrections[delLayerName] || [];
       if (delFeatures.length > 0) {
-        addFeatures = extendFeaturesByFactor(addFeatures, layerConfig.lineExtensionFactor, delLineWidth, tileSize);
+        if (!this._maskCanvas || this._maskCanvas.width !== tileSize) {
+          this._maskCanvas = new OffscreenCanvas(tileSize, tileSize);
+        }
+        applyMedianBlurAlongPath(ctx, delFeatures, delLineWidthBySuffix[suffix], tileSize, this._maskCanvas);
       }
+    }
+
+    // PHASE 2: Draw all additions (in lineStyles array order)
+    for (const style of activeLineStyles) {
+      const { color, layerSuffix, widthFraction, dashArray, alpha, lineExtensionFactor } = style;
+      const addLayerName = `to-add-${layerSuffix}`;
+      let addFeatures = corrections[addLayerName] || [];
       
-      for (const style of activeLineStyles) {
-        const { color, widthFraction, dashArray, alpha } = style;
+      if (addFeatures.length > 0) {
+        // Extend features if lineExtensionFactor > 0
+        const delLineWidth = delLineWidthBySuffix[layerSuffix];
+        if (lineExtensionFactor > 0) {
+          addFeatures = extendFeaturesByFactor(addFeatures, lineExtensionFactor, delLineWidth, tileSize);
+        }
+        
         const lineWidth = baseLineWidth * widthFraction;
         drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray, alpha);
       }

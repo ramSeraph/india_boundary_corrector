@@ -256,28 +256,26 @@
       </label>
     </div>
     
+    <div class="section">
+      <h2>Preset</h2>
+      <label for="presetSelect">Load a built-in configuration</label>
+      <select id="presetSelect">
+      </select>
+    </div>
+    
     <div class="section" id="tileLayerSection">
       <h2>Tile Layer</h2>
       <label for="tileUrl">Tile URL Template</label>
-      <input type="text" id="tileUrl" value="https://tile.openstreetmap.org/{z}/{x}/{y}.png">
+      <input type="text" id="tileUrl" value="">
       <label for="tileAttribution" style="margin-top: 8px;">Attribution</label>
-      <input type="text" id="tileAttribution" value="&copy; OpenStreetMap contributors">
+      <input type="text" id="tileAttribution" value="">
     </div>
     
     <div class="section" id="configSection">
       <h2>Layer Config</h2>
-      <textarea id="configEditor">{
-  "id": "osm-carto",
-  "startZoom": 1,
-  "zoomThreshold": 1,
-  "tileUrlTemplates": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png", "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"],
-  "lineWidthStops": { "1": 0.5, "2": 0.6, "3": 0.7, "4": 1.0, "10": 3.75 },
-  "lineStyles": [
-    { "color": "rgb(200, 180, 200)" },
-    { "color": "rgb(160, 120, 160)", "widthFraction": 0.33, "dashArray": [30, 2, 8, 2] }
-  ]
-}</textarea>
+      <textarea id="configEditor"></textarea>
       <div id="configStatus"></div>
+      <button id="resetConfigBtn" type="button" style="margin-top: 8px; background: #6c757d;">Reset to Preset</button>
     </div>
     
     <div class="section" id="pmtilesSection">
@@ -321,8 +319,51 @@
     // Extend Leaflet with IndiaBoundaryCorrectedTileLayer
     extendLeaflet(L);
 
+    // Load configs from configs.json
+    const configsResponse = await fetch('./packages/layer-configs/src/configs.json');
+    const builtinConfigs = await configsResponse.json();
+
+    // Map of config id to tile URL and attribution (not stored in configs.json)
+    const presetExtras = {
+      'cartodb-dark': {
+        tileUrl: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      },
+      'cartodb-light': {
+        tileUrl: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      },
+      'open-topo': {
+        tileUrl: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+      },
+      'osm-carto': {
+        tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      },
+      'osm-hot': {
+        tileUrl: 'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/">HOT</a>',
+      },
+    };
+
+    // Build presets map: id -> { config, tileUrl, attribution }
+    const presets = {};
+    for (const config of builtinConfigs) {
+      presets[config.id] = {
+        config,
+        ...presetExtras[config.id],
+      };
+    }
+
+    const DEFAULT_PRESET = 'osm-carto';
+
     let map = null;
     let currentLayer = null;
+    let currentPreset = null;
+
+    // Store edited configs per preset (so edits aren't lost when switching)
+    const editedConfigs = {};
 
     // DOM elements
     const pmtilesUrlInput = document.getElementById('pmtilesUrl');
@@ -335,6 +376,73 @@
     const pmtilesSection = document.getElementById('pmtilesSection');
     const tileLayerSection = document.getElementById('tileLayerSection');
     const configSection = document.getElementById('configSection');
+    const presetSelect = document.getElementById('presetSelect');
+    const resetConfigBtn = document.getElementById('resetConfigBtn');
+
+    // Populate preset dropdown
+    for (const id of Object.keys(presets)) {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = id;
+      presetSelect.appendChild(option);
+    }
+
+    function saveCurrentConfig() {
+      if (currentPreset) {
+        editedConfigs[currentPreset] = configEditor.value;
+      }
+    }
+
+    function loadPreset(id, forceReset = false) {
+      const preset = presets[id];
+      if (!preset) return;
+      
+      // Save current edits before switching
+      saveCurrentConfig();
+      
+      currentPreset = id;
+      tileUrlInput.value = preset.tileUrl;
+      tileAttributionInput.value = preset.attribution;
+      
+      // Load edited config if exists and not forcing reset, otherwise load original
+      if (!forceReset && editedConfigs[id]) {
+        configEditor.value = editedConfigs[id];
+      } else {
+        configEditor.value = JSON.stringify(preset.config, null, 2);
+        editedConfigs[id] = configEditor.value;
+      }
+      
+      presetSelect.value = id;
+      parseConfig();
+    }
+
+    function resetCurrentConfig() {
+      if (!currentPreset) return;
+      const preset = presets[currentPreset];
+      if (!preset) return;
+      
+      configEditor.value = JSON.stringify(preset.config, null, 2);
+      editedConfigs[currentPreset] = configEditor.value;
+      parseConfig();
+      applyConfiguration();
+      updateHash();
+    }
+
+    presetSelect.addEventListener('change', () => {
+      if (presetSelect.value) {
+        loadPreset(presetSelect.value);
+        applyConfiguration();
+        updateHash();
+      }
+    });
+
+    resetConfigBtn.addEventListener('click', resetCurrentConfig);
+
+    // Save edits on input
+    configEditor.addEventListener('input', () => {
+      saveCurrentConfig();
+      parseConfig();
+    });
 
     function toggleSections() {
       const enabled = correctionsToggle.checked;
@@ -635,6 +743,7 @@
         pmtilesUrl: params.get('pmtilesUrl'),
         corrections: params.has('corrections') ? params.get('corrections') === 'true' : null,
         config: params.get('config'),
+        preset: params.get('preset'),
       };
     }
 
@@ -650,6 +759,7 @@
       params.set('pmtilesUrl', pmtilesUrlInput.value);
       params.set('corrections', correctionsToggle.checked);
       params.set('config', configEditor.value);
+      params.set('preset', currentPreset || DEFAULT_PRESET);
       
       window.history.replaceState(null, '', '#' + params.toString());
     }
@@ -659,6 +769,13 @@
       if (!state) return false;
       
       let hasState = false;
+      
+      // Load preset first to set currentPreset
+      if (state.preset && presets[state.preset]) {
+        currentPreset = state.preset;
+        presetSelect.value = state.preset;
+        hasState = true;
+      }
       
       if (state.zoom !== null && state.lat !== null && state.lng !== null) {
         map.setView([state.lat, state.lng], state.zoom);
@@ -687,6 +804,10 @@
       
       if (state.config) {
         configEditor.value = state.config;
+        // Store the edited config for this preset
+        if (currentPreset) {
+          editedConfigs[currentPreset] = state.config;
+        }
         hasState = true;
       }
       
@@ -698,7 +819,6 @@
       applyConfiguration();
       updateHash();
     });
-    configEditor.addEventListener('input', parseConfig);
     if (correctionsToggle) {
       correctionsToggle.addEventListener('change', () => {
         toggleSections();
@@ -712,6 +832,9 @@
 
     // Initial setup - load from hash or use defaults
     const hasHashState = loadStateFromHash();
+    if (!hasHashState) {
+      loadPreset(DEFAULT_PRESET);
+    }
     toggleSections();
     applyConfiguration();
     if (!hasHashState) {

@@ -1,19 +1,31 @@
 /**
+ * Constant representing no zoom limit (used for endZoom).
+ * Using -1 instead of Infinity for JSON serialization compatibility.
+ */
+export const INFINITY: -1;
+
+/**
  * Line style definition for drawing boundary lines
  */
 export interface LineStyle {
   /** Line color (CSS color string) */
   color: string;
+  /** Layer suffix (e.g., 'osm', 'ne', 'osm-disp') - determines PMTiles layer */
+  layerSuffix: string;
   /** Width as fraction of base line width (default: 1.0) */
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
   dashArray?: number[];
   /** Opacity/alpha value from 0 (transparent) to 1 (opaque) (default: 1.0) */
   alpha?: number;
-  /** Minimum zoom level for this style (default: layerConfig.startZoom) */
+  /** Minimum zoom level for this style (default: 0) */
   startZoom?: number;
-  /** Maximum zoom level for this style (default: Infinity) */
+  /** Maximum zoom level for this style (default: INFINITY, i.e., -1) */
   endZoom?: number;
+  /** Factor to extend add lines by (multiplied by deletion line width) (default: 0.5) */
+  lineExtensionFactor?: number;
+  /** Factor to multiply line width for deletion blur (default: 1.5) */
+  delWidthFactor?: number;
 }
 
 /**
@@ -22,20 +34,12 @@ export interface LineStyle {
 export interface LayerConfigOptions {
   /** Unique identifier for this config */
   id: string;
-  /** Minimum zoom to start rendering (default: 0) */
-  startZoom?: number;
-  /** Zoom level to switch from NE to OSM data (default: 5) */
-  zoomThreshold?: number;
   /** Tile URL templates for matching (e.g., "https://{s}.tile.example.com/{z}/{x}/{y}.png") */
   tileUrlTemplates?: string | string[];
   /** Line width stops: map of zoom level to line width (at least 2 entries) */
   lineWidthStops?: Record<number, number>;
-  /** Line styles array - lines are drawn in order */
-  lineStyles?: LineStyle[];
-  /** Factor to multiply line width for deletion blur (default: 1.5) */
-  delWidthFactor?: number;
-  /** Factor to extend add lines by (multiplied by deletion line width) (default: 0.5) */
-  lineExtensionFactor?: number;
+  /** Line styles array - lines are drawn in order (required) */
+  lineStyles: LineStyle[];
 }
 
 /**
@@ -43,13 +47,9 @@ export interface LayerConfigOptions {
  */
 export class LayerConfig {
   readonly id: string;
-  readonly startZoom: number;
-  readonly zoomThreshold: number;
   readonly tileUrlTemplates: string[];
   readonly lineWidthStops: Record<number, number>;
   readonly lineStyles: LineStyle[];
-  readonly delWidthFactor: number;
-  readonly lineExtensionFactor: number;
 
   constructor(options: LayerConfigOptions);
 
@@ -58,6 +58,12 @@ export class LayerConfig {
    * @param z - Zoom level
    */
   getLineStylesForZoom(z: number): LineStyle[];
+
+  /**
+   * Get unique layer suffixes from styles active at a given zoom level
+   * @param z - Zoom level
+   */
+  getLayerSuffixesForZoom(z: number): string[];
 
   /**
    * Check if this config matches the given template URLs (with {z}/{x}/{y} placeholders)
