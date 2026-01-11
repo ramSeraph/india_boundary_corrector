@@ -68,8 +68,9 @@
     ],
     "lineWidthStops": { "1": 0.5, "2": 0.6, "3": 0.7, "4": 1.0, "10": 3.75 },
     "lineStyles": [
-      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 1 },
-      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm", "startZoom": 1, "widthFraction": 0.333, "dashArray": [30, 2, 8, 2] },
+      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 1, "endZoom": 3, "delWidthFactor": 2.5, "widthFraction": 1.5 },
+      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 4 },
+      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm", "startZoom": 4, "widthFraction": 0.333, "dashArray": [30, 2, 8, 2] },
       { "color": "rgb(200, 180, 200)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.45 },
       { "color": "rgb(160, 120, 160)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.15, "dashArray": [4, 2, 10] }
     ]
