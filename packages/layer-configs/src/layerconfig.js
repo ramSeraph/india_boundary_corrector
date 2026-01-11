@@ -159,8 +159,8 @@ export class LineStyle {
       throw new Error(`${prefix}: lineExtensionFactor must be a non-negative number`);
     }
     
-    if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor <= 0)) {
-      throw new Error(`${prefix}: delWidthFactor must be a positive number`);
+    if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor < 0)) {
+      throw new Error(`${prefix}: delWidthFactor must be a non-negative number`);
     }
   }
 

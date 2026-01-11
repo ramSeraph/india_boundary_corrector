@@ -38,7 +38,7 @@ export class TileFetchError extends Error {
 /**
  * Minimum line width used when extrapolating below the lowest zoom stop.
  */
-export const MIN_LINE_WIDTH = 0.5;
+export const MIN_LINE_WIDTH = 0.1;
 
 /**
  * Default vector tile extent (coordinate space size).
@@ -573,13 +573,17 @@ export class TileFixer {
 
     // PHASE 1: Apply all deletions first (median blur)
     for (const suffix of layerSuffixes) {
+      const delLineWidth = delLineWidthBySuffix[suffix];
+      // Skip deletion if width is 0 (all styles have delWidthFactor=0)
+      if (delLineWidth === 0) continue;
+      
       const delLayerName = `to-del-${suffix}`;
       const delFeatures = corrections[delLayerName] || [];
       if (delFeatures.length > 0) {
         if (!this._maskCanvas || this._maskCanvas.width !== tileSize) {
           this._maskCanvas = new OffscreenCanvas(tileSize, tileSize);
         }
-        applyMedianBlurAlongPath(ctx, delFeatures, delLineWidthBySuffix[suffix], tileSize, this._maskCanvas);
+        applyMedianBlurAlongPath(ctx, delFeatures, delLineWidth, tileSize, this._maskCanvas);
       }
     }
 
