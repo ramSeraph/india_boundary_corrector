@@ -314,14 +314,13 @@
   <script type="module">
     import L from 'https://esm.sh/leaflet@1.9.4';
     import { extendLeaflet } from './packages/leaflet-layer/dist/index.js';
-    import { LayerConfig } from './packages/layer-configs/dist/index.js';
+    import { LayerConfig, configsJson } from './packages/layer-configs/dist/index.js';
     
     // Extend Leaflet with IndiaBoundaryCorrectedTileLayer
     extendLeaflet(L);
 
-    // Load configs from configs.json
-    const configsResponse = await fetch('./packages/layer-configs/src/configs.json');
-    const builtinConfigs = await configsResponse.json();
+    // Use bundled configs
+    const builtinConfigs = configsJson;
 
     // Map of config id to tile URL and attribution (not stored in configs.json)
     const presetExtras = {
