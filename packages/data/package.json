@@ -1,6 +1,6 @@
 {
   "name": "@india-boundary-corrector/data",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "PMTiles data for India boundary corrections (NE and OSM layers)",
   "type": "module",
   "main": "index.js",

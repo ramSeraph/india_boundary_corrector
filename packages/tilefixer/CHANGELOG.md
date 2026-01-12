@@ -1,5 +1,70 @@
 # @india-boundary-corrector/tilefixer
 
+## 0.1.0
+
+### Minor Changes
+
+- ### Breaking Changes
+
+  #### LayerConfig
+
+  - Removed `zoomThreshold`, `startZoom`, `delWidthFactor`, and `lineExtensionFactor` properties
+  - Layer data selection (NE vs OSM) is now controlled via `LineStyle.layerSuffix` instead of `zoomThreshold`
+
+  #### LineStyle
+
+  - `layerSuffix` is now a **required** property specifying which PMTiles layer to use (e.g., `'osm'`, `'ne'`, `'osm-disp'`, `'osm-internal'`)
+  - Layer names are derived as: `to-add-{layerSuffix}` and `to-del-{layerSuffix}`
+  - Added `lineExtensionFactor` (default: 0.5) and `delWidthFactor` (default: 1.5) properties (moved from LayerConfig)
+  - `fromJSON()` no longer accepts `defaultStartZoom` parameter; `startZoom` defaults to 0
+
+  #### New Exports
+
+  - Added `INFINITY` constant (value: -1) for `endZoom` - use instead of `Infinity` for JSON serialization compatibility
+
+  ### New Features
+
+  #### Data Package
+
+  - Added 6 new PMTiles layers for disputed boundaries and internal state boundaries:
+    - `to-add-osm-disp`, `to-del-osm-disp` - Disputed boundary lines for OSM-based tiles
+    - `to-add-osm-internal`, `to-del-osm-internal` - Internal state boundaries (Indian states in claimed territory, Chinese state deletions)
+    - `to-add-ne-disp`, `to-del-ne-disp` - Disputed boundary lines for Natural Earth tiles
+  - Updated data version to `osm_20260109_024608_ne_5.1.1`
+
+  ### Migration Guide
+
+  Before (v0.0.5):
+
+  ```javascript
+  {
+    id: 'my-config',
+    zoomThreshold: 5,
+    startZoom: 1,
+    delWidthFactor: 1.5,
+    lineExtensionFactor: 0.5,
+    lineStyles: [{ color: 'rgb(200, 180, 200)' }]
+  }
+  ```
+
+  After (v0.1.0):
+
+  ```javascript
+  {
+    id: 'my-config',
+    lineStyles: [
+      { color: 'rgb(200, 180, 200)', layerSuffix: 'ne', startZoom: 1, endZoom: 4 },
+      { color: 'rgb(200, 180, 200)', layerSuffix: 'osm', startZoom: 5 }
+    ]
+  }
+  ```
+
+  ### Internal Changes
+
+  - **tilefixer**: Processes deletions and additions per `layerSuffix` instead of using global `zoomThreshold`
+  - **tilefixer**: Each style's `delWidthFactor` and `lineExtensionFactor` are used independently
+  - **tilefixer**: Minimum line width reduced from 0.5 to 0.1
+
 ## 0.0.5
 
 ### Patch Changes
