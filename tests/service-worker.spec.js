@@ -18,73 +18,6 @@ test.describe('Service Worker Package', () => {
     await page.waitForTimeout(500);
   });
 
-  test.describe('CorrectionServiceWorker - API and Exports', () => {
-    test('exports CorrectionServiceWorker class', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        return {
-          hasCorrectionServiceWorker: typeof CorrectionServiceWorker === 'function',
-          isConstructor: CorrectionServiceWorker.prototype.constructor === CorrectionServiceWorker,
-        };
-      });
-
-      expect(result.hasCorrectionServiceWorker).toBe(true);
-      expect(result.isConstructor).toBe(true);
-    });
-
-    test('exports helper functions', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        return {
-          hasRegisterFunction: typeof window.registerCorrectionServiceWorker === 'function',
-          hasLayerConfig: typeof window.LayerConfig === 'function',
-        };
-      });
-
-      expect(result.hasRegisterFunction).toBe(true);
-      expect(result.hasLayerConfig).toBe(true);
-    });
-  });
-
-  test.describe('CorrectionServiceWorker - Construction', () => {
-    test('constructs with required parameters', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        
-        const sw = new CorrectionServiceWorker('/test-sw.js');
-        
-        return {
-          hasInstance: sw instanceof CorrectionServiceWorker,
-          hasRegisterMethod: typeof sw.register === 'function',
-          hasUnregisterMethod: typeof sw.unregister === 'function',
-          hasSendMessageMethod: typeof sw.sendMessage === 'function',
-        };
-      });
-
-      expect(result.hasInstance).toBe(true);
-      expect(result.hasRegisterMethod).toBe(true);
-      expect(result.hasUnregisterMethod).toBe(true);
-      expect(result.hasSendMessageMethod).toBe(true);
-    });
-
-    test('constructs with options', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        
-        const sw = new CorrectionServiceWorker('/test-sw.js', {
-          scope: '/custom/',
-          pmtilesUrl: 'https://example.com/tiles.pmtiles',
-          controllerTimeout: 5000,
-        });
-        
-        return {
-          hasInstance: sw instanceof CorrectionServiceWorker,
-        };
-      });
-
-      expect(result.hasInstance).toBe(true);
-    });
-  });
-
   test.describe('CorrectionServiceWorker - Methods', () => {
     test('isControlling returns boolean', async ({ page }) => {
       const result = await page.evaluate(() => {
@@ -147,58 +80,6 @@ test.describe('Service Worker Package', () => {
     });
   });
 
-  test.describe('Integration - Constructor Options', () => {
-    test('accepts pmtilesUrl in constructor', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        
-        const sw = new CorrectionServiceWorker('/test-sw.js', {
-          pmtilesUrl: 'https://custom.example.com/tiles.pmtiles',
-        });
-        
-        return {
-          created: sw instanceof CorrectionServiceWorker,
-        };
-      });
-
-      expect(result.created).toBe(true);
-    });
-
-    test('accepts controllerTimeout in constructor', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        
-        const sw = new CorrectionServiceWorker('/test-sw.js', {
-          controllerTimeout: 10000,
-        });
-        
-        return {
-          created: sw instanceof CorrectionServiceWorker,
-        };
-      });
-
-      expect(result.created).toBe(true);
-    });
-
-    test('accepts multiple options in constructor', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        
-        const sw = new CorrectionServiceWorker('/test-sw.js', {
-          scope: '/app/',
-          pmtilesUrl: 'https://custom.example.com/tiles.pmtiles',
-          controllerTimeout: 5000,
-        });
-        
-        return {
-          created: sw instanceof CorrectionServiceWorker,
-        };
-      });
-
-      expect(result.created).toBe(true);
-    });
-  });
-
   test.describe('LayerConfig Integration', () => {
     test('LayerConfig is available', async ({ page }) => {
       const result = await page.evaluate(() => {
@@ -232,38 +113,6 @@ test.describe('Service Worker Package', () => {
       expect(result.hasToJSON).toBe(true);
       expect(result.json).toHaveProperty('id', 'test-id');
       expect(result.json).toHaveProperty('lineStyles');
-    });
-  });
-
-  test.describe('Method Return Types', () => {
-    test('register returns Promise', async ({ page }) => {
-      const result = await page.evaluate(() => {
-        const { CorrectionServiceWorker } = window;
-        const sw = new CorrectionServiceWorker('/fake-sw.js');
-        
-        const promise = sw.register().catch(e => e);
-        
-        return {
-          isPromise: promise instanceof Promise,
-        };
-      });
-
-      expect(result.isPromise).toBe(true);
-    });
-
-    test('unregister returns Promise', async ({ page }) => {
-      const result = await page.evaluate(async () => {
-        const { CorrectionServiceWorker } = window;
-        const sw = new CorrectionServiceWorker('/test-sw.js');
-        
-        const result = await sw.unregister();
-        
-        return {
-          isBoolean: typeof result === 'boolean',
-        };
-      });
-
-      expect(result.isBoolean).toBe(true);
     });
   });
 

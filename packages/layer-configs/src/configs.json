@@ -15,7 +15,7 @@
       { "color": "rgb(40, 40, 40)", "layerSuffix": "ne-disp", "endZoom": 4 },
       { "color": "rgb(40, 40, 40)", "layerSuffix": "osm", "startZoom": 5 },
       { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-disp", "startZoom": 5 },
-      { "color": "rgb(50, 50, 50)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.3, "dashArray": [2, 2], "delWidthFactor": 2.0 }
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.3, "dashArray": [2, 2] }
     ]
   },
   {

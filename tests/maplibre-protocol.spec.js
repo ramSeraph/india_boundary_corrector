@@ -245,9 +245,8 @@ test.describe('MapLibre Protocol Package', () => {
         
         const customConfig = new LayerConfig({
           id: 'custom-test',
-          zoomThreshold: 5,
           tileUrlTemplates: ['https://custom.example.com/{z}/{x}/{y}.png'],
-          lineStyles: [{ color: 'red' }],
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
         });
         protocol.addLayerConfig(customConfig);
         

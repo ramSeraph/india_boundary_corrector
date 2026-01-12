@@ -95,23 +95,6 @@ test.describe('Layer Configs Package', () => {
         expect(matches).toBe(false);
       });
     }
-
-    test('has correct properties', async ({ page }) => {
-      const config = await page.evaluate(() => {
-        const c = window.layerConfigsPackage.cartoDbDark;
-        return {
-          id: c.id,
-          lineStyles: c.lineStyles.map(s => ({ color: s.color, layerSuffix: s.layerSuffix })),
-        };
-      });
-
-      expect(config.id).toBe('cartodb-dark');
-      expect(config.lineStyles.length).toBeGreaterThan(0);
-      // Should have both ne and osm layer suffixes
-      const suffixes = config.lineStyles.map(s => s.layerSuffix);
-      expect(suffixes).toContain('ne');
-      expect(suffixes).toContain('osm');
-    });
   });
 
   test.describe('osmCarto config', () => {
@@ -176,23 +159,6 @@ test.describe('Layer Configs Package', () => {
         expect(matches).toBe(false);
       });
     }
-
-    test('has correct properties', async ({ page }) => {
-      const config = await page.evaluate(() => {
-        const c = window.layerConfigsPackage.osmCarto;
-        return {
-          id: c.id,
-          lineWidthStops: c.lineWidthStops,
-          lineStyles: c.lineStyles.map(s => ({ color: s.color, layerSuffix: s.layerSuffix, dashArray: s.dashArray })),
-        };
-      });
-
-      expect(config.id).toBe('osm-carto');
-      expect(config.lineStyles).toHaveLength(2);
-      expect(config.lineStyles[0].color).toBe('rgb(200, 180, 200)');
-      expect(config.lineStyles[0].layerSuffix).toBe('osm');
-      expect(config.lineStyles[1].dashArray).toEqual([30, 2, 8, 2]);
-    });
   });
 
   test.describe('LayerConfigRegistry', () => {

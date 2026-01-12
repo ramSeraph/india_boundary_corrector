@@ -144,41 +144,32 @@ test.describe('OpenLayers Layer Package', () => {
             hasError: !!e.error,
             hasCoords: !!e.coords,
             hasTileUrl: !!e.tileUrl,
+            coords: e.coords,
           };
         });
 
-        // Get the tileFixer and call fetchAndFixTile directly to trigger correctionerror
-        const tileFixer = layer.getTileFixer();
-        const layerConfig = layer.getLayerConfig();
-        const mockTileUrl = window.createMockTileUrl('success');
+        // Access the internal loader from the ImageTile source
+        const source = layer.getSource();
+        const loader = source.loader_;
         
+        // Call the loader directly - PMTiles will fail, triggering correctionerror
         try {
-          // This will fail to load corrections from broken PMTiles, 
-          // but with fallbackOnCorrectionFailure=true (default), it should succeed
-          // and dispatch correctionerror event
-          await tileFixer.fetchAndFixTile(mockTileUrl, 8, 182, 101, layerConfig, {});
-          
-          // The event was dispatched via the layer, so we need to trigger it manually
-          // since we're calling tileFixer directly, not through the loader
-          // Let's use the loader approach instead
+          await loader(8, 182, 101, { signal: new AbortController().signal });
         } catch (e) {
-          // Expected if fallback is disabled
+          // May throw if tile fetch fails, but we're testing the correctionerror event
         }
 
-        // For this test, we need to invoke the loader which has the event dispatch logic
-        // The loader is internal to the ImageTile source, so we test via the layer's methods
-        // Instead, let's verify the layer has the event mechanism set up
-        return {
-          hasDispatchEvent: typeof layer.dispatchEvent === 'function',
-          hasTileFixer: !!layer.getTileFixer(),
-          hasLayerConfig: !!layer.getLayerConfig(),
-        };
+        // Wait for the async error event
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        return errorEvent;
       });
 
-      // Verify the layer is properly configured for correction error events
-      expect(result.hasDispatchEvent).toBe(true);
-      expect(result.hasTileFixer).toBe(true);
-      expect(result.hasLayerConfig).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result.hasError).toBe(true);
+      expect(result.hasCoords).toBe(true);
+      expect(result.hasTileUrl).toBe(true);
+      expect(result.coords).toEqual({ z: 8, x: 182, y: 101 });
     });
   });
 });
