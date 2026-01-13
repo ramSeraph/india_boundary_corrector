@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker (IIFE) Example - India Boundary Corrector (CesiumJS)</title>
+  <link href="https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/Cesium.js"></script>
+  <script>
+    // For production, you can simply use:
+    // <script src="https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js"><\/script>
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isProd = urlParams.get('prod') === 'yes';
+    window.isProd = isProd;
+    
+    const script = document.createElement('script');
+    script.src = isProd 
+      ? 'https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-worker/dist/index.global.js'
+      : '../../../packages/service-worker/dist/index.global.js';
+    window.ibcScriptLoaded = new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = reject;
+    });
+    document.head.appendChild(script);
+  </script>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+    #cesiumContainer { width: 100%; height: 100%; }
+    .info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      max-width: 350px;
+      z-index: 1000;
+    }
+    .info h3 { margin: 0 0 10px 0; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    .info code {
+      background: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .info select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.warning { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h3>CesiumJS + Service Worker</h3>
+    <p>Uses a Service Worker to intercept CesiumJS tile requests and apply India boundary corrections.</p>
+    <label for="basemap">Select basemap:</label>
+    <select id="basemap">
+      <option value="osm-carto">OSM Carto</option>
+      <option value="cartodb-light">Carto Voyager</option>
+    </select>
+    <div id="status" class="status">Loading...</div>
+  </div>
+  <div id="cesiumContainer"></div>
+
+  <script>
+    // Wait for the dynamically loaded script.
+    window.ibcScriptLoaded.then(function() {
+      const statusEl = document.getElementById('status');
+      const basemapSelect = document.getElementById('basemap');
+
+      const BASEMAPS = {
+        'osm-carto': {
+          url: 'https://tile.openstreetmap.org/',
+          credit: '© OpenStreetMap contributors',
+        },
+        'cartodb-light': {
+          url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/',
+          credit: '© OpenStreetMap contributors, © CARTO',
+        },
+      };
+
+      let viewer;
+
+      function updateStatus(message, type = '') {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+      }
+
+      function switchBasemap(basemapId) {
+        const basemap = BASEMAPS[basemapId];
+        if (!basemap || !viewer) return;
+
+        // Remove all existing imagery layers
+        viewer.imageryLayers.removeAll();
+
+        // Add new imagery layer
+        const imageryProvider = new Cesium.OpenStreetMapImageryProvider({
+          url: basemap.url,
+          credit: basemap.credit,
+        });
+
+        viewer.imageryLayers.addImageryProvider(imageryProvider);
+      }
+
+      async function init() {
+        try {
+          const { registerCorrectionServiceWorker } = IndiaBoundaryCorrector;
+
+          updateStatus('Registering service worker...');
+
+          // Register the service worker
+          const swPath = window.isProd ? './sw-prod.js' : './sw.js';
+          const options = { forceReregister: true };
+          if (!window.isProd) {
+            options.pmtilesUrl = '../../../packages/service-worker/dist/india_boundary_corrections.pmtiles.gz';
+          }
+          const sw = await registerCorrectionServiceWorker(swPath, options);
+
+          if (!sw.isControlling()) {
+            updateStatus('⚠ SW registered but not controlling - please reload', 'warning');
+            return;
+          }
+
+          updateStatus('✓ Service worker active' + (window.isProd ? ' (prod)' : ' (dev)'), 'success');
+
+          // Create Cesium viewer without initial imagery (add it after)
+          viewer = new Cesium.Viewer('cesiumContainer', {
+            baseLayerPicker: false,
+            geocoder: false,
+            animation: false,
+            timeline: false,
+            infoBox: false,
+          });
+
+          // Remove default imagery layer and add OSM
+          viewer.imageryLayers.removeAll();
+          viewer.imageryLayers.addImageryProvider(
+            new Cesium.OpenStreetMapImageryProvider({
+              url: BASEMAPS['osm-carto'].url,
+              credit: BASEMAPS['osm-carto'].credit,
+            })
+          );
+
+          // Fly to India
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(78.9629, 20.5937, 5000000),
+          });
+
+          basemapSelect.addEventListener('change', (e) => switchBasemap(e.target.value));
+
+        } catch (error) {
+          updateStatus('✗ Error: ' + error.message, 'error');
+          console.error('Error:', error);
+        }
+      }
+
+      init();
+    });
+  </script>
+</body>
+</html>

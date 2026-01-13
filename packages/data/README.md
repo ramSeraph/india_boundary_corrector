@@ -8,7 +8,7 @@ PMTiles data package for India boundary corrections.
 
 ## Layers
 
-The PMTiles file contains 10 layers:
+The PMTiles file contains 12 layers:
 
 | Layer | Description |
 |-------|-------------|
@@ -22,10 +22,12 @@ The PMTiles file contains 10 layers:
 | `to-del-ne` | Boundary lines to mask/delete from Natural Earth tiles |
 | `to-add-ne-disp` | Disputed boundary lines to add over Natural Earth tiles |
 | `to-del-ne-disp` | Disputed boundary lines to delete from Natural Earth tiles (same as add-disp) |
+| `to-add-ne-internal` | Internal state boundary lines to add over Natural Earth tiles (J&K + PoK combined) |
+| `to-del-ne-internal` | Internal boundary lines to delete from Natural Earth tiles (Chinese state boundaries within India's claimed territory) |
 
 The `-disp` layers contain boundaries of disputed regions that fall on India's official boundary. These are boundaries that India claims but are disputed by China or Pakistan. The `to-del-*-disp` layers are identical to `to-add-*-disp` layers - they delete the original lines at the same location where the corrected disputed lines are drawn.
 
-The `-internal` layers handle internal state boundaries within India's claimed territory. `to-del-osm-internal` contains Chinese state boundaries (e.g., Tibet) that fall within India's claimed boundary. `to-add-osm-internal` contains Indian state boundaries (e.g., Ladakh, Jammu and Kashmir, Arunachal Pradesh) that overlap with the main deletion areas.
+The `-internal` layers handle internal state boundaries within India's claimed territory. `to-del-*-internal` contains Chinese state boundaries (e.g., Tibet) that fall within India's claimed boundary. `to-add-osm-internal` contains Indian state boundaries (e.g., Ladakh, Jammu and Kashmir, Arunachal Pradesh) that overlap with the main deletion areas. `to-add-ne-internal` contains India's official J&K boundary (combining Jammu and Kashmir + PoK).
 
 ## Usage
 

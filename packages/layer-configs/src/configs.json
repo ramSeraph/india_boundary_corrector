@@ -15,7 +15,8 @@
       { "color": "rgb(40, 40, 40)", "layerSuffix": "ne-disp", "endZoom": 4 },
       { "color": "rgb(40, 40, 40)", "layerSuffix": "osm", "startZoom": 5 },
       { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-disp", "startZoom": 5 },
-      { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.3, "dashArray": [2, 2] }
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.3, "dashArray": [2, 2], "delWidthFactor": 2.0 },
+      { "color": "rgb(40, 40, 40)", "layerSuffix": "ne-internal", "startZoom": 4, "endZoom": 4, "widthFraction": 0.3, "dashArray": [2, 2], "delWidthFactor": 3.0 }
     ]
   },
   {
@@ -36,13 +37,13 @@
     ],
     "lineWidthStops": { "1": 0.5, "2": 0.5, "3": 0.5, "4": 1.0, "5": 1.25, "7": 1.5, "16": 2.5 },
     "lineStyles": [
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "lineExtensionFactor": 0.0 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.5 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "delWidthFactor": 0 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.2,  "startZoom": 6, "widthFraction": 3, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "alpha": 0.2, "startZoom": 6, "widthFraction": 3, "lineExtensionFactor": 0.0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5, "lineExtensionFactor": 0.0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.75, "dashArray": [2, 2], "delWidthFactor": 2.0 }
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5,  "delWidthFactor": 0 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.5, "dashArray": [2, 2], "delWidthFactor": 2.0 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-internal", "startZoom": 4, "endZoom": 4, "widthFraction": 0.5, "dashArray": [2, 2], "delWidthFactor": 2.5 }
     ]
   },
   {
@@ -69,10 +70,10 @@
     "lineWidthStops": { "1": 0.5, "2": 0.6, "3": 0.7, "4": 1.0, "10": 3.75 },
     "lineStyles": [
       { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 1, "endZoom": 3, "delWidthFactor": 2.5, "widthFraction": 1.5 },
-      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 4 },
-      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm", "startZoom": 4, "widthFraction": 0.333, "dashArray": [30, 2, 8, 2] },
+      { "color": "rgb(200, 180, 200)", "layerSuffix": "osm", "startZoom": 4, "delWidthFactor": 1.5 },
+      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm", "startZoom": 4, "widthFraction": 0.333, "dashArray": [30, 2, 8, 2], "delWidthFactor": 0 },
       { "color": "rgb(200, 180, 200)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.45 },
-      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.15, "dashArray": [4, 2, 10] }
+      { "color": "rgb(160, 120, 160)", "layerSuffix": "osm-internal", "startZoom": 4, "widthFraction": 0.15, "dashArray": [10, 4, 2] }
     ]
   },
   {
@@ -85,7 +86,7 @@
     "lineStyles": [
       { "color": "rgb(149, 175, 180)", "layerSuffix": "osm", "lineExtensionFactor": 0.25, "startZoom": 2 },
       { "color": "rgb(89, 117, 123)", "layerSuffix": "osm", "widthFraction": 0.33, "lineExtensionFactor": 0.25, "startZoom": 2 },
-      { "color": "rgb(172, 163, 163)", "layerSuffix": "osm-internal", "widthFraction": 0.33, "startZoom": 4, "dashArray": [7, 7, 7] }
+      { "color": "rgb(172, 163, 163)", "layerSuffix": "osm-internal", "widthFraction": 0.33, "startZoom": 4, "dashArray": [7, 7] }
     ]
   }
 ]

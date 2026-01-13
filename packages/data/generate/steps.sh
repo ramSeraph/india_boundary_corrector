@@ -8,10 +8,12 @@ wget -P data/ne https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_co
 wget -P data/ne https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries_ind.zip
 wget -P data/ne https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries_chn.zip
 wget -P data/ne https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries_pak.zip
+wget -P data/ne https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip
 unzip data/ne/ne_10m_admin_0_countries.zip -d data/ne/base
 unzip data/ne/ne_10m_admin_0_countries_ind.zip -d data/ne/ind
 unzip data/ne/ne_10m_admin_0_countries_chn.zip -d data/ne/chn
 unzip data/ne/ne_10m_admin_0_countries_pak.zip -d data/ne/pak
+unzip data/ne/ne_10m_admin_1_states_provinces.zip -d data/ne/states
 
 ne_version=$(cat data/ne/base/ne_10m_admin_0_countries.VERSION.txt)
 # remove trailing newline
@@ -35,6 +37,8 @@ tippecanoe -A '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStre
   -L'{"file": "data/ne/to_del.geojson", "layer": "to-del-ne"}' \
   -L'{"file": "data/ne/to_add_disp.geojson", "layer": "to-add-ne-disp"}' \
   -L'{"file": "data/ne/to_add_disp.geojson", "layer": "to-del-ne-disp"}' \
+  -L'{"file": "data/ne/to_add_internal.geojson", "layer": "to-add-ne-internal"}' \
+  -L'{"file": "data/ne/to_del_internal.geojson", "layer": "to-del-ne-internal"}' \
   -o data/${fname}
 
 # Copy generated files to package root for npm publishing

@@ -87,14 +87,14 @@ layerConfigs.remove('my-custom-style');
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `color` | string | required | Line color (CSS color string) |
-| `layerSuffix` | string | required | Data layer suffix (`osm`, `ne`, `osm-disp`, `ne-disp`). Determines which PMTiles layer to use (`to-add-{suffix}`, `to-del-{suffix}`). |
-| `widthFraction` | number | 1.0 | Width as fraction of base line width |
-| `dashArray` | number[] | - | Dash pattern array (omit for solid line) |
-| `alpha` | number | 1.0 | Opacity/alpha value from 0 (transparent) to 1 (opaque) |
-| `startZoom` | number | 0 | Minimum zoom level for this style |
-| `endZoom` | number | -1 (no limit) | Maximum zoom level for this style. Use -1 (INFINITY constant) for no limit. |
-| `lineExtensionFactor` | number | 0.5 | Factor to extend lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
-| `delWidthFactor` | number | 1.5 | Factor to multiply line width for deletion blur. Higher values leave gaps where wiped lines meet existing lines. Lower values mean wiped lines show through. |
+| `layerSuffix` | string | required | Data layer suffix (`osm`, `ne`, `osm-disp`, `ne-disp`, `osm-internal`, `ne-internal`). Determines which PMTiles layer to use (`to-add-{suffix}`, `to-del-{suffix}`). |
+| `widthFraction` | number | `1.0` | Width as fraction of base line width |
+| `dashArray` | number[] | `undefined` | Dash pattern array (omit for solid line) |
+| `alpha` | number | `1.0` | Opacity/alpha value from 0 (transparent) to 1 (opaque) |
+| `startZoom` | number | `0` | Minimum zoom level for this style |
+| `endZoom` | number | `-1` (no limit) | Maximum zoom level for this style. Use -1 (INFINITY constant) for no limit. |
+| `lineExtensionFactor` | number | `0.0` | Factor to extend lines by (multiplied by deletion line width). Helps cover gaps where deleted lines meet the new boundary. Set to 0 to disable. |
+| `delWidthFactor` | number | `1.5` | Factor to multiply line width for deletion blur. Higher values leave gaps where wiped lines meet existing lines. Lower values mean wiped lines show through. |
 
 ### Zoom-Specific Line Styles
 
@@ -104,6 +104,8 @@ Line styles can be active only at certain zoom levels using `startZoom` and `end
 - `ne`: Natural Earth boundaries (lower detail, for lower zooms)  
 - `osm-disp`: Disputed boundary lines from OSM data
 - `ne-disp`: Disputed boundary lines from Natural Earth data
+- `osm-internal`: Internal state boundaries from OSM data (e.g., Ladakh, J&K, Arunachal Pradesh)
+- `ne-internal`: Internal state boundaries from Natural Earth data (e.g., J&K + PoK combined)
 
 ```javascript
 const config = new LayerConfig({

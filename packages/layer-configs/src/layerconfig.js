@@ -176,7 +176,7 @@ export class LineStyle {
    * @param {number} [options.lineExtensionFactor=0.5] - Factor to extend lines by (multiplied by deletion line width)
    * @param {number} [options.delWidthFactor=1.5] - Factor to multiply line width for deletion blur
    */
-  constructor({ color, layerSuffix, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom = 0, endZoom = INFINITY, lineExtensionFactor = 0.5, delWidthFactor = 1.5 }) {
+  constructor({ color, layerSuffix, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom = 0, endZoom = INFINITY, lineExtensionFactor = 0.0, delWidthFactor = 1.5 }) {
     this.color = color;
     this.layerSuffix = layerSuffix;
     this.widthFraction = widthFraction;
