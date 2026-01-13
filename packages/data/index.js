@@ -13,8 +13,9 @@ const PMTILES_FILENAME = 'india_boundary_corrections.pmtiles.gz';
 /**
  * CDNs that need fallback to jsDelivr:
  * - esm.sh, skypack: JS module transformers only, don't serve static files
+ * - unpkg.com: has problems with content-length headers and range requests for .pmtiles files
  */
-const FALLBACK_CDNS = new Set(['esm.sh', 'skypack.dev', 'cdn.skypack.dev']);
+const FALLBACK_CDNS = new Set(['esm.sh', 'skypack.dev', 'cdn.skypack.dev', 'unpkg.com']);
 
 // Default fallback CDN (jsDelivr has multi-CDN architecture, more reliable)
 export const DEFAULT_CDN_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}@${packageVersion}/${PMTILES_FILENAME}`;
