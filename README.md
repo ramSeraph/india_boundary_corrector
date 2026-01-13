@@ -62,8 +62,8 @@ L.tileLayer.indiaBoundaryCorrected('https://{s}.tile.openstreetmap.org/{z}/{x}/{
 ### OpenLayers - Corrected TileLayer
 
 ```javascript
-import Map from 'ol/Map';
-import View from 'ol/View';
+import { Map, View } from 'ol';
+import { fromLonLat } from 'ol/proj';
 import { IndiaBoundaryCorrectedTileLayer } from '@india-boundary-corrector/openlayers-layer';
 
 const map = new Map({
@@ -77,7 +77,10 @@ const map = new Map({
       }
     }),
   ],
-  view: new View({ center: [78.9629, 20.5937], zoom: 4 }),
+  view: new View({
+    center: fromLonLat([78.9629, 20.5937]),
+    zoom: 4
+  }),
 });
 ```
 
@@ -85,26 +88,25 @@ const map = new Map({
 
 ```javascript
 import maplibregl from 'maplibre-gl';
-import { CorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
+import { registerCorrectionProtocol } from '@india-boundary-corrector/maplibre-protocol';
 
-// Register the corrections protocol
-const protocol = new CorrectionProtocol();
-maplibregl.addProtocol('corrections', protocol.tile);
+// Register the ibc:// protocol
+registerCorrectionProtocol(maplibregl);
 
 const map = new maplibregl.Map({
   container: 'map',
   style: {
     version: 8,
     sources: {
-      basemap: {
+      osm: {
         type: 'raster',
         // Prefix tile URL with 'ibc://' to apply corrections
-        tiles: ['ibc://https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tiles: ['ibc://https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
         attribution: '© OpenStreetMap contributors'
       },
     },
-    layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+    layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
   },
   center: [78.9629, 20.5937],
   zoom: 4,
@@ -116,11 +118,10 @@ const map = new maplibregl.Map({
 The service worker automatically intercepts tile requests and applies corrections transparently:
 
 ```javascript
-import { CorrectionServiceWorker } from '@india-boundary-corrector/service-worker';
+import { registerCorrectionServiceWorker } from '@india-boundary-corrector/service-worker';
 
-// Register the service worker
-const sw = new CorrectionServiceWorker('/sw.js');
-await sw.register();
+// Register the service worker and wait for control
+const sw = await registerCorrectionServiceWorker('./sw.js');
 
 // Now use any map library normally - tiles are corrected automatically
 const map = L.map('map').setView([20.5937, 78.9629], 4);
