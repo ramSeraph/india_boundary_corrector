@@ -67,7 +67,7 @@ layerConfigs.remove('my-custom-style');
 |--------|------|---------|-------------|
 | `id` | string | required | Unique identifier for the config |
 | `tileUrlTemplates` | string \| string[] | [] | URL templates for matching tiles (e.g., `https://{s}.tile.example.com/{z}/{x}/{y}.png`) |
-| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map. Interpolated/extrapolated values are capped at a minimum of 0.1 in tilefixer. |
+| `lineWidthStops` | object | { 1: 0.5, 10: 2.5 } | Zoom-to-width interpolation map. Interpolated/extrapolated values are capped at `MIN_LINE_WIDTH` (0.1). |
 | `lineStyles` | array | required | Array of line styles to draw (see below) |
 
 ### URL Template Placeholders
@@ -124,6 +124,9 @@ const config = new LayerConfig({
 // Get active styles for a specific zoom
 config.getLineStylesForZoom(3); // Returns NE style only
 config.getLineStylesForZoom(7); // Returns OSM styles
+
+// Get interpolated line width for a zoom level
+config.getLineWidth(5); // Returns interpolated width between stops
 ```
 
 ### Line Width Calculation

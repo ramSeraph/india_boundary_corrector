@@ -30,16 +30,13 @@ test.describe('Layer Configs Package', () => {
   });
 
   test.describe('cartoDbDark config', () => {
-    // Various URL formats used for CartoDB dark tiles
+    // Various URL formats used for CartoDB dark tiles (non-retina only)
     const validDarkUrls = [
       // Standard CartoDB URLs
       'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
       'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
       'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
       'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      // With retina
-      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-      'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
       // Without subdomain prefix
       'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
       'https://cartodb-basemaps-b.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
@@ -52,6 +49,9 @@ test.describe('Layer Configs Package', () => {
     ];
 
     const invalidDarkUrls = [
+      // Retina variant (should match cartodb-dark-retina, not cartodb-dark)
+      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+      'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
       // Light variant (not dark)
       'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
       // Voyager variant
@@ -711,11 +711,11 @@ test.describe('Layer Configs Package', () => {
         };
       });
       const { styles, INFINITY } = result;
-      // startZoom defaults to 0, endZoom defaults to INFINITY (-1), delWidthFactor defaults to 1.5
-      expect(styles[0]).toEqual({ color: 'red', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: INFINITY, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
-      expect(styles[1]).toEqual({ color: 'blue', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 5, endZoom: INFINITY, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
-      expect(styles[2]).toEqual({ color: 'green', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: 8, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
-      expect(styles[3]).toEqual({ color: 'yellow', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 3, endZoom: 6, lineExtensionFactor: 0.5, delWidthFactor: 1.5 });
+      // startZoom defaults to 0, endZoom defaults to INFINITY (-1), lineExtensionFactor defaults to 0.0, delWidthFactor defaults to 1.5
+      expect(styles[0]).toEqual({ color: 'red', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[1]).toEqual({ color: 'blue', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 5, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[2]).toEqual({ color: 'green', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: 8, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[3]).toEqual({ color: 'yellow', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 3, endZoom: 6, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
     });
 
     test('getLineStylesForZoom returns active styles', async ({ page }) => {
@@ -970,7 +970,7 @@ test.describe('Layer Configs Package', () => {
       expect(result.coords3).toEqual({ z: 8, x: 100, y: 200 });
     });
 
-    test('extracts coords with {r} retina placeholder', async ({ page }) => {
+    test('extracts coords with {r} retina placeholder (requires retina suffix)', async ({ page }) => {
       const result = await page.evaluate(() => {
         const config = new window.layerConfigsPackage.LayerConfig({
           id: 'test',
@@ -983,9 +983,114 @@ test.describe('Layer Configs Package', () => {
           retina3x: config.extractCoords('https://tiles.example.com/5/10/15@3x.png'),
         };
       });
-      expect(result.noRetina).toEqual({ z: 5, x: 10, y: 15 });
+      // Templates with {r} require retina suffix - non-retina URLs should NOT match
+      expect(result.noRetina).toBeNull();
       expect(result.retina2x).toEqual({ z: 5, x: 10, y: 15 });
       expect(result.retina3x).toEqual({ z: 5, x: 10, y: 15 });
+    });
+
+    test('non-retina templates do not match retina URLs', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          noRetina: config.extractCoords('https://tiles.example.com/5/10/15.png'),
+          retina2x: config.extractCoords('https://tiles.example.com/5/10/15@2x.png'),
+        };
+      });
+      // Non-retina templates should match non-retina URLs only
+      expect(result.noRetina).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.retina2x).toBeNull();
+    });
+
+    test('retina URLs without file extension', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const retinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}{r}',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        const nonRetinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'non-retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          // Retina config should match retina URLs without extension
+          retinaMatch2x: retinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x'),
+          retinaMatchNoSuffix: retinaConfig.extractCoords('https://tiles.example.com/5/10/15'),
+          // Non-retina config should match non-retina URLs without extension
+          nonRetinaMatch: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15'),
+          nonRetinaMatch2x: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x'),
+        };
+      });
+      // Retina config requires @2x suffix
+      expect(result.retinaMatch2x).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.retinaMatchNoSuffix).toBeNull();
+      // Non-retina config should not match @2x URLs
+      expect(result.nonRetinaMatch).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.nonRetinaMatch2x).toBeNull();
+    });
+
+    test('retina URLs with query parameters', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const retinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}{r}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        const nonRetinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'non-retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}.png',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          // Retina with query params
+          retinaWithQuery: retinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x.png?apikey=abc&v=1'),
+          retinaNoSuffixWithQuery: retinaConfig.extractCoords('https://tiles.example.com/5/10/15.png?apikey=abc'),
+          // Non-retina with query params
+          nonRetinaWithQuery: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15.png?apikey=abc&v=1'),
+          nonRetina2xWithQuery: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x.png?apikey=abc'),
+        };
+      });
+      // Retina config with query params
+      expect(result.retinaWithQuery).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.retinaNoSuffixWithQuery).toBeNull();
+      // Non-retina config with query params
+      expect(result.nonRetinaWithQuery).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.nonRetina2xWithQuery).toBeNull();
+    });
+
+    test('retina URLs without extension but with query parameters', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const retinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}{r}',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        const nonRetinaConfig = new window.layerConfigsPackage.LayerConfig({
+          id: 'non-retina',
+          tileUrlTemplates: 'https://tiles.example.com/{z}/{x}/{y}',
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          // Retina without extension, with query params
+          retinaWithQuery: retinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x?apikey=abc&v=1'),
+          retinaNoSuffixWithQuery: retinaConfig.extractCoords('https://tiles.example.com/5/10/15?apikey=abc'),
+          // Non-retina without extension, with query params
+          nonRetinaWithQuery: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15?apikey=abc&v=1'),
+          nonRetina2xWithQuery: nonRetinaConfig.extractCoords('https://tiles.example.com/5/10/15@2x?apikey=abc'),
+        };
+      });
+      // Retina config without extension, with query params
+      expect(result.retinaWithQuery).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.retinaNoSuffixWithQuery).toBeNull();
+      // Non-retina config without extension, with query params
+      expect(result.nonRetinaWithQuery).toEqual({ z: 5, x: 10, y: 15 });
+      expect(result.nonRetina2xWithQuery).toBeNull();
     });
 
     test('extracts coords with query parameters', async ({ page }) => {
@@ -1149,6 +1254,24 @@ test.describe('Layer Configs Package', () => {
           coords: parsed.coords,
         } : null;
       });
+      // Retina URLs should match the retina config
+      expect(result).toEqual({
+        configId: 'cartodb-dark-retina',
+        coords: { z: 7, x: 64, y: 42 },
+      });
+    });
+
+    test('parses non-retina tiles to non-retina config', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const parsed = window.layerConfigsPackage.layerConfigs.parseTileUrl(
+          'https://a.basemaps.cartocdn.com/dark_all/7/64/42.png'
+        );
+        return parsed ? {
+          configId: parsed.layerConfig.id,
+          coords: parsed.coords,
+        } : null;
+      });
+      // Non-retina URLs should match the non-retina config
       expect(result).toEqual({
         configId: 'cartodb-dark',
         coords: { z: 7, x: 64, y: 42 },
@@ -1169,6 +1292,178 @@ test.describe('Layer Configs Package', () => {
         configId: 'osm-carto',
         coords: { z: 8, x: 128, y: 96 },
       });
+    });
+  });
+
+  test.describe('getLineWidth', () => {
+    test('returns exact value for matching zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 1: 0.5, 5: 1.0, 10: 2.5 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          z1: config.getLineWidth(1),
+          z5: config.getLineWidth(5),
+          z10: config.getLineWidth(10),
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      expect(result.z5).toBe(1.0);
+      expect(result.z10).toBe(2.5);
+    });
+
+    test('interpolates between stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 0: 1.0, 10: 3.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          z0: config.getLineWidth(0),
+          z5: config.getLineWidth(5),
+          z10: config.getLineWidth(10),
+        };
+      });
+
+      expect(result.z0).toBe(1.0);
+      expect(result.z5).toBe(2.0); // midpoint between 1.0 and 3.0
+      expect(result.z10).toBe(3.0);
+    });
+
+    test('interpolates between non-zero start stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 4: 1.0, 8: 3.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          z5: config.getLineWidth(5),
+          z6: config.getLineWidth(6),
+          z7: config.getLineWidth(7),
+        };
+      });
+
+      expect(result.z5).toBe(1.5);  // 1/4 of the way
+      expect(result.z6).toBe(2.0);  // 1/2 of the way
+      expect(result.z7).toBe(2.5);  // 3/4 of the way
+    });
+
+    test('extrapolates below lowest zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 4: 1.0, 8: 2.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        // slope = (2.0 - 1.0) / (8 - 4) = 0.25
+        // z2: 1.0 + 0.25 * (2 - 4) = 1.0 - 0.5 = 0.5
+        // z0: 1.0 + 0.25 * (0 - 4) = 1.0 - 1.0 = 0.0 -> clamped to 0.1
+        return {
+          z2: config.getLineWidth(2),
+          z0: config.getLineWidth(0),
+        };
+      });
+
+      expect(result.z2).toBeCloseTo(0.5, 5);
+      expect(result.z0).toBe(0.1); // clamped to minimum 0.1
+    });
+
+    test('extrapolates above highest zoom', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 4: 1.0, 8: 2.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        // slope = (2.0 - 1.0) / (8 - 4) = 0.25
+        // z10: 2.0 + 0.25 * (10 - 8) = 2.0 + 0.5 = 2.5
+        // z12: 2.0 + 0.25 * (12 - 8) = 2.0 + 1.0 = 3.0
+        return {
+          z10: config.getLineWidth(10),
+          z12: config.getLineWidth(12),
+        };
+      });
+
+      expect(result.z10).toBeCloseTo(2.5, 5);
+      expect(result.z12).toBeCloseTo(3.0, 5);
+    });
+
+    test('clamps extrapolated values to minimum 0.1', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          // Decreasing slope that would go negative
+          lineWidthStops: { 5: 1.0, 10: 0.5 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        // slope = (0.5 - 1.0) / (10 - 5) = -0.1
+        // z0: 1.0 + (-0.1) * (0 - 5) = 1.0 + 0.5 = 1.5 (extrapolates up going backwards)
+        // z15: 0.5 + (-0.1) * (15 - 10) = 0.5 - 0.5 = 0.0 -> clamped to 0.1
+        return {
+          z0: config.getLineWidth(0),
+          z15: config.getLineWidth(15),
+        };
+      });
+
+      expect(result.z0).toBeCloseTo(1.5, 5);
+      expect(result.z15).toBe(0.1); // clamped to minimum
+    });
+
+    test('handles multiple stops correctly', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          lineWidthStops: { 1: 0.5, 4: 1.0, 8: 2.0, 12: 4.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          z1: config.getLineWidth(1),
+          z2: config.getLineWidth(2),   // between 1 and 4
+          z6: config.getLineWidth(6),   // between 4 and 8
+          z10: config.getLineWidth(10), // between 8 and 12
+          z14: config.getLineWidth(14), // extrapolate above 12
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      // z2: between z1(0.5) and z4(1.0), t = (2-1)/(4-1) = 1/3
+      // 0.5 + (1/3) * (1.0 - 0.5) = 0.5 + 0.167 = 0.667
+      expect(result.z2).toBeCloseTo(0.667, 2);
+      // z6: between z4(1.0) and z8(2.0), t = (6-4)/(8-4) = 0.5
+      expect(result.z6).toBe(1.5);
+      // z10: between z8(2.0) and z12(4.0), t = (10-8)/(12-8) = 0.5
+      expect(result.z10).toBe(3.0);
+      // z14: extrapolate from z8-z12 slope = (4-2)/(12-8) = 0.5
+      // 4.0 + 0.5 * (14 - 12) = 5.0
+      expect(result.z14).toBe(5.0);
+    });
+
+    test('handles unsorted stops', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const config = new window.layerConfigsPackage.LayerConfig({
+          id: 'test',
+          // Stops provided in non-sorted order
+          lineWidthStops: { 10: 2.5, 1: 0.5, 5: 1.0 },
+          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
+        });
+        return {
+          z1: config.getLineWidth(1),
+          z3: config.getLineWidth(3),
+          z5: config.getLineWidth(5),
+          z10: config.getLineWidth(10),
+        };
+      });
+
+      expect(result.z1).toBe(0.5);
+      expect(result.z5).toBe(1.0);
+      expect(result.z10).toBe(2.5);
+      // z3: between z1(0.5) and z5(1.0), t = (3-1)/(5-1) = 0.5
+      expect(result.z3).toBe(0.75);
     });
   });
 });

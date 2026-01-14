@@ -322,36 +322,28 @@
     // Use bundled configs
     const builtinConfigs = configsJson;
 
-    // Map of config id to tile URL and attribution (not stored in configs.json)
-    const presetExtras = {
-      'cartodb-dark': {
-        tileUrl: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      },
-      'cartodb-light': {
-        tileUrl: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      },
-      'open-topo': {
-        tileUrl: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-      },
-      'osm-carto': {
-        tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      },
-      'osm-hot': {
-        tileUrl: 'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/">HOT</a>',
-      },
+    // Map of config id to attribution (not stored in configs.json)
+    const presetAttributions = {
+      'cartodb-dark': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      'cartodb-dark-retina': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      'cartodb-light': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      'cartodb-light-retina': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      'open-topo': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+      'osm-carto': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      'osm-hot': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/">HOT</a>',
     };
 
     // Build presets map: id -> { config, tileUrl, attribution }
     const presets = {};
     for (const config of builtinConfigs) {
+      // Use first tileUrlTemplate, replacing {s} with 'a' for Leaflet compatibility
+      const tileUrl = (config.tileUrlTemplates[0] || '')
+        .replace('{s}', 'a')
+        .replace('{r}', '');
       presets[config.id] = {
         config,
-        ...presetExtras[config.id],
+        tileUrl,
+        attribution: presetAttributions[config.id] || '&copy; OpenStreetMap contributors',
       };
     }
 

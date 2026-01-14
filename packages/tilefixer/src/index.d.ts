@@ -21,11 +21,6 @@ export declare class TileFetchError extends Error {
 }
 
 /**
- * Minimum line width used when extrapolating below the lowest zoom stop.
- */
-export const MIN_LINE_WIDTH: number;
-
-/**
  * Build fetch options from HTML image element attributes.
  * Maps crossorigin and referrerpolicy attribute values to fetch() options.
  * @param crossOrigin - The crossOrigin attribute value
@@ -40,14 +35,6 @@ export function buildFetchOptions(
   credentials: RequestCredentials;
   referrerPolicy?: ReferrerPolicy;
 };
-
-/**
- * Interpolate or extrapolate line width from a zoom-to-width map.
- * @param zoom - Zoom level
- * @param lineWidthStops - Map of zoom level to line width (at least 2 entries)
- * @returns Interpolated/extrapolated line width (minimum 0.5)
- */
-export function getLineWidth(zoom: number, lineWidthStops: Record<number, number>): number;
 
 /**
  * A parsed vector tile feature.

@@ -5,6 +5,16 @@
 export const INFINITY = -1;
 
 /**
+ * Minimum line width used when extrapolating below the lowest zoom stop.
+ */
+export const MIN_LINE_WIDTH = 0.1;
+
+/**
+ * Default fallback line width if interpolation fails.
+ */
+const DEFAULT_LINE_WIDTH = 1;
+
+/**
  * Convert a tile URL template to a regex pattern and capture group names.
  * Supports {z}, {x}, {y}, {s} (Leaflet subdomain), {a-c}/{1-4} (OpenLayers subdomain), and {r} (retina) placeholders.
  * @param {string} template - URL template like "https://{s}.tile.example.com/{z}/{x}/{y}.png"
@@ -12,6 +22,9 @@ export const INFINITY = -1;
  */
 function templateToRegex(template) {
   const groups = [];
+  const hasRetina = template.includes('{r}');
+  const hasExtension = /\.(png|jpg|jpeg|webp|gif)$/i.test(template);
+  
   // Escape regex special chars, then replace placeholders
   let pattern = template
     .replace(/[.*+?^${}()|[\]\\]/g, (char) => {
@@ -35,12 +48,23 @@ function templateToRegex(template) {
         return '([a-z0-9]+)';
       }
       if (lowerName === 'r') {
-        // Retina suffix: optional @2x or similar
-        return '(@\\d+x)?';
+        // Retina suffix: required @2x or similar (must be present for retina configs)
+        return '(@\\d+x)';
       }
       // z, x, y: numeric
       return '(\\d+)';
     });
+  
+  // If template has no {r} placeholder, ensure we DON'T match retina URLs
+  if (!hasRetina) {
+    if (hasExtension) {
+      // Insert negative lookahead before .png/.jpg/.webp etc
+      pattern = pattern.replace(/(\\\.(png|jpg|jpeg|webp|gif))/, '(?!@\\d+x)$1');
+    } else {
+      // No extension - add negative lookahead at the end (before query string)
+      pattern = pattern + '(?!@\\d+x)';
+    }
+  }
   
   // Allow optional query string at end
   return { pattern: new RegExp('^' + pattern + '(\\?.*)?$', 'i'), groups };
@@ -52,6 +76,9 @@ function templateToRegex(template) {
  * @returns {RegExp}
  */
 function templateToTemplateRegex(template) {
+  const hasRetina = template.includes('{r}');
+  const hasExtension = /\.(png|jpg|jpeg|webp|gif)$/i.test(template);
+  
   // Escape regex special chars, then replace placeholders with literal match
   let pattern = template
     .replace(/[.*+?^${}()|[\]\\]/g, (char) => {
@@ -70,12 +97,23 @@ function templateToTemplateRegex(template) {
         return '(\\{s\\}|\\{[a-z0-9]-[a-z0-9]\\}|[a-z0-9]+)';
       }
       if (lowerName === 'r') {
-        // Match {r} placeholder or actual retina or empty
-        return '(\\{r\\}|@\\d+x)?';
+        // Match {r} placeholder or actual retina suffix (required for retina configs)
+        return '(\\{r\\}|@\\d+x)';
       }
       // Match {z}, {x}, {y} placeholders
       return `\\{${lowerName}\\}`;
     });
+  
+  // If template has no {r} placeholder, ensure we DON'T match retina URLs/templates
+  if (!hasRetina) {
+    if (hasExtension) {
+      // Insert negative lookahead before .png/.jpg/.webp etc to reject @2x and {r}
+      pattern = pattern.replace(/(\\\.(png|jpg|jpeg|webp|gif))/, '(?!@\\d+x|\\{r\\})$1');
+    } else {
+      // No extension - add negative lookahead at the end (before query string)
+      pattern = pattern + '(?!@\\d+x|\\{r\\})';
+    }
+  }
   
   // Allow optional query string at end
   return new RegExp('^' + pattern + '(\\?.*)?$', 'i');
@@ -336,6 +374,55 @@ export class LayerConfig {
   getLayerSuffixesForZoom(z) {
     const activeStyles = this.getLineStylesForZoom(z);
     return [...new Set(activeStyles.map(s => s.layerSuffix))];
+  }
+
+  /**
+   * Interpolate or extrapolate line width for a given zoom level.
+   * Uses the lineWidthStops map to calculate the appropriate width.
+   * @param {number} zoom - Zoom level
+   * @returns {number}
+   */
+  getLineWidth(zoom) {
+    const zooms = Object.keys(this.lineWidthStops).map(Number).sort((a, b) => a - b);
+    
+    // Exact match
+    if (this.lineWidthStops[zoom] !== undefined) {
+      return this.lineWidthStops[zoom];
+    }
+    
+    // Below lowest zoom - extrapolate
+    if (zoom < zooms[0]) {
+      const z1 = zooms[0];
+      const z2 = zooms[1];
+      const w1 = this.lineWidthStops[z1];
+      const w2 = this.lineWidthStops[z2];
+      const slope = (w2 - w1) / (z2 - z1);
+      return Math.max(MIN_LINE_WIDTH, w1 + slope * (zoom - z1));
+    }
+    
+    // Above highest zoom - extrapolate
+    if (zoom > zooms[zooms.length - 1]) {
+      const z1 = zooms[zooms.length - 2];
+      const z2 = zooms[zooms.length - 1];
+      const w1 = this.lineWidthStops[z1];
+      const w2 = this.lineWidthStops[z2];
+      const slope = (w2 - w1) / (z2 - z1);
+      return Math.max(MIN_LINE_WIDTH, w2 + slope * (zoom - z2));
+    }
+    
+    // Interpolate between two stops
+    for (let i = 0; i < zooms.length - 1; i++) {
+      if (zoom > zooms[i] && zoom < zooms[i + 1]) {
+        const z1 = zooms[i];
+        const z2 = zooms[i + 1];
+        const w1 = this.lineWidthStops[z1];
+        const w2 = this.lineWidthStops[z2];
+        const t = (zoom - z1) / (z2 - z1);
+        return w1 + t * (w2 - w1);
+      }
+    }
+    
+    return DEFAULT_LINE_WIDTH; // fallback
   }
 
   /**

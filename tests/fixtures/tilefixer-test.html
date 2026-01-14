@@ -16,7 +16,7 @@
   <script type="module">
     import { getPmtilesUrl } from '@india-boundary-corrector/data';
     import * as tilefixerExports from '@india-boundary-corrector/tilefixer';
-    const { TileFixer, getLineWidth, TileFetchError } = tilefixerExports;
+    const { TileFixer, TileFetchError } = tilefixerExports;
     import { layerConfigs, LayerConfig } from '@india-boundary-corrector/layer-configs';
 
     // Create corrector instance
@@ -25,9 +25,6 @@
     
     // Get a default layer config for testing
     const layerConfig = layerConfigs.get('osm-carto');
-
-    // Expose getLineWidth for direct testing
-    window.getLineWidth = getLineWidth;
     
     // Expose all tilefixer exports for testing
     window.tilefixerExports = tilefixerExports;

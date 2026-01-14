@@ -179,7 +179,7 @@ Custom configurations can be created for other tile providers using `LayerConfig
 | `alpha` | number | 1.0 | Opacity (0 = transparent, 1 = opaque) |
 | `startZoom` | number | 0 | Minimum zoom for this style |
 | `endZoom` | number | -1 (no limit) | Maximum zoom for this style |
-| `lineExtensionFactor` | number | 0.5 | Factor to extend lines by (multiplied by deletion line width) |
+| `lineExtensionFactor` | number | 0.0 | Factor to extend lines by (multiplied by deletion line width) |
 | `delWidthFactor` | number | 1.5 | Multiplier for deletion line width |
 
 ## Data Sources

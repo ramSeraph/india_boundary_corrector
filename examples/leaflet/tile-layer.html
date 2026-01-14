@@ -93,7 +93,9 @@
       ? 'https://esm.sh/@india-boundary-corrector/leaflet-layer'
       : '@india-boundary-corrector/leaflet-layer';
     
-    const { extendLeaflet, layerConfigs } = await import(moduleUrl);
+    const { extendLeaflet, layerConfigs, getPmtilesUrl } = await import(moduleUrl);
+
+    console.log('PMTiles URL:', getPmtilesUrl());
 
     const statusEl = document.getElementById('status');
     const basemapSelect = document.getElementById('basemap');

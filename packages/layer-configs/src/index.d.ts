@@ -5,6 +5,11 @@
 export const INFINITY: -1;
 
 /**
+ * Minimum line width used when extrapolating below the lowest zoom stop.
+ */
+export const MIN_LINE_WIDTH: number;
+
+/**
  * Line style definition for drawing boundary lines
  */
 export interface LineStyle {
@@ -22,7 +27,7 @@ export interface LineStyle {
   startZoom?: number;
   /** Maximum zoom level for this style (default: INFINITY, i.e., -1) */
   endZoom?: number;
-  /** Factor to extend add lines by (multiplied by deletion line width) (default: 0.5) */
+  /** Factor to extend add lines by (multiplied by deletion line width) (default: 0.0) */
   lineExtensionFactor?: number;
   /** Factor to multiply line width for deletion blur (default: 1.5) */
   delWidthFactor?: number;
@@ -64,6 +69,14 @@ export class LayerConfig {
    * @param z - Zoom level
    */
   getLayerSuffixesForZoom(z: number): string[];
+
+  /**
+   * Interpolate or extrapolate line width for a given zoom level.
+   * Uses the lineWidthStops map to calculate the appropriate width.
+   * @param zoom - Zoom level
+   * @returns Interpolated/extrapolated line width (minimum MIN_LINE_WIDTH)
+   */
+  getLineWidth(zoom: number): number;
 
   /**
    * Check if this config matches the given template URLs (with {z}/{x}/{y} placeholders)

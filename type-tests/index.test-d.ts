@@ -48,14 +48,16 @@ import {
   LayerConfigRegistry,
   layerConfigs,
   INFINITY,
+  MIN_LINE_WIDTH,
   type LayerConfigOptions,
   type LineStyle,
   type TileCoords,
   type ParsedTileUrl,
 } from '@india-boundary-corrector/layer-configs';
 
-// INFINITY constant
+// Constants
 expectTypeOf(INFINITY).toEqualTypeOf<-1>();
+expectTypeOf(MIN_LINE_WIDTH).toBeNumber();
 
 // LayerConfig class
 expectTypeOf(LayerConfig).toBeConstructibleWith({
@@ -89,6 +91,10 @@ expectTypeOf<LayerConfig['matchTileUrl']>().returns.toBeBoolean();
 expectTypeOf<LayerConfig>().toHaveProperty('extractCoords').toBeFunction();
 expectTypeOf<LayerConfig['extractCoords']>().parameters.toEqualTypeOf<[url: string]>();
 expectTypeOf<LayerConfig['extractCoords']>().returns.toEqualTypeOf<TileCoords | null>();
+
+expectTypeOf<LayerConfig>().toHaveProperty('getLineWidth').toBeFunction();
+expectTypeOf<LayerConfig['getLineWidth']>().parameters.toEqualTypeOf<[zoom: number]>();
+expectTypeOf<LayerConfig['getLineWidth']>().returns.toBeNumber();
 
 expectTypeOf<LayerConfig>().toHaveProperty('toJSON').toBeFunction();
 expectTypeOf<LayerConfig['toJSON']>().returns.toEqualTypeOf<LayerConfigOptions>();
@@ -153,17 +159,12 @@ expectTypeOf(layerConfigs).toEqualTypeOf<LayerConfigRegistry>();
 import {
   TileFixer,
   TileFetchError,
-  getLineWidth,
-  MIN_LINE_WIDTH,
   type CorrectionResult,
   type FetchAndFixTileResult,
   type FetchAndFixTileFetchOptions,
   type TileFixerOptions,
   type Feature,
 } from '@india-boundary-corrector/tilefixer';
-
-// Constants
-expectTypeOf(MIN_LINE_WIDTH).toBeNumber();
 
 // TileFetchError class
 expectTypeOf(TileFetchError).toBeConstructibleWith(404);
@@ -174,11 +175,6 @@ expectTypeOf<TileFetchError>().toHaveProperty('url').toEqualTypeOf<string | unde
 expectTypeOf<TileFetchError>().toHaveProperty('body').toEqualTypeOf<string | undefined>();
 expectTypeOf(TileFetchError.fromResponse).toBeFunction();
 expectTypeOf(TileFetchError.fromResponse).returns.toEqualTypeOf<Promise<TileFetchError>>();
-
-// getLineWidth function
-expectTypeOf(getLineWidth).toBeFunction();
-expectTypeOf(getLineWidth).parameters.toEqualTypeOf<[zoom: number, lineWidthStops: Record<number, number>]>();
-expectTypeOf(getLineWidth).returns.toBeNumber();
 
 // TileFixer static methods
 expectTypeOf(TileFixer.setDefaultCacheMaxFeatures).toBeFunction();

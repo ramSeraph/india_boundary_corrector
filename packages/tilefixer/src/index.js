@@ -36,19 +36,9 @@ export class TileFetchError extends Error {
 }
 
 /**
- * Minimum line width used when extrapolating below the lowest zoom stop.
- */
-export const MIN_LINE_WIDTH = 0.1;
-
-/**
  * Default vector tile extent (coordinate space size).
  */
 const DEFAULT_TILE_EXTENT = 4096;
-
-/**
- * Default fallback line width if interpolation fails.
- */
-const DEFAULT_LINE_WIDTH = 1;
 
 /**
  * Build fetch options from HTML image element attributes.
@@ -84,55 +74,6 @@ export function buildFetchOptions(crossOrigin, referrerPolicy) {
   }
   
   return options;
-}
-
-/**
- * Interpolate or extrapolate line width from a zoom-to-width map.
- * @param {number} zoom - Zoom level
- * @param {Object<number, number>} lineWidthStops - Map of zoom level to line width (at least 2 entries)
- * @returns {number}
- */
-export function getLineWidth(zoom, lineWidthStops) {
-  const zooms = Object.keys(lineWidthStops).map(Number).sort((a, b) => a - b);
-  
-  // Exact match
-  if (lineWidthStops[zoom] !== undefined) {
-    return lineWidthStops[zoom];
-  }
-  
-  // Below lowest zoom - extrapolate
-  if (zoom < zooms[0]) {
-    const z1 = zooms[0];
-    const z2 = zooms[1];
-    const w1 = lineWidthStops[z1];
-    const w2 = lineWidthStops[z2];
-    const slope = (w2 - w1) / (z2 - z1);
-    return Math.max(MIN_LINE_WIDTH, w1 + slope * (zoom - z1));
-  }
-  
-  // Above highest zoom - extrapolate
-  if (zoom > zooms[zooms.length - 1]) {
-    const z1 = zooms[zooms.length - 2];
-    const z2 = zooms[zooms.length - 1];
-    const w1 = lineWidthStops[z1];
-    const w2 = lineWidthStops[z2];
-    const slope = (w2 - w1) / (z2 - z1);
-    return Math.max(MIN_LINE_WIDTH, w2 + slope * (zoom - z2));
-  }
-  
-  // Interpolate between two stops
-  for (let i = 0; i < zooms.length - 1; i++) {
-    if (zoom > zooms[i] && zoom < zooms[i + 1]) {
-      const z1 = zooms[i];
-      const z2 = zooms[i + 1];
-      const w1 = lineWidthStops[z1];
-      const w2 = lineWidthStops[z2];
-      const t = (zoom - z1) / (z2 - z1);
-      return w1 + t * (w2 - w1);
-    }
-  }
-  
-  return DEFAULT_LINE_WIDTH; // fallback
 }
 
 /**
@@ -520,8 +461,6 @@ export class TileFixer {
    * @returns {Promise<ArrayBuffer>} The corrected tile as ArrayBuffer (PNG)
    */
   async fixTile(corrections, rasterTile, layerConfig, zoom) {
-    const { lineWidthStops } = layerConfig;
-
     // Get line styles active at this zoom level
     let activeLineStyles;
     if (layerConfig.getLineStylesForZoom) {
@@ -560,7 +499,7 @@ export class TileFixer {
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
     // Calculate base line width
-    const baseLineWidth = getLineWidth(zoom, lineWidthStops);
+    const baseLineWidth = layerConfig.getLineWidth(zoom);
 
     // Calculate deletion width per layer suffix based on styles using that suffix
     // For each suffix, use the maximum widthFraction * delWidthFactor among styles using it
