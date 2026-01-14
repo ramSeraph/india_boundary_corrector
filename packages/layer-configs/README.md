@@ -9,7 +9,9 @@ Pre-built layer configurations for India boundary corrector packages.
 | Config ID | Description | Example |
 |-----------|-------------|---------|
 | `cartodb-dark` | CartoDB dark tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-dark) |
+| `cartodb-dark-retina` | CartoDB dark tiles (retina @2x) | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-dark-retina) |
 | `cartodb-light` | CartoDB light/voyager tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-light) |
+| `cartodb-light-retina` | CartoDB light/voyager tiles (retina @2x) | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/cartodb-light-retina) |
 | `open-topo` | OpenTopoMap tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/open-topo) |
 | `osm-carto` | OpenStreetMap standard tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/osm-carto) |
 | `osm-hot` | Humanitarian OpenStreetMap tiles | [View](https://ramseraph.github.io/india_boundary_corrector/examples/leaflet/tile-layer.html#5/33.2778/75.3412/osm-hot) |
@@ -40,7 +42,7 @@ const config2 = layerConfigs.detectFromTileUrls([actualTileUrl]);
 
 // List available config ids
 console.log(layerConfigs.getAvailableIds()); 
-// ['cartodb-dark', 'cartodb-light', 'open-topo', 'osm-carto', 'osm-hot']
+// ['cartodb-dark', 'cartodb-dark-retina', 'cartodb-light', 'cartodb-light-retina', 'open-topo', 'osm-carto', 'osm-hot']
 
 // Create and register a custom config
 const myConfig = new LayerConfig({
