@@ -4,7 +4,7 @@
 
 Leaflet TileLayer extension that automatically applies India boundary corrections.
 
-[Try it on JSFiddle](https://jsfiddle.net/z8d76em5/1/)
+[Try it on JSFiddle](https://jsfiddle.net/ak3fpn7z/)
 
 ## Installation
 

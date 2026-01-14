@@ -4,7 +4,7 @@
 
 MapLibre GL custom protocol for India boundary corrections.
 
-[Try it on JSFiddle](https://jsfiddle.net/2ym91L65/3/)
+[Try it on JSFiddle](https://jsfiddle.net/txboc1rh/)
 
 ## Installation
 
