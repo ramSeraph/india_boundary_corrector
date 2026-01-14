@@ -1,5 +1,37 @@
 # @india-boundary-corrector/maplibre-protocol
 
+## 0.2.0
+
+### Minor Changes
+
+- ### Features
+
+  - Add separate retina configs (`cartodb-dark-retina`, `cartodb-light-retina`) with `{r}` placeholder for @2x tiles
+  - Add `ne-internal` layers for Natural Earth state boundaries (J&K + PoK combined)
+  - Add CesiumJS example
+  - Move `getLineWidth()` from tilefixer to `LayerConfig` class method
+  - Export `MIN_LINE_WIDTH` constant from layer-configs package
+  - Add `unpkg.com` CDN fallback support
+
+  ### Breaking Changes
+
+  - `getLineWidth()` function removed from tilefixer package - use `layerConfig.getLineWidth(zoom)` instead
+  - `MIN_LINE_WIDTH` constant moved from tilefixer to layer-configs package
+
+  ### Fixes
+
+  - Fix Quick Start examples in main README
+  - Fix `lineExtensionFactor` default documentation (0.5 → 0.0)
+  - Update URL matching to properly distinguish retina from non-retina tile URLs
+  - Use bundled configsJson instead of fetching from src
+
+### Patch Changes
+
+- Updated dependencies
+  - @india-boundary-corrector/data@0.2.0
+  - @india-boundary-corrector/layer-configs@0.2.0
+  - @india-boundary-corrector/tilefixer@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
