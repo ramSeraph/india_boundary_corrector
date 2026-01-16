@@ -15,6 +15,56 @@ export const MIN_LINE_WIDTH = 0.1;
 const DEFAULT_LINE_WIDTH = 1;
 
 /**
+ * Interpolate or extrapolate line width for a given zoom level.
+ * Uses a lineWidthStops map to calculate the appropriate width.
+ * @param {number} zoom - Zoom level
+ * @param {Object<number, number>} lineWidthStops - Map of zoom level to line width (at least 2 entries)
+ * @returns {number}
+ */
+export function interpolateLineWidth(zoom, lineWidthStops) {
+  const zooms = Object.keys(lineWidthStops).map(Number).sort((a, b) => a - b);
+  
+  // Exact match
+  if (lineWidthStops[zoom] !== undefined) {
+    return lineWidthStops[zoom];
+  }
+  
+  // Below lowest zoom - extrapolate
+  if (zoom < zooms[0]) {
+    const z1 = zooms[0];
+    const z2 = zooms[1];
+    const w1 = lineWidthStops[z1];
+    const w2 = lineWidthStops[z2];
+    const slope = (w2 - w1) / (z2 - z1);
+    return Math.max(MIN_LINE_WIDTH, w1 + slope * (zoom - z1));
+  }
+  
+  // Above highest zoom - extrapolate
+  if (zoom > zooms[zooms.length - 1]) {
+    const z1 = zooms[zooms.length - 2];
+    const z2 = zooms[zooms.length - 1];
+    const w1 = lineWidthStops[z1];
+    const w2 = lineWidthStops[z2];
+    const slope = (w2 - w1) / (z2 - z1);
+    return Math.max(MIN_LINE_WIDTH, w2 + slope * (zoom - z2));
+  }
+  
+  // Interpolate between two stops
+  for (let i = 0; i < zooms.length - 1; i++) {
+    if (zoom > zooms[i] && zoom < zooms[i + 1]) {
+      const z1 = zooms[i];
+      const z2 = zooms[i + 1];
+      const w1 = lineWidthStops[z1];
+      const w2 = lineWidthStops[z2];
+      const t = (zoom - z1) / (z2 - z1);
+      return w1 + t * (w2 - w1);
+    }
+  }
+  
+  return DEFAULT_LINE_WIDTH; // fallback
+}
+
+/**
  * Convert a tile URL template to a regex pattern and capture group names.
  * Supports {z}, {x}, {y}, {s} (Leaflet subdomain), {a-c}/{1-4} (OpenLayers subdomain), and {r} (retina) placeholders.
  * @param {string} template - URL template like "https://{s}.tile.example.com/{z}/{x}/{y}.png"
@@ -145,6 +195,31 @@ function isValidColor(color) {
 }
 
 /**
+ * Validate lineWidthStops object.
+ * @param {Object} lineWidthStops - The lineWidthStops to validate
+ * @param {string} prefix - Error message prefix
+ * @throws {Error} If validation fails
+ */
+function validateLineWidthStops(lineWidthStops, prefix) {
+  if (!lineWidthStops || typeof lineWidthStops !== 'object' || Array.isArray(lineWidthStops)) {
+    throw new Error(`${prefix}: lineWidthStops must be an object`);
+  }
+  const stopKeys = Object.keys(lineWidthStops);
+  if (stopKeys.length < 2) {
+    throw new Error(`${prefix}: lineWidthStops must have at least 2 entries`);
+  }
+  for (const key of stopKeys) {
+    const zoom = Number(key);
+    if (!Number.isInteger(zoom) || zoom < 0) {
+      throw new Error(`${prefix}: lineWidthStops keys must be non-negative integers, got "${key}"`);
+    }
+    if (typeof lineWidthStops[key] !== 'number' || lineWidthStops[key] <= 0) {
+      throw new Error(`${prefix}: lineWidthStops values must be positive numbers`);
+    }
+  }
+}
+
+/**
  * Represents a line style for drawing boundaries.
  */
 export class LineStyle {
@@ -152,9 +227,10 @@ export class LineStyle {
    * Validate a LineStyle configuration object.
    * @param {Object} obj - The object to validate
    * @param {number} [index] - Optional index for error messages (when validating in an array)
+   * @param {boolean} [requireLineWidthStops=false] - Whether lineWidthStops is required
    * @throws {Error} If validation fails
    */
-  static validateJSON(obj, index) {
+  static validateJSON(obj, index, requireLineWidthStops = false) {
     const prefix = index !== undefined ? `lineStyles[${index}]` : 'LineStyle';
     
     if (!obj || typeof obj !== 'object') {
@@ -200,23 +276,33 @@ export class LineStyle {
     if (obj.delWidthFactor !== undefined && (typeof obj.delWidthFactor !== 'number' || obj.delWidthFactor < 0)) {
       throw new Error(`${prefix}: delWidthFactor must be a non-negative number`);
     }
+    
+    if (requireLineWidthStops && obj.lineWidthStops === undefined) {
+      throw new Error(`${prefix}: lineWidthStops is required`);
+    }
+    
+    if (obj.lineWidthStops !== undefined) {
+      validateLineWidthStops(obj.lineWidthStops, prefix);
+    }
   }
 
   /**
    * @param {Object} options
    * @param {string} options.color - CSS color string
    * @param {string} options.layerSuffix - Layer suffix (e.g., 'osm', 'ne', 'osm-disp')
+   * @param {Object<number, number>} options.lineWidthStops - Line width stops for this style
    * @param {number} [options.widthFraction=1.0] - Multiplier for base line width
    * @param {number[]} [options.dashArray] - Dash pattern for dashed lines
    * @param {number} [options.alpha=1.0] - Opacity (0-1)
    * @param {number} [options.startZoom=0] - Minimum zoom level for this style
    * @param {number} [options.endZoom=INFINITY] - Maximum zoom level for this style (INFINITY means no limit)
-   * @param {number} [options.lineExtensionFactor=0.5] - Factor to extend lines by (multiplied by deletion line width)
+   * @param {number} [options.lineExtensionFactor=0.0] - Factor to extend lines by (multiplied by deletion line width)
    * @param {number} [options.delWidthFactor=1.5] - Factor to multiply line width for deletion blur
    */
-  constructor({ color, layerSuffix, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom = 0, endZoom = INFINITY, lineExtensionFactor = 0.0, delWidthFactor = 1.5 }) {
+  constructor({ color, layerSuffix, lineWidthStops, widthFraction = 1.0, dashArray, alpha = 1.0, startZoom = 0, endZoom = INFINITY, lineExtensionFactor = 0.0, delWidthFactor = 1.5 }) {
     this.color = color;
     this.layerSuffix = layerSuffix;
+    this.lineWidthStops = lineWidthStops;
     this.widthFraction = widthFraction;
     this.dashArray = dashArray;
     this.alpha = alpha;
@@ -224,6 +310,15 @@ export class LineStyle {
     this.endZoom = endZoom;
     this.lineExtensionFactor = lineExtensionFactor;
     this.delWidthFactor = delWidthFactor;
+  }
+
+  /**
+   * Get base line width for this style at a given zoom level.
+   * @param {number} zoom - Zoom level
+   * @returns {number}
+   */
+  getLineWidth(zoom) {
+    return interpolateLineWidth(zoom, this.lineWidthStops);
   }
 
   /**
@@ -243,6 +338,7 @@ export class LineStyle {
     return {
       color: this.color,
       layerSuffix: this.layerSuffix,
+      lineWidthStops: this.lineWidthStops,
       widthFraction: this.widthFraction,
       dashArray: this.dashArray,
       alpha: this.alpha,
@@ -260,7 +356,7 @@ export class LineStyle {
    * @returns {LineStyle}
    */
   static fromJSON(obj, index) {
-    LineStyle.validateJSON(obj, index);
+    LineStyle.validateJSON(obj, index, true); // require lineWidthStops
     return new LineStyle(obj);
   }
 }
@@ -351,10 +447,15 @@ export class LayerConfig {
 
     this.lineWidthStops = lineWidthStops;
     
-    // Convert to LineStyle instances
-    this.lineStyles = lineStyles.map(style => 
-      style instanceof LineStyle ? style : new LineStyle(style)
-    );
+    // Convert to LineStyle instances, inheriting lineWidthStops from config if not specified
+    this.lineStyles = lineStyles.map(style => {
+      if (style instanceof LineStyle) {
+        return style;
+      }
+      // If style doesn't have lineWidthStops, use the config's lineWidthStops
+      const styleWithStops = style.lineWidthStops ? style : { ...style, lineWidthStops };
+      return new LineStyle(styleWithStops);
+    });
   }
 
   /**
@@ -374,55 +475,6 @@ export class LayerConfig {
   getLayerSuffixesForZoom(z) {
     const activeStyles = this.getLineStylesForZoom(z);
     return [...new Set(activeStyles.map(s => s.layerSuffix))];
-  }
-
-  /**
-   * Interpolate or extrapolate line width for a given zoom level.
-   * Uses the lineWidthStops map to calculate the appropriate width.
-   * @param {number} zoom - Zoom level
-   * @returns {number}
-   */
-  getLineWidth(zoom) {
-    const zooms = Object.keys(this.lineWidthStops).map(Number).sort((a, b) => a - b);
-    
-    // Exact match
-    if (this.lineWidthStops[zoom] !== undefined) {
-      return this.lineWidthStops[zoom];
-    }
-    
-    // Below lowest zoom - extrapolate
-    if (zoom < zooms[0]) {
-      const z1 = zooms[0];
-      const z2 = zooms[1];
-      const w1 = this.lineWidthStops[z1];
-      const w2 = this.lineWidthStops[z2];
-      const slope = (w2 - w1) / (z2 - z1);
-      return Math.max(MIN_LINE_WIDTH, w1 + slope * (zoom - z1));
-    }
-    
-    // Above highest zoom - extrapolate
-    if (zoom > zooms[zooms.length - 1]) {
-      const z1 = zooms[zooms.length - 2];
-      const z2 = zooms[zooms.length - 1];
-      const w1 = this.lineWidthStops[z1];
-      const w2 = this.lineWidthStops[z2];
-      const slope = (w2 - w1) / (z2 - z1);
-      return Math.max(MIN_LINE_WIDTH, w2 + slope * (zoom - z2));
-    }
-    
-    // Interpolate between two stops
-    for (let i = 0; i < zooms.length - 1; i++) {
-      if (zoom > zooms[i] && zoom < zooms[i + 1]) {
-        const z1 = zooms[i];
-        const z2 = zooms[i + 1];
-        const w1 = this.lineWidthStops[z1];
-        const w2 = this.lineWidthStops[z2];
-        const t = (zoom - z1) / (z2 - z1);
-        return w1 + t * (w2 - w1);
-      }
-    }
-    
-    return DEFAULT_LINE_WIDTH; // fallback
   }
 
   /**

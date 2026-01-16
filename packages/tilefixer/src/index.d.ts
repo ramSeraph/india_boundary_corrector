@@ -60,6 +60,8 @@ export interface LineStyle {
   color: string;
   /** Layer suffix (e.g., 'osm', 'ne', 'osm-disp') */
   layerSuffix: string;
+  /** Line width stops: map of zoom level to line width */
+  lineWidthStops: Record<number, number>;
   /** Width as fraction of base line width (default: 1.0) */
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
@@ -70,10 +72,12 @@ export interface LineStyle {
   startZoom?: number;
   /** Maximum zoom level for this style (default: -1 meaning no limit) */
   endZoom?: number;
-  /** Factor to extend lines by (multiplied by deletion line width) (default: 0.5) */
+  /** Factor to extend lines by (multiplied by deletion line width) (default: 0.0) */
   lineExtensionFactor?: number;
   /** Factor to multiply line width for deletion blur (default: 1.5) */
   delWidthFactor?: number;
+  /** Get base line width for this style at a given zoom level */
+  getLineWidth(zoom: number): number;
 }
 
 /**

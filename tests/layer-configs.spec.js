@@ -712,10 +712,12 @@ test.describe('Layer Configs Package', () => {
       });
       const { styles, INFINITY } = result;
       // startZoom defaults to 0, endZoom defaults to INFINITY (-1), lineExtensionFactor defaults to 0.0, delWidthFactor defaults to 1.5
-      expect(styles[0]).toEqual({ color: 'red', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
-      expect(styles[1]).toEqual({ color: 'blue', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 5, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
-      expect(styles[2]).toEqual({ color: 'green', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: 8, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
-      expect(styles[3]).toEqual({ color: 'yellow', layerSuffix: 'osm', widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 3, endZoom: 6, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      // lineWidthStops defaults to { 1: 0.5, 10: 2.5 }
+      const defaultLineWidthStops = { 1: 0.5, 10: 2.5 };
+      expect(styles[0]).toEqual({ color: 'red', layerSuffix: 'osm', lineWidthStops: defaultLineWidthStops, widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[1]).toEqual({ color: 'blue', layerSuffix: 'osm', lineWidthStops: defaultLineWidthStops, widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 5, endZoom: INFINITY, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[2]).toEqual({ color: 'green', layerSuffix: 'osm', lineWidthStops: defaultLineWidthStops, widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 0, endZoom: 8, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
+      expect(styles[3]).toEqual({ color: 'yellow', layerSuffix: 'osm', lineWidthStops: defaultLineWidthStops, widthFraction: 1.0, dashArray: undefined, alpha: 1.0, startZoom: 3, endZoom: 6, lineExtensionFactor: 0.0, delWidthFactor: 1.5 });
     });
 
     test('getLineStylesForZoom returns active styles', async ({ page }) => {
@@ -1295,18 +1297,15 @@ test.describe('Layer Configs Package', () => {
     });
   });
 
-  test.describe('getLineWidth', () => {
+  test.describe('interpolateLineWidth', () => {
     test('returns exact value for matching zoom', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 1: 0.5, 5: 1.0, 10: 2.5 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 1: 0.5, 5: 1.0, 10: 2.5 };
         return {
-          z1: config.getLineWidth(1),
-          z5: config.getLineWidth(5),
-          z10: config.getLineWidth(10),
+          z1: interpolateLineWidth(1, lineWidthStops),
+          z5: interpolateLineWidth(5, lineWidthStops),
+          z10: interpolateLineWidth(10, lineWidthStops),
         };
       });
 
@@ -1317,15 +1316,12 @@ test.describe('Layer Configs Package', () => {
 
     test('interpolates between stops', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 0: 1.0, 10: 3.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 0: 1.0, 10: 3.0 };
         return {
-          z0: config.getLineWidth(0),
-          z5: config.getLineWidth(5),
-          z10: config.getLineWidth(10),
+          z0: interpolateLineWidth(0, lineWidthStops),
+          z5: interpolateLineWidth(5, lineWidthStops),
+          z10: interpolateLineWidth(10, lineWidthStops),
         };
       });
 
@@ -1336,15 +1332,12 @@ test.describe('Layer Configs Package', () => {
 
     test('interpolates between non-zero start stops', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 4: 1.0, 8: 3.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 4: 1.0, 8: 3.0 };
         return {
-          z5: config.getLineWidth(5),
-          z6: config.getLineWidth(6),
-          z7: config.getLineWidth(7),
+          z5: interpolateLineWidth(5, lineWidthStops),
+          z6: interpolateLineWidth(6, lineWidthStops),
+          z7: interpolateLineWidth(7, lineWidthStops),
         };
       });
 
@@ -1355,17 +1348,14 @@ test.describe('Layer Configs Package', () => {
 
     test('extrapolates below lowest zoom', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 4: 1.0, 8: 2.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 4: 1.0, 8: 2.0 };
         // slope = (2.0 - 1.0) / (8 - 4) = 0.25
         // z2: 1.0 + 0.25 * (2 - 4) = 1.0 - 0.5 = 0.5
         // z0: 1.0 + 0.25 * (0 - 4) = 1.0 - 1.0 = 0.0 -> clamped to 0.1
         return {
-          z2: config.getLineWidth(2),
-          z0: config.getLineWidth(0),
+          z2: interpolateLineWidth(2, lineWidthStops),
+          z0: interpolateLineWidth(0, lineWidthStops),
         };
       });
 
@@ -1375,17 +1365,14 @@ test.describe('Layer Configs Package', () => {
 
     test('extrapolates above highest zoom', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 4: 1.0, 8: 2.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 4: 1.0, 8: 2.0 };
         // slope = (2.0 - 1.0) / (8 - 4) = 0.25
         // z10: 2.0 + 0.25 * (10 - 8) = 2.0 + 0.5 = 2.5
         // z12: 2.0 + 0.25 * (12 - 8) = 2.0 + 1.0 = 3.0
         return {
-          z10: config.getLineWidth(10),
-          z12: config.getLineWidth(12),
+          z10: interpolateLineWidth(10, lineWidthStops),
+          z12: interpolateLineWidth(12, lineWidthStops),
         };
       });
 
@@ -1395,18 +1382,15 @@ test.describe('Layer Configs Package', () => {
 
     test('clamps extrapolated values to minimum 0.1', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          // Decreasing slope that would go negative
-          lineWidthStops: { 5: 1.0, 10: 0.5 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        // Decreasing slope that would go negative
+        const lineWidthStops = { 5: 1.0, 10: 0.5 };
         // slope = (0.5 - 1.0) / (10 - 5) = -0.1
         // z0: 1.0 + (-0.1) * (0 - 5) = 1.0 + 0.5 = 1.5 (extrapolates up going backwards)
         // z15: 0.5 + (-0.1) * (15 - 10) = 0.5 - 0.5 = 0.0 -> clamped to 0.1
         return {
-          z0: config.getLineWidth(0),
-          z15: config.getLineWidth(15),
+          z0: interpolateLineWidth(0, lineWidthStops),
+          z15: interpolateLineWidth(15, lineWidthStops),
         };
       });
 
@@ -1416,17 +1400,14 @@ test.describe('Layer Configs Package', () => {
 
     test('handles multiple stops correctly', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          lineWidthStops: { 1: 0.5, 4: 1.0, 8: 2.0, 12: 4.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        const lineWidthStops = { 1: 0.5, 4: 1.0, 8: 2.0, 12: 4.0 };
         return {
-          z1: config.getLineWidth(1),
-          z2: config.getLineWidth(2),   // between 1 and 4
-          z6: config.getLineWidth(6),   // between 4 and 8
-          z10: config.getLineWidth(10), // between 8 and 12
-          z14: config.getLineWidth(14), // extrapolate above 12
+          z1: interpolateLineWidth(1, lineWidthStops),
+          z2: interpolateLineWidth(2, lineWidthStops),   // between 1 and 4
+          z6: interpolateLineWidth(6, lineWidthStops),   // between 4 and 8
+          z10: interpolateLineWidth(10, lineWidthStops), // between 8 and 12
+          z14: interpolateLineWidth(14, lineWidthStops), // extrapolate above 12
         };
       });
 
@@ -1445,17 +1426,14 @@ test.describe('Layer Configs Package', () => {
 
     test('handles unsorted stops', async ({ page }) => {
       const result = await page.evaluate(() => {
-        const config = new window.layerConfigsPackage.LayerConfig({
-          id: 'test',
-          // Stops provided in non-sorted order
-          lineWidthStops: { 10: 2.5, 1: 0.5, 5: 1.0 },
-          lineStyles: [{ color: 'red', layerSuffix: 'osm' }],
-        });
+        const { interpolateLineWidth } = window.layerConfigsPackage;
+        // Stops provided in non-sorted order
+        const lineWidthStops = { 10: 2.5, 1: 0.5, 5: 1.0 };
         return {
-          z1: config.getLineWidth(1),
-          z3: config.getLineWidth(3),
-          z5: config.getLineWidth(5),
-          z10: config.getLineWidth(10),
+          z1: interpolateLineWidth(1, lineWidthStops),
+          z3: interpolateLineWidth(3, lineWidthStops),
+          z5: interpolateLineWidth(5, lineWidthStops),
+          z10: interpolateLineWidth(10, lineWidthStops),
         };
       });
 

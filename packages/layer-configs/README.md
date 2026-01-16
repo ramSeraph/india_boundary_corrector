@@ -90,6 +90,7 @@ layerConfigs.remove('my-custom-style');
 |----------|------|---------|-------------|
 | `color` | string | required | Line color (CSS color string) |
 | `layerSuffix` | string | required | Data layer suffix (`osm`, `ne`, `osm-disp`, `ne-disp`, `osm-internal`, `ne-internal`). Determines which PMTiles layer to use (`to-add-{suffix}`, `to-del-{suffix}`). |
+| `lineWidthStops` | object | (inherited) | Optional override for zoom-to-width interpolation. If not provided, inherits from parent `LayerConfig`. |
 | `widthFraction` | number | `1.0` | Width as fraction of base line width |
 | `dashArray` | number[] | `undefined` | Dash pattern array (omit for solid line) |
 | `alpha` | number | `1.0` | Opacity/alpha value from 0 (transparent) to 1 (opaque) |
@@ -126,16 +127,17 @@ const config = new LayerConfig({
 // Get active styles for a specific zoom
 config.getLineStylesForZoom(3); // Returns NE style only
 config.getLineStylesForZoom(7); // Returns OSM styles
-
-// Get interpolated line width for a zoom level
-config.getLineWidth(5); // Returns interpolated width between stops
 ```
 
 ### Line Width Calculation
 
-Line widths are interpolated/extrapolated from the `lineWidthStops` map:
-- **Addition lines**: `baseLineWidth * widthFraction` where baseLineWidth is interpolated from `lineWidthStops`
-- **Deletion lines**: `baseLineWidth * maxWidthFraction * delWidthFactor` where maxWidthFraction is the largest widthFraction among active styles
+Line widths are interpolated/extrapolated from the `lineWidthStops` map. Each `LineStyle` has a `getLineWidth(zoom)` method that returns the interpolated width for a given zoom level.
+
+- **Per-style override**: If a `LineStyle` has its own `lineWidthStops`, those are used; otherwise it inherits from the parent `LayerConfig`.
+- **Addition lines**: `style.getLineWidth(zoom) * widthFraction`
+- **Deletion lines**: `style.getLineWidth(zoom) * widthFraction * delWidthFactor` (using the maximum among active styles for that layer suffix)
+
+You can also use the `interpolateLineWidth(zoom, lineWidthStops)` function directly for custom calculations.
 
 ## License
 

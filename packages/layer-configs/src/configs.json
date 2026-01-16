@@ -59,8 +59,7 @@
     "lineStyles": [
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.5 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "delWidthFactor": 0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.2,  "startZoom": 6, "endZoom": 11, "widthFraction": 5, "lineExtensionFactor": 0.1 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.2,  "startZoom": 12, "widthFraction": 4, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1,  "startZoom": 6,  "lineWidthStops": { "6": 9, "10": 8 }, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5,  "delWidthFactor": 0 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.5, "dashArray": [2, 2], "delWidthFactor": 2.0 },
@@ -87,8 +86,7 @@
     "lineStyles": [
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.5 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "delWidthFactor": 0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1,  "startZoom": 6, "endZoom": 11, "widthFraction": 5, "lineExtensionFactor": 0.1 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1,  "startZoom": 12, "widthFraction": 4, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1, "startZoom": 6, "lineWidthStops": { "6": 7, "9": 6, "11": 4 }, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5,  "delWidthFactor": 0 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.5, "dashArray": [4, 4], "delWidthFactor": 2.0 },
@@ -106,8 +104,11 @@
       { "color": "rgb(83, 83, 83)", "layerSuffix": "ne", "startZoom": 4, "endZoom": 6 },
       { "color": "rgb(173, 173, 173)", "layerSuffix": "osm", "startZoom": 7, "endZoom": 8, "alpha": 0.5, "widthFraction": 4 },
       { "color": "rgb(83, 83, 83)", "layerSuffix": "osm", "startZoom": 7, "endZoom": 8 },
+      { "color": "rgb(83, 83, 83)", "layerSuffix": "osm-internal", "widthFraction": 0.75, "startZoom": 7, "endZoom": 8 },
       { "color": "rgb(199, 158, 204)", "layerSuffix": "osm", "startZoom": 9, "widthFraction": 7, "alpha": 0.6, "lineExtensionFactor": 0.2 },
-      { "color": "rgb(175, 41, 203)", "layerSuffix": "osm", "startZoom": 9, "lineExtensionFactor": 0.2 }
+      { "color": "rgb(175, 41, 203)", "layerSuffix": "osm", "startZoom": 9, "lineExtensionFactor": 0.2 },
+      { "color": "rgb(199, 158, 204)", "layerSuffix": "osm-internal", "startZoom": 9, "widthFraction": 2.25, "alpha": 0.6, "lineExtensionFactor": 0.2 },
+      { "color": "rgb(175, 41, 203)", "layerSuffix": "osm-internal", "startZoom": 9, "widthFactor": 0.75, "lineExtensionFactor": 0.2 }
     ]
   },
   {

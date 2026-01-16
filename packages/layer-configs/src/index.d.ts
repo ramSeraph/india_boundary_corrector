@@ -10,13 +10,23 @@ export const INFINITY: -1;
 export const MIN_LINE_WIDTH: number;
 
 /**
+ * Interpolate or extrapolate line width for a given zoom level.
+ * @param zoom - Zoom level
+ * @param lineWidthStops - Map of zoom level to line width (at least 2 entries)
+ * @returns Interpolated/extrapolated line width (minimum MIN_LINE_WIDTH)
+ */
+export function interpolateLineWidth(zoom: number, lineWidthStops: Record<number, number>): number;
+
+/**
  * Line style definition for drawing boundary lines
  */
-export interface LineStyle {
+export interface LineStyleOptions {
   /** Line color (CSS color string) */
   color: string;
   /** Layer suffix (e.g., 'osm', 'ne', 'osm-disp') - determines PMTiles layer */
   layerSuffix: string;
+  /** Line width stops: map of zoom level to line width (required) */
+  lineWidthStops: Record<number, number>;
   /** Width as fraction of base line width (default: 1.0) */
   widthFraction?: number;
   /** Dash pattern array (omit for solid line) */
@@ -34,7 +44,59 @@ export interface LineStyle {
 }
 
 /**
- * Configuration options for LayerConfig
+ * Line style class for drawing boundary lines
+ */
+export class LineStyle {
+  readonly color: string;
+  readonly layerSuffix: string;
+  readonly lineWidthStops: Record<number, number>;
+  readonly widthFraction: number;
+  readonly dashArray?: number[];
+  readonly alpha: number;
+  readonly startZoom: number;
+  readonly endZoom: number;
+  readonly lineExtensionFactor: number;
+  readonly delWidthFactor: number;
+
+  constructor(options: LineStyleOptions);
+
+  /**
+   * Get base line width for this style at a given zoom level.
+   * @param zoom - Zoom level
+   */
+  getLineWidth(zoom: number): number;
+
+  /**
+   * Check if this style is active at the given zoom level.
+   * @param z - Zoom level
+   */
+  isActiveAtZoom(z: number): boolean;
+
+  /**
+   * Serialize to plain object.
+   */
+  toJSON(): LineStyleOptions;
+
+  /**
+   * Create from plain object with validation.
+   */
+  static fromJSON(obj: LineStyleOptions, index?: number): LineStyle;
+
+  /**
+   * Validate a LineStyle configuration object.
+   */
+  static validateJSON(obj: unknown, index?: number, requireLineWidthStops?: boolean): void;
+}
+
+/**
+ * Line style input for LayerConfig (lineWidthStops is optional, inherited from config if not provided)
+ */
+export type LineStyleInput = Omit<LineStyleOptions, 'lineWidthStops'> & {
+  lineWidthStops?: Record<number, number>;
+};
+
+/**
+ * Configuration options for LayerConfig input (constructor)
  */
 export interface LayerConfigOptions {
   /** Unique identifier for this config */
@@ -43,8 +105,18 @@ export interface LayerConfigOptions {
   tileUrlTemplates?: string | string[];
   /** Line width stops: map of zoom level to line width (at least 2 entries) */
   lineWidthStops?: Record<number, number>;
-  /** Line styles array - lines are drawn in order (required) */
-  lineStyles: LineStyle[];
+  /** Line styles array - lines are drawn in order (required). lineWidthStops is optional per style (inherited from config if not provided) */
+  lineStyles: LineStyleInput[];
+}
+
+/**
+ * Serialized LayerConfig (from toJSON)
+ */
+export interface LayerConfigJSON {
+  id: string;
+  tileUrlTemplates: string[];
+  lineWidthStops: Record<number, number>;
+  lineStyles: LineStyleOptions[];
 }
 
 /**
@@ -71,14 +143,6 @@ export class LayerConfig {
   getLayerSuffixesForZoom(z: number): string[];
 
   /**
-   * Interpolate or extrapolate line width for a given zoom level.
-   * Uses the lineWidthStops map to calculate the appropriate width.
-   * @param zoom - Zoom level
-   * @returns Interpolated/extrapolated line width (minimum MIN_LINE_WIDTH)
-   */
-  getLineWidth(zoom: number): number;
-
-  /**
    * Check if this config matches the given template URLs (with {z}/{x}/{y} placeholders)
    * @param templates - Single template URL or array of template URLs
    */
@@ -100,12 +164,12 @@ export class LayerConfig {
   /**
    * Serialize the config to a plain object for postMessage
    */
-  toJSON(): LayerConfigOptions;
+  toJSON(): LayerConfigJSON;
 
   /**
    * Create a LayerConfig from a plain object (e.g., from postMessage)
    */
-  static fromJSON(obj: LayerConfigOptions): LayerConfig;
+  static fromJSON(obj: LayerConfigOptions | LayerConfigJSON): LayerConfig;
 }
 
 /**

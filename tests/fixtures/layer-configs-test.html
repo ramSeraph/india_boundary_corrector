@@ -17,7 +17,8 @@
       LayerConfigRegistry,
       layerConfigs,
       configsJson,
-      INFINITY
+      INFINITY,
+      interpolateLineWidth
     } from '@india-boundary-corrector/layer-configs';
     
     // Expose for testing
@@ -27,6 +28,7 @@
       layerConfigs,
       configsJson,
       INFINITY,
+      interpolateLineWidth,
       // Get configs from registry for backward compatibility with tests
       cartoDbDark: layerConfigs.get('cartodb-dark'),
       cartoDbLight: layerConfigs.get('cartodb-light'),

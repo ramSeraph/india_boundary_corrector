@@ -498,16 +498,15 @@ export class TileFixer {
     // Draw original raster tile
     ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize);
 
-    // Calculate base line width
-    const baseLineWidth = layerConfig.getLineWidth(zoom);
-
     // Calculate deletion width per layer suffix based on styles using that suffix
-    // For each suffix, use the maximum widthFraction * delWidthFactor among styles using it
+    // For each suffix, use the maximum (baseLineWidth * widthFraction * delWidthFactor) among styles using it
     const delLineWidthBySuffix = {};
     for (const suffix of layerSuffixes) {
       const stylesForSuffix = activeLineStyles.filter(s => s.layerSuffix === suffix);
-      const maxProduct = Math.max(...stylesForSuffix.map(s => s.widthFraction * s.delWidthFactor));
-      delLineWidthBySuffix[suffix] = baseLineWidth * maxProduct;
+      const maxDelWidth = Math.max(...stylesForSuffix.map(s => 
+        s.getLineWidth(zoom) * s.widthFraction * s.delWidthFactor
+      ));
+      delLineWidthBySuffix[suffix] = maxDelWidth;
     }
 
     // PHASE 1: Apply all deletions first (median blur)
@@ -528,7 +527,7 @@ export class TileFixer {
 
     // PHASE 2: Draw all additions (in lineStyles array order)
     for (const style of activeLineStyles) {
-      const { color, layerSuffix, widthFraction, dashArray, alpha, lineExtensionFactor } = style;
+      const { color, widthFraction, dashArray, alpha, lineExtensionFactor, layerSuffix } = style;
       const addLayerName = `to-add-${layerSuffix}`;
       let addFeatures = corrections[addLayerName] || [];
       
@@ -539,7 +538,7 @@ export class TileFixer {
           addFeatures = extendFeaturesByFactor(addFeatures, lineExtensionFactor, delLineWidth, tileSize);
         }
         
-        const lineWidth = baseLineWidth * widthFraction;
+        const lineWidth = style.getLineWidth(zoom) * widthFraction;
         drawFeatures(ctx, addFeatures, color, lineWidth, tileSize, dashArray, alpha);
       }
     }

@@ -49,7 +49,9 @@ import {
   layerConfigs,
   INFINITY,
   MIN_LINE_WIDTH,
+  interpolateLineWidth,
   type LayerConfigOptions,
+  type LayerConfigJSON,
   type LineStyle,
   type TileCoords,
   type ParsedTileUrl,
@@ -58,6 +60,11 @@ import {
 // Constants
 expectTypeOf(INFINITY).toEqualTypeOf<-1>();
 expectTypeOf(MIN_LINE_WIDTH).toBeNumber();
+
+// interpolateLineWidth function
+expectTypeOf(interpolateLineWidth).toBeFunction();
+expectTypeOf(interpolateLineWidth).parameters.toEqualTypeOf<[zoom: number, lineWidthStops: Record<number, number>]>();
+expectTypeOf(interpolateLineWidth).returns.toBeNumber();
 
 // LayerConfig class
 expectTypeOf(LayerConfig).toBeConstructibleWith({
@@ -92,26 +99,29 @@ expectTypeOf<LayerConfig>().toHaveProperty('extractCoords').toBeFunction();
 expectTypeOf<LayerConfig['extractCoords']>().parameters.toEqualTypeOf<[url: string]>();
 expectTypeOf<LayerConfig['extractCoords']>().returns.toEqualTypeOf<TileCoords | null>();
 
-expectTypeOf<LayerConfig>().toHaveProperty('getLineWidth').toBeFunction();
-expectTypeOf<LayerConfig['getLineWidth']>().parameters.toEqualTypeOf<[zoom: number]>();
-expectTypeOf<LayerConfig['getLineWidth']>().returns.toBeNumber();
-
 expectTypeOf<LayerConfig>().toHaveProperty('toJSON').toBeFunction();
-expectTypeOf<LayerConfig['toJSON']>().returns.toEqualTypeOf<LayerConfigOptions>();
+expectTypeOf<LayerConfig['toJSON']>().returns.toEqualTypeOf<LayerConfigJSON>();
 
 expectTypeOf(LayerConfig.fromJSON).toBeFunction();
-expectTypeOf(LayerConfig.fromJSON).parameters.toEqualTypeOf<[obj: LayerConfigOptions]>();
+expectTypeOf(LayerConfig.fromJSON).parameters.toEqualTypeOf<[obj: LayerConfigOptions | LayerConfigJSON]>();
 expectTypeOf(LayerConfig.fromJSON).returns.toEqualTypeOf<LayerConfig>();
 
-// LineStyle interface
+// LineStyle class - new properties
+expectTypeOf<LineStyle>().toHaveProperty('lineWidthStops').toEqualTypeOf<Record<number, number>>();
+expectTypeOf<LineStyle>().toHaveProperty('getLineWidth').toBeFunction();
+expectTypeOf<LineStyle['getLineWidth']>().parameters.toEqualTypeOf<[zoom: number]>();
+expectTypeOf<LineStyle['getLineWidth']>().returns.toBeNumber();
+
+// LineStyle class - existing properties (these have defaults so are non-optional on instances)
 expectTypeOf<LineStyle>().toHaveProperty('color').toBeString();
 expectTypeOf<LineStyle>().toHaveProperty('layerSuffix').toBeString();
-expectTypeOf<LineStyle>().toHaveProperty('widthFraction').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('widthFraction').toBeNumber();
 expectTypeOf<LineStyle>().toHaveProperty('dashArray').toEqualTypeOf<number[] | undefined>();
-expectTypeOf<LineStyle>().toHaveProperty('alpha').toEqualTypeOf<number | undefined>();
-expectTypeOf<LineStyle>().toHaveProperty('startZoom').toEqualTypeOf<number | undefined>();
-expectTypeOf<LineStyle>().toHaveProperty('endZoom').toEqualTypeOf<number | undefined>();
-expectTypeOf<LineStyle>().toHaveProperty('lineExtensionFactor').toEqualTypeOf<number | undefined>();
+expectTypeOf<LineStyle>().toHaveProperty('alpha').toBeNumber();
+expectTypeOf<LineStyle>().toHaveProperty('startZoom').toBeNumber();
+expectTypeOf<LineStyle>().toHaveProperty('endZoom').toBeNumber();
+expectTypeOf<LineStyle>().toHaveProperty('lineExtensionFactor').toBeNumber();
+expectTypeOf<LineStyle>().toHaveProperty('delWidthFactor').toBeNumber();
 
 // TileCoords interface
 expectTypeOf<TileCoords>().toEqualTypeOf<{ z: number; x: number; y: number }>();
