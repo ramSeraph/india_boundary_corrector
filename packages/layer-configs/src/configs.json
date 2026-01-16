@@ -55,11 +55,11 @@
       "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
       "https://basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png"
     ],
-    "lineWidthStops": { "1": 0.5, "2": 0.75, "3": 0.75, "4": 1.0, "5": 1.0, "7": 1.5, "16": 2.5 },
+    "lineWidthStops": { "1": 0.5, "2": 0.75, "3": 0.75, "4": 1.0, "5": 1.0, "7": 1.75, "16": 2.5 },
     "lineStyles": [
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.5 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "delWidthFactor": 0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1,  "startZoom": 6,  "lineWidthStops": { "6": 9, "10": 8 }, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1,  "startZoom": 6,  "lineWidthStops": { "6": 9, "10": 8, "14": 8 }, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5,  "delWidthFactor": 0 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.5, "dashArray": [2, 2], "delWidthFactor": 2.0 },
@@ -82,11 +82,11 @@
       "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png",
       "https://basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
     ],
-    "lineWidthStops": { "1": 0.75, "2": 0.75, "3": 0.75, "4": 1.0, "5": 1.0, "7": 1.5, "11": 2.0 },
+    "lineWidthStops": { "1": 1.0, "3": 1.0, "4": 2.0, "5": 2.0, "6": 2.5, "7": 3.0, "8": 3.0, "10": 4.0, "11": 4.0, "12": 4.0 },
     "lineStyles": [
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne", "endZoom": 4, "lineExtensionFactor": 0.1, "delWidthFactor": 2.5 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "ne-disp", "endZoom": 4, "delWidthFactor": 0 },
-      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1, "startZoom": 6, "lineWidthStops": { "6": 7, "9": 6, "11": 4 }, "lineExtensionFactor": 0.1 },
+      { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "alpha": 0.1, "startZoom": 6, "lineWidthStops": { "6": 20, "8": 19, "10": 18, "12": 17 }, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm", "startZoom": 5, "lineExtensionFactor": 0.1 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-disp", "startZoom": 5,  "delWidthFactor": 0 },
       { "color": "rgb(235, 214, 214)", "layerSuffix": "osm-internal", "startZoom": 5, "widthFraction": 0.5, "dashArray": [4, 4], "delWidthFactor": 2.0 },

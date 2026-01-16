@@ -338,8 +338,7 @@
     for (const config of builtinConfigs) {
       // Use first tileUrlTemplate, replacing {s} with 'a' for Leaflet compatibility
       const tileUrl = (config.tileUrlTemplates[0] || '')
-        .replace('{s}', 'a')
-        .replace('{r}', '');
+        .replace('{s}', 'a');
       presets[config.id] = {
         config,
         tileUrl,
