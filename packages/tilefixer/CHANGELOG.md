@@ -1,5 +1,26 @@
 # @india-boundary-corrector/tilefixer
 
+## 0.2.1
+
+### Patch Changes
+
+- ## v0.2.1
+
+  ### Features
+
+  - Add per-style `lineWidthStops` support to `LineStyle` for zoom-based width control
+  - Add `interpolateLineWidth` function for zoom-based width interpolation/extrapolation
+
+  ### Changes
+
+  - Update configs.json to use per-style lineWidthStops for OSM boundary styles
+  - Add osm-internal styles to open-topo config
+
+  ### Documentation
+
+  - Update jsfiddle links
+  - Add retina configs to layer-configs README
+
 ## 0.2.0
 
 ### Minor Changes
