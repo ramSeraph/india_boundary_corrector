@@ -4,7 +4,7 @@
 
 PMTiles data package for India boundary corrections.
 
-[**🗺️ View PMTiles data on pmtiles.io**](https://pmtiles.io/#url=https%3A%2F%2Fcdn.jsdelivr.net%2Fnpm%2F%40india-boundary-corrector%2Fdata%2Findia_boundary_corrections.pmtiles)
+[**🗺️ View PMTiles data on pmtiles.io**](https://pmtiles.io/#url=https%3A%2F%2Fcdn.jsdelivr.net%2Fnpm%2F%40india-boundary-corrector%2Fdata%2Findia_boundary_corrections.pmtiles.gz)
 
 ## Layers
 
