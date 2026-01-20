@@ -141,7 +141,9 @@ importScripts('https://cdn.jsdelivr.net/npm/@india-boundary-corrector/service-wo
 
 Built-in configurations for:
 - **CartoDB Dark** (`cartodb-dark`): CartoDB dark tiles
+- **CartoDB Dark Retina** (`cartodb-dark-retina`): CartoDB dark tiles (retina/high-DPI)
 - **CartoDB Light** (`cartodb-light`): CartoDB light/voyager tiles
+- **CartoDB Light Retina** (`cartodb-light-retina`): CartoDB light/voyager tiles (retina/high-DPI)
 - **OpenTopoMap** (`open-topo`): OpenTopoMap tiles
 - **OSM Carto** (`osm-carto`): OpenStreetMap standard tiles
 - **OSM HOT** (`osm-hot`): Humanitarian OpenStreetMap tiles
