@@ -97,7 +97,9 @@
     "id": "open-topo",
     "tileUrlTemplates": [
       "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-      "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+      "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+      "https://{s}.tile.top-o-map.de/{z}/{x}/{y}.png",
+      "https://tile.top-o-map.de/{z}/{x}/{y}.png"
     ],
     "lineWidthStops": { "4": 0.75, "5": 1.0, "6": 1.25, "7": 1.5, "8": 1.75, "9": 1.25, "10": 1.25, "13": 1.5 },
     "lineStyles": [
