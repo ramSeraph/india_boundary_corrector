@@ -12,3 +12,4 @@ TODO.md
 .github/copilot-instructions.md
 test-debug-images/
 scratch/
+.DS_Store

@@ -2,7 +2,7 @@
 
 ## Background
 
-Due to a bug in how some CDNs (including the ones jsDelivr/github pages use) and brosers handle transparent compression of PMTiles files, range requests can fail or return incorrect content-length headers. This happens because:
+Due to a bug in how some CDNs (including the ones jsDelivr/github pages use) and browsers handle transparent compression of PMTiles files, range requests can fail or return incorrect content-length headers. This happens because:
 
 1. CDNs may transparently compress files and return `Content-Encoding: gzip`
 2. Firefox is more direct in asking for compressed data.

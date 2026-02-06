@@ -15,13 +15,13 @@ The PMTiles file contains 12 layers:
 | `to-add-osm` | Boundary lines to add over OSM-based tiles (higher zoom) |
 | `to-del-osm` | Boundary lines to mask/delete from OSM-based tiles |
 | `to-add-osm-disp` | Disputed boundary lines to add over OSM-based tiles |
-| `to-del-osm-disp` | Disputed boundary lines to delete from OSM-based tiles (same as add-disp) |
+| `to-del-osm-disp` | Disputed boundary lines to delete from OSM-based tiles (same as add-osm-disp) |
 | `to-add-osm-internal` | Internal state boundary lines to add (Indian states within claimed territory) |
 | `to-del-osm-internal` | Internal boundary lines to delete (Chinese state boundaries within India's claimed territory) |
 | `to-add-ne` | Boundary lines to add over Natural Earth tiles (lower zoom) |
 | `to-del-ne` | Boundary lines to mask/delete from Natural Earth tiles |
 | `to-add-ne-disp` | Disputed boundary lines to add over Natural Earth tiles |
-| `to-del-ne-disp` | Disputed boundary lines to delete from Natural Earth tiles (same as add-disp) |
+| `to-del-ne-disp` | Disputed boundary lines to delete from Natural Earth tiles (same as add-ne-disp) |
 | `to-add-ne-internal` | Internal state boundary lines to add over Natural Earth tiles (J&K + PoK combined) |
 | `to-del-ne-internal` | Internal boundary lines to delete from Natural Earth tiles (Chinese state boundaries within India's claimed territory) |
 
