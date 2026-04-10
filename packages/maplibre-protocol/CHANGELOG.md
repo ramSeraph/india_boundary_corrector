@@ -1,5 +1,14 @@
 # @india-boundary-corrector/maplibre-protocol
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [28287cb]
+  - @india-boundary-corrector/layer-configs@0.2.2
+  - @india-boundary-corrector/data@0.2.2
+  - @india-boundary-corrector/tilefixer@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
