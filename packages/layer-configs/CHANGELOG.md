@@ -1,5 +1,11 @@
 # @india-boundary-corrector/layer-configs
 
+## 0.2.2
+
+### Patch Changes
+
+- 28287cb: Adjust to changes in OSM-Carto
+
 ## 0.2.1
 
 ### Patch Changes

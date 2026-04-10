@@ -1,5 +1,7 @@
 # @india-boundary-corrector/tilefixer
 
+## 0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
